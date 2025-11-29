@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stru - Structured Focus System</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23f97316%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/><polyline points=%2212 6 12 12 16 14%22/></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>*{font-family:'Nunito',sans-serif!important}</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // --- ICONS ---
+    const Icons = {
+      Plus: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+      Clock: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+      CheckSquare: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>,
+      Coffee: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>,
+      FileText: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>,
+      Play: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>,
+      Pause: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>,
+      Square: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>,
+      Check: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>,
+      X: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+      ArrowLeft: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>,
+      Edit3: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>,
+      Trash2: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>,
+      BarChart3: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>,
+      Calendar: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
+      Infinity: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.33-6 4Z"/></svg>,
+      Sun: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>,
+      Moon: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    };
+
+const priorityColors = {
+      must: {bg:'bg-rose-100',border:'border-rose-400',text:'text-rose-700',dot:'bg-rose-400',label:'Priority'},
+      should: {bg:'bg-orange-100',border:'border-orange-400',text:'text-orange-700',dot:'bg-orange-400',label:'High'},
+      could: {bg:'bg-yellow-50',border:'border-yellow-300',text:'text-yellow-700',dot:'bg-yellow-400',label:'Medium'},
+      want: {bg:'bg-green-50',border:'border-green-400',text:'text-green-700',dot:'bg-green-400',label:'Optional'},
+      '': {bg:'bg-stone-100',border:'border-stone-300',text:'text-stone-600',dot:'bg-stone-400',label:'No Priority'}
+    };
+    const priorityOrder = ['must','should','could','want',''];
+    const formatTime = (sec) => `${Math.floor(sec/60)}:${(sec%60).toString().padStart(2,'0')}`;
+    const workerCode = `let interval=null;self.onmessage=function(e){if(e.data==='start'){if(!interval){interval=setInterval(()=>self.postMessage('tick'),1000)}}else if(e.data==='stop'){if(interval){clearInterval(interval);interval=null}}};`;
+
+    // --- EXTERNAL COMPONENTS ---
+    const PrioritySelector = ({ currentPriority, onSelect, size='normal' }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      const ref = useRef(null);
+      useEffect(() => {
+        const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+        if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, [isOpen]);
+      const dotSize = size === 'large' ? 'w-5 h-5' : 'w-4 h-4';
+      return (
+        <div className="relative" ref={ref}>
+          <button onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }} className={`${priorityColors[currentPriority].dot} ${dotSize} rounded-full hover:ring-2 hover:ring-offset-2 hover:ring-stone-300 transition-all cursor-pointer flex-shrink-0`} />
+          {isOpen && (
+            <div className="absolute z-50 mt-2 bg-white rounded-xl shadow-lg border-2 border-stone-200 p-2 min-w-[160px]">
+              {priorityOrder.map(priority => (
+                <button key={priority} onClick={(e) => { e.stopPropagation(); onSelect(priority); setIsOpen(false); }} className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors text-left">
+                  <div className={`${priorityColors[priority].dot} w-4 h-4 rounded-full flex-shrink-0`} />
+                  <span className="text-base font-medium text-stone-700">{priorityColors[priority].label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+const AddTaskModal = ({ showAddTaskModal, setShowAddTaskModal, newTaskText, setNewTaskText, newTaskPriority, setNewTaskPriority, bulkTaskText, setBulkTaskText, addTask, addBulkTasks }) => {
+      if (!showAddTaskModal) return null;
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
+            <h3 className="text-2xl font-bold text-stone-800 mb-6">Add Tasks</h3>
+            <div className="mb-6">
+              <label className="block text-lg font-semibold mb-3 text-stone-700">Priority Level</label>
+              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base">
+                <option value="">No Priority</option>
+                <option value="must">Priority (Rose)</option>
+                <option value="should">High (Orange)</option>
+                <option value="could">Medium (Yellow)</option>
+                <option value="want">Optional (Green)</option>
+              </select>
+            </div>
+            <div className="mb-6">
+              <label className="block text-lg font-semibold mb-3 text-stone-700">Single Task</label>
+              <input autoFocus type="text" value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} placeholder="Enter a task..." className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base" onKeyDown={(e) => { if (e.key === 'Enter' && newTaskText.trim()) { addTask(newTaskText, newTaskPriority); setNewTaskText(''); setShowAddTaskModal(false); }}} />
+            </div>
+            <div className="mb-8">
+              <label className="block text-lg font-semibold mb-3 text-stone-700">Or Multiple Tasks (one per line)</label>
+              <textarea value={bulkTaskText} onChange={(e) => setBulkTaskText(e.target.value)} placeholder="Task 1&#10;Task 2" rows={5} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none resize-none text-base" />
+            </div>
+            <div className="flex space-x-4">
+              <button onClick={() => { if (newTaskText.trim()) { addTask(newTaskText, newTaskPriority); setNewTaskText(''); setShowAddTaskModal(false); } else if (bulkTaskText.trim()) { addBulkTasks(); } }} disabled={!newTaskText.trim() && !bulkTaskText.trim()} className="flex-1 bg-gradient-to-r from-rose-400 to-orange-400 text-white p-4 rounded-xl font-semibold text-lg disabled:bg-stone-300 disabled:from-stone-300 disabled:to-stone-300">Add Tasks</button>
+              <button onClick={() => { setShowAddTaskModal(false); setNewTaskText(''); setBulkTaskText(''); }} className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg">Cancel</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+const EditTaskModal = ({ showEditTaskModal, setShowEditTaskModal, editingTask, setEditingTask, editTask }) => {
+      if (!showEditTaskModal) return null;
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
+            <h3 className="text-2xl font-bold text-stone-800 mb-6">Edit Task</h3>
+            <div className="mb-6">
+              <label className="block text-lg font-semibold mb-3 text-stone-700">Task Text</label>
+              <input autoFocus type="text" value={editingTask?.text || ''} onChange={(e) => editingTask && setEditingTask({...editingTask, text: e.target.value})} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base" />
+            </div>
+            <div className="mb-8">
+              <label className="block text-lg font-semibold mb-3 text-stone-700">Priority Level</label>
+              <select value={editingTask?.priority || ''} onChange={(e) => editingTask && setEditingTask({...editingTask, priority: e.target.value})} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base">
+                <option value="">No Priority</option>
+                <option value="must">Priority (Rose)</option>
+                <option value="should">High (Orange)</option>
+                <option value="could">Medium (Yellow)</option>
+                <option value="want">Optional (Green)</option>
+              </select>
+            </div>
+            <div className="flex space-x-4">
+              <button onClick={() => { if (editingTask) { editTask(editingTask.id, editingTask.text, editingTask.priority); setShowEditTaskModal(false); setEditingTask(null); } }} className="flex-1 bg-gradient-to-r from-lime-400 to-green-500 text-white p-4 rounded-xl font-semibold text-lg">Save Changes</button>
+              <button onClick={() => { setShowEditTaskModal(false); setEditingTask(null); }} className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg">Cancel</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport }) => {
+      const [showResetConfirm, setShowResetConfirm] = useState(false);
+      const fileInputRef = useRef(null);
+      
+      if (!isOpen) return null;
+      
+      const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) { onImport(file); onClose(); }
+      };
+
+      const handleReset = (clearType) => { onResetDay(clearType); setShowResetConfirm(false); onClose(); };
+      
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
+            <h3 className="text-2xl font-bold text-stone-800 mb-6">Settings</h3>
+            
+            {/* Backup & Restore Section */}
+            <div className="mb-8 border-b-2 border-stone-100 pb-8">
+               <h4 className="text-xl font-bold text-stone-800 mb-4">💾 Data Backup</h4>
+               <div className="flex space-x-4">
+                 <button onClick={onExport} className="flex-1 bg-stone-100 text-stone-700 border-2 border-stone-300 p-4 rounded-xl font-semibold hover:bg-stone-200">Export Backup</button>
+                 <button onClick={() => fileInputRef.current.click()} className="flex-1 bg-stone-100 text-stone-700 border-2 border-stone-300 p-4 rounded-xl font-semibold hover:bg-stone-200">Import Backup</button>
+                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".json" />
+               </div>
+            </div>
+
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-stone-800 mb-4 flex items-center"><span className="mr-2">🗓️</span> Daily Reset</h4>
+              {!showResetConfirm ? (
+                <button onClick={() => setShowResetConfirm(true)} className="w-full bg-orange-50 border-2 border-orange-300 text-orange-700 px-6 py-4 rounded-xl hover:bg-orange-100 transition-colors font-semibold text-lg">Start New Day</button>
+              ) : (
+                <div className="bg-orange-50 border-2 border-orange-300 p-6 rounded-xl space-y-3">
+                  <button onClick={() => handleReset('tasks')} className="w-full bg-white border-2 border-stone-300 text-stone-800 px-5 py-3 rounded-xl font-medium text-left"><div>Clear Tasks Only</div><div className="text-sm text-stone-600">Removes tasks, keeps history</div></button>
+                  <button onClick={() => handleReset('everything')} className="w-full bg-white border-2 border-red-300 text-red-700 px-5 py-3 rounded-xl font-medium text-left"><div>Clear Everything</div><div className="text-sm text-red-600">Removes tasks and history</div></button>
+                  <button onClick={() => setShowResetConfirm(false)} className="w-full bg-stone-200 text-stone-700 px-5 py-3 rounded-xl font-medium">Cancel</button>
+                </div>
+              )}
+            </div>
+            <button onClick={onClose} className="w-full bg-stone-700 text-white px-6 py-4 rounded-xl hover:bg-stone-800 transition-colors font-semibold text-lg">Done</button>
+          </div>
+        </div>
+      );
+    };
+
+    const BreakReminderModal = ({ isOpen, onTakeBreak, onSkip }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-8 w-full max-w-lg text-center">
+            <Icons.Coffee size={64} className="mx-auto mb-4 text-orange-400" />
+            <h3 className="text-2xl font-bold text-stone-800 mb-2">Time for a Break?</h3>
+            <p className="text-lg text-stone-600 mb-6">You've completed a session. Taking breaks helps maintain focus.</p>
+            <div className="flex space-x-4">
+              <button onClick={onTakeBreak} className="flex-1 bg-gradient-to-r from-orange-400 to-rose-400 text-white px-6 py-4 rounded-xl hover:from-orange-500 hover:to-rose-500 font-semibold text-lg">Take a Break</button>
+              <button onClick={onSkip} className="flex-1 bg-stone-200 text-stone-700 px-6 py-4 rounded-xl hover:bg-stone-300 font-semibold text-lg">Skip</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+    
+    const StartDayModal = ({ isOpen, onClose }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-10 w-full max-w-md text-center shadow-2xl transform transition-all">
+            <div className="mx-auto bg-orange-100 w-20 h-20 rounded-full flex items-center justify-center mb-6">
+              <Icons.Sun size={48} className="text-orange-500" />
+            </div>
+            <h3 className="text-3xl font-bold text-stone-800 mb-2">Starting Workday</h3>
+            <p className="text-2xl font-medium text-orange-500 mb-4">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+            <p className="text-lg text-stone-600 mb-8">Let's make today productive. You got this!</p>
+            <button onClick={onClose} className="w-full bg-gradient-to-r from-orange-400 to-rose-400 text-white py-4 rounded-xl font-bold text-xl shadow-lg hover:opacity-90">Let's Go</button>
+          </div>
+        </div>
+      );
+    };
+
+    const EndDayModal = ({ isOpen, onClose }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-10 w-full max-w-md text-center shadow-2xl transform transition-all">
+            <div className="mx-auto bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mb-6">
+              <Icons.Moon size={48} className="text-indigo-900" />
+            </div>
+            <h3 className="text-3xl font-bold text-stone-800 mb-2">Workday Closed</h3>
+            <p className="text-2xl font-medium text-indigo-900 mb-4">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+            <p className="text-lg text-stone-600 mb-8">Great job today. Time to disconnect and recharge.</p>
+            <button onClick={onClose} className="w-full bg-gradient-to-r from-indigo-900 via-purple-800 to-purple-900 text-white py-4 rounded-xl font-bold text-xl shadow-lg hover:opacity-90">Goodnight</button>
+          </div>
+        </div>
+      );
+    };
+
+    const BreakSwitchModal = ({ isOpen, onClose, onConfirm, onEndDay }) => {
+      if (!isOpen) return null;
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg border-4 border-indigo-900 shadow-2xl text-center">
+            <div className="text-6xl mb-4">🌙</div>
+            <h3 className="text-3xl font-bold text-indigo-900 mb-4">Past Break Switch</h3>
+            <p className="text-lg text-stone-600 mb-8">It is past 10 PM. To maintain your rhythm, it is recommended to stop for today.</p>
+            <div className="flex flex-col space-y-3">
+               <button onClick={onEndDay} className="w-full bg-indigo-900 text-white p-4 rounded-xl font-bold text-xl hover:bg-indigo-800 shadow-lg">End Workday</button>
+               <button onClick={onConfirm} className="w-full bg-stone-200 text-stone-700 p-4 rounded-xl font-bold text-lg hover:bg-stone-300">Override & Start Session</button>
+            </div>
+            <button onClick={onClose} className="mt-6 text-stone-400 font-medium hover:text-stone-600 underline">Cancel</button>
+          </div>
+        </div>
+      );
+    };
+
+// Global Helper for "1h 30m" format
+    const formatDur = (m) => {
+      if (!m) return '0m';
+      return m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
+    };
+
+    const HistoryScreen = ({ setCurrentScreen, history }) => (
+      <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200 p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center mb-8">
+            <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl shadow-sm"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+            <h2 className="text-4xl font-bold text-stone-800">History Log</h2>
+          </div>
+          
+          {history.length === 0 ? (
+            <div className="text-center py-20 text-stone-500 text-xl">No history recorded yet. Complete a workday to see stats here!</div>
+          ) : (
+            <div className="bg-white rounded-3xl shadow-lg border-2 border-stone-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-stone-50 border-b-2 border-stone-200 text-stone-600">
+                      <th className="p-5 font-bold">Date</th>
+                      <th className="p-5 font-bold">Hours</th>
+                      <th className="p-5 font-bold">Sessions</th>
+                      <th className="p-5 font-bold">Tasks</th>
+                      <th className="p-5 font-bold text-center">% Done</th>
+                      <th className="p-5 font-bold">Breaks</th>
+                      <th className="p-5 font-bold">Break Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.slice().reverse().map((day, i) => (
+                      <tr key={i} className="border-b border-stone-100 hover:bg-stone-50 transition-colors">
+                        <td className="p-5 font-bold text-stone-800">{new Date(day.date).toLocaleDateString()}</td>
+                        <td className="p-5 text-sm text-stone-600">
+                          {new Date(day.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - {new Date(day.endTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                        </td>
+                        <td className="p-5"><span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full font-bold text-sm">{day.sessionCount}</span></td>
+                        <td className="p-5 text-stone-600">{day.completedCount} / {day.taskCount}</td>
+                        <td className="p-5 text-center">
+                          <div className="w-full bg-stone-200 rounded-full h-2.5 dark:bg-gray-700">
+                            <div className="bg-green-500 h-2.5 rounded-full" style={{width: `${day.completionRate}%`}}></div>
+                          </div>
+                          <div className="text-xs mt-1 font-bold text-green-600">{day.completionRate}%</div>
+                        </td>
+                        <td className="p-5 text-stone-600">{day.breakCount}</td>
+                        <td className="p-5 font-medium text-orange-600">{formatDur(day.breakDuration)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+    
+    // --- SCREENS ---
+const HomeScreen = ({ setCurrentScreen, setShowSoundSettings, availableTasks, dailyReport, priorities, handleStartDay, handleEndDay }) => (
+      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4">
+            <div className="text-center md:text-left"><h1 className="text-5xl font-bold text-stone-800 mb-2">Stru</h1><p className="text-xl text-stone-600">Structured Focus System</p></div>
+            <div className="flex gap-3">
+              <button onClick={handleStartDay} className="w-32 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="Start New Day"><Icons.Sun size={20} className="text-white" /><span>Start</span></button>
+              <button onClick={handleEndDay} className="w-32 bg-gradient-to-r from-indigo-900 via-purple-800 to-purple-900 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="End Workday"><Icons.Moon size={20} className="text-white" /><span>End</span></button>
+              <button onClick={() => setShowSoundSettings(true)} className="bg-white px-4 py-3 rounded-xl hover:bg-stone-50 border-2 border-stone-200 font-semibold text-stone-700 shadow-sm">⚙️</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            <button onClick={() => setCurrentScreen('masterList')} className="bg-gradient-to-br from-rose-400 to-orange-400 p-10 rounded-3xl hover:from-rose-500 hover:to-orange-500 shadow-lg transform hover:scale-[1.02] transition-all text-left">
+              <Icons.CheckSquare size={56} className="text-white mb-4" /><h3 className="text-3xl font-bold text-white mb-2">Master Task List</h3><p className="text-rose-50 text-lg">Manage all your tasks</p>
+              <div className="mt-6 bg-white/20 rounded-xl p-3 flex justify-between items-center text-white"><span className="font-medium">Active Tasks</span><span className="text-2xl font-bold">{availableTasks.length}</span></div>
+            </button>
+            <button onClick={() => setCurrentScreen('planSession')} className="bg-gradient-to-br from-lime-400 to-green-500 p-10 rounded-3xl hover:from-lime-500 hover:to-green-600 shadow-lg transform hover:scale-[1.02] transition-all text-left">
+              <Icons.Clock size={56} className="text-white mb-4" /><h3 className="text-3xl font-bold text-white mb-2">Start Work Session</h3><p className="text-lime-50 text-lg">Plan and begin focused work</p>
+              <div className="mt-6 bg-white/20 rounded-xl p-3 flex justify-between items-center text-white"><span className="font-medium">Today's Sessions</span><span className="text-2xl font-bold">{dailyReport.sessions.length}</span></div>
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-6"> {/* Changed grid to 4 columns */}
+            <button onClick={() => setCurrentScreen('break')} className="bg-white p-6 rounded-2xl hover:bg-orange-50 border-2 border-orange-200 shadow-sm hover:shadow-md text-left"><Icons.Coffee size={32} className="text-orange-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">Break</h3></button>
+            <button onClick={() => setCurrentScreen('sessionLog')} className="bg-white p-6 rounded-2xl hover:bg-rose-50 border-2 border-rose-200 shadow-sm hover:shadow-md text-left"><Icons.FileText size={32} className="text-rose-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">Log</h3></button>
+            <button onClick={() => setCurrentScreen('dailyReport')} className="bg-white p-6 rounded-2xl hover:bg-lime-50 border-2 border-lime-200 shadow-sm hover:shadow-md text-left"><Icons.BarChart3 size={32} className="text-lime-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">Report</h3></button>
+            {/* NEW HISTORY BUTTON */}
+            <button onClick={() => setCurrentScreen('history')} className="bg-white p-6 rounded-2xl hover:bg-indigo-50 border-2 border-indigo-200 shadow-sm hover:shadow-md text-left"><Icons.Calendar size={32} className="text-indigo-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">History</h3></button>
+          </div>
+          <div className="mt-12 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200">
+            <h4 className="text-xl font-bold text-stone-800 mb-6">Task Overview</h4>
+            <div className="grid grid-cols-5 gap-4">
+              {Object.entries(priorities).map(([key, data]) => {
+                const k = key === 'none' ? '' : key;
+                return (
+                  <div key={key} className={`${priorityColors[k].bg} p-4 rounded-xl border-2 ${priorityColors[k].border}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className={`${priorityColors[k].dot} w-4 h-4 rounded-full mt-1`}/>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${priorityColors[k].text}`}>{data.active}</div>
+                        <div className={`text-xs font-semibold ${priorityColors[k].text} opacity-70`}>{data.completed} done</div>
+                      </div>
+                    </div>
+                    <div className={`text-sm font-medium ${priorityColors[k].text}`}>{priorityColors[k].label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTasks, tasks, changePriority, setEditingTask, setShowEditTaskModal, toggleTaskCompletion, deleteTask, batchChangePriority }) => {
+      const [isBatchMode, setIsBatchMode] = useState(false);
+      const [selectedIds, setSelectedIds] = useState([]);
+      
+      const pendingCount = tasks.filter(t => !t.completed).length;
+      const completedCount = tasks.filter(t => t.completed).length;
+
+      const toggleSelection = (id) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+      };
+
+      const applyBatchPriority = (pri) => {
+        batchChangePriority(selectedIds, pri);
+        setIsBatchMode(false);
+        setSelectedIds([]);
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8 pb-32">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center mb-8">
+              <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+              <div><h2 className="text-4xl font-bold text-stone-800">Master Task List</h2><p className="text-stone-600 mt-1 font-medium">Pending: {pendingCount} • Completed: {completedCount}</p></div>
+              <div className="ml-auto flex space-x-2">
+                <button onClick={() => { setIsBatchMode(!isBatchMode); setSelectedIds([]); }} className={`px-5 py-3 rounded-xl font-semibold text-lg transition-all ${isBatchMode ? 'bg-stone-800 text-white' : 'bg-white text-stone-600 hover:bg-stone-50'}`}>
+                  {isBatchMode ? 'Cancel' : 'Select'}
+                </button>
+                {!isBatchMode && (
+                   <button onClick={() => setShowAddTaskModal(true)} className="bg-gradient-to-r from-rose-400 to-orange-400 text-white px-6 py-3 rounded-xl hover:from-rose-500 hover:to-orange-500 flex items-center space-x-2 font-semibold text-lg shadow-lg"><Icons.Plus size={24} /><span>Add</span></button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {availableTasks.map(t => (
+                <div key={t.id} onClick={() => isBatchMode && toggleSelection(t.id)} className={`${priorityColors[t.priority].bg} p-5 rounded-2xl border-2 ${isBatchMode && selectedIds.includes(t.id) ? 'border-stone-800 ring-2 ring-stone-800' : priorityColors[t.priority].border} flex items-center space-x-4 transition-all cursor-pointer`}>
+                  {isBatchMode ? (
+                     <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${selectedIds.includes(t.id) ? 'bg-stone-800 border-stone-800' : 'border-stone-400 bg-white'}`}>
+                       {selectedIds.includes(t.id) && <Icons.Check size={18} className="text-white" />}
+                     </div>
+                  ) : (
+                     <PrioritySelector currentPriority={t.priority} onSelect={(p) => changePriority(t.id, p)} size="large" />
+                  )}
+                  <span className="flex-1 text-lg text-stone-800 font-medium select-none">{t.text}</span>
+                  {!isBatchMode && (
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); setEditingTask(t); setShowEditTaskModal(true); }} className="p-2 hover:bg-white/50 rounded-lg"><Icons.Edit3 size={20} className="text-stone-600" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); toggleTaskCompletion(t.id); }} className="p-2 hover:bg-white/50 rounded-lg"><Icons.Check size={20} className="text-green-500" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteTask(t.id); }} className="p-2 hover:bg-white/50 rounded-lg"><Icons.Trash2 size={20} className="text-red-500" /></button>
+                    </>
+                  )}
+                </div>
+              ))}
+              
+              {/* Completed Tasks (Visual Only) */}
+              {!isBatchMode && tasks.filter(t => t.completed).map(t => (
+                <div key={t.id} className="bg-stone-100 p-5 rounded-2xl border-2 border-stone-200 flex items-center space-x-4 opacity-60">
+                  <div className={`${priorityColors[t.priority].dot} w-5 h-5 rounded-full`} />
+                  <span className="flex-1 text-lg text-stone-600 line-through font-medium">{t.text}</span>
+                  <button onClick={() => toggleTaskCompletion(t.id)}><Icons.X size={20} className="text-stone-500" /></button>
+                  <button onClick={() => deleteTask(t.id)}><Icons.Trash2 size={20} className="text-red-500" /></button>
+                </div>
+              ))}
+            </div>
+
+            {/* BATCH ACTION BAR */}
+            {isBatchMode && selectedIds.length > 0 && (
+               <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white px-8 py-4 rounded-full shadow-2xl border-2 border-stone-200 z-50 flex items-center space-x-6 animate-bounce-in">
+                 <span className="font-bold text-stone-700">{selectedIds.length} selected</span>
+                 <div className="h-8 w-0.5 bg-stone-200"></div>
+                 <div className="flex space-x-2">
+                    {['must','should','could','want',''].map(p => (
+                      <button key={p} onClick={() => applyBatchPriority(p)} className={`w-10 h-10 rounded-full border-2 ${priorityColors[p].dot} ${priorityColors[p].border} hover:scale-110 transition-transform`} title={priorityColors[p].label} />
+                    ))}
+                 </div>
+               </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const PlanSessionScreen = ({ setCurrentScreen, sessionDuration, setSessionDuration, startSession, selectedTasks, setSelectedTasks, availableTasks }) => (
+      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center mb-8">
+            <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+            <h2 className="text-4xl font-bold text-stone-800">Plan Focus Session</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Session Setup (1/3 width) */}
+            <div className="lg:col-span-1 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200 h-fit">
+              <h3 className="text-2xl font-bold mb-6 text-stone-800">Session Setup</h3>
+              <div className="mb-8">
+                <label className="block text-lg font-semibold mb-3 text-stone-700">Duration (minutes)</label>
+                <input type="text" value={sessionDuration} onChange={(e) => { const v = e.target.value; if(/^\d*$/.test(v)) setSessionDuration(v === '' ? '' : parseInt(v)||45); }} className="w-full p-4 border-2 border-stone-200 rounded-xl text-lg font-medium" />
+              </div>
+              <div className="mb-8 grid grid-cols-3 gap-3">
+                {[15, 30, 45, 60, 75, 90].map(d => <button key={d} onClick={() => setSessionDuration(d)} className={`p-4 rounded-xl font-semibold ${sessionDuration === d ? 'bg-gradient-to-r from-rose-400 to-orange-400 text-white' : 'bg-stone-100 text-stone-700'}`}>{d} min</button>)}
+              </div>
+              <button onClick={startSession} className="w-full bg-gradient-to-r from-lime-400 to-green-500 text-white p-5 rounded-xl font-bold text-xl shadow-lg"><Icons.Play size={24} className="inline mr-2" />Start Session</button>
+            </div>
+            
+            {/* Select Tasks (2/3 width) */}
+            <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200">
+              <h3 className="text-2xl font-bold mb-2 text-stone-800">Select Tasks</h3>
+              <div className="text-stone-500 font-medium mb-6 flex space-x-6">
+                <span className="text-green-600">Selected: {selectedTasks.length}</span>
+                <span>Remaining Available: {availableTasks.length - selectedTasks.length}</span>
+              </div>
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {availableTasks.map(t => (
+                  <button key={t.id} onClick={() => setSelectedTasks(p => p.includes(t.id) ? p.filter(id => id !== t.id) : [...p, t.id])} className={`w-full text-left p-5 rounded-2xl border-2 flex items-center space-x-4 ${selectedTasks.includes(t.id) ? `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}` : 'bg-stone-50 border-stone-200'}`}>
+                    <div className={`${priorityColors[t.priority].dot} w-5 h-5 rounded-full`} />
+                    <span className="flex-1 text-lg font-medium text-stone-800">{t.text}</span>
+                    {selectedTasks.includes(t.id) && <Icons.Check size={24} className="text-lime-600" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    const SessionScreen = ({ currentSession, timeRemaining, isSessionRunning, setIsSessionRunning, endSession, completedSessionTasks, completeSessionTask }) => {
+      const progress = currentSession ? ((currentSession.duration * 60 - timeRemaining) / (currentSession.duration * 60)) * 100 : 0;
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100 p-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-bold text-stone-800 mb-3">Focus Session</h2>
+            <div className="text-6xl font-bold text-green-600 mb-3">{formatTime(timeRemaining)}</div>
+            <div className="w-full max-w-xl mx-auto bg-stone-200 rounded-full h-4 overflow-hidden mb-8"><div className="bg-gradient-to-r from-lime-400 to-green-500 h-full transition-all duration-1000" style={{ width: `${progress}%` }} /></div>
+            <div className="flex justify-center space-x-4 mb-8">
+              <button onClick={() => setIsSessionRunning(!isSessionRunning)} className="bg-white p-5 rounded-2xl shadow-lg">{isSessionRunning ? <Icons.Pause size={40} className="text-orange-400" /> : <Icons.Play size={40} className="text-green-500" />}</button>
+              <button onClick={endSession} className="bg-red-500 text-white px-6 py-5 rounded-2xl font-bold text-lg shadow-lg"><Icons.Square size={20} className="inline mr-2" />End Session</button>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 max-w-2xl mx-auto text-left">
+              <h3 className="text-xl font-bold text-stone-800 mb-4">Tasks</h3>
+              <div className="space-y-3">
+                {currentSession?.tasks.map(t => (
+                  <div key={t.id} className={`p-4 rounded-2xl border-2 flex items-center space-x-4 ${completedSessionTasks.includes(t.id) ? 'bg-lime-50 border-lime-300 opacity-60' : `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}`}`}>
+                    <div className={`${priorityColors[t.priority].dot} w-4 h-4 rounded-full`} />
+                    <span className={`flex-1 ${completedSessionTasks.includes(t.id) ? 'line-through text-stone-500' : 'text-stone-800'}`}>{t.text}</span>
+                    {!completedSessionTasks.includes(t.id) ? <button onClick={() => completeSessionTask(t.id)} className="bg-gradient-to-r from-lime-400 to-green-500 text-white px-4 py-2 rounded-xl font-semibold text-sm">Complete</button> : <Icons.Check size={24} className="text-green-500" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const SessionSummaryScreen = ({ sessions, setCurrentScreen }) => {
+      const last = sessions[sessions.length-1];
+      if(!last) return null;
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="text-6xl mb-4">🎉</div><h2 className="text-5xl font-bold text-stone-800 mb-4">Session Complete!</h2>
+            <div className="bg-white p-10 rounded-3xl shadow-lg border-2 border-stone-200 mb-8">
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="p-4 bg-rose-50 rounded-xl border-2 border-rose-200"><div className="text-4xl font-bold text-rose-500">{last.actualDuration}</div><div>Minutes</div></div>
+                <div className="p-4 bg-lime-50 rounded-xl border-2 border-lime-200"><div className="text-4xl font-bold text-green-500">{last.completedTasks.length}</div><div>Tasks Done</div></div>
+                <div className="p-4 bg-orange-50 rounded-xl border-2 border-orange-200"><div className="text-4xl font-bold text-orange-400">{last.tasks.length > 0 ? Math.round((last.completedTasks.length/last.tasks.length)*100) : 0}%</div><div>Success</div></div>
+              </div>
+            </div>
+            <div className="flex space-x-4">
+              <button onClick={() => setCurrentScreen('home')} className="flex-1 bg-stone-600 text-white p-5 rounded-xl font-bold text-xl hover:bg-stone-700 transition-colors">Home</button>
+              <button onClick={() => setCurrentScreen('break')} className="flex-1 bg-gradient-to-r from-orange-400 to-rose-400 text-white p-5 rounded-xl font-bold text-xl">Take Break</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const BreakSummaryScreen = ({ breaks, setCurrentScreen, setSelectedTasks }) => {
+      const last = breaks[breaks.length - 1];
+      if (!last) return null;
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="text-6xl mb-4">☕</div><h2 className="text-5xl font-bold text-stone-800 mb-4">Break Ended</h2>
+            <p className="text-xl text-stone-600 mb-8">Hope you are recharged!</p>
+            <div className="bg-white p-10 rounded-3xl shadow-lg border-2 border-stone-200 mb-8">
+              <div className="text-5xl font-bold text-orange-500 mb-2">{last.actualDuration} min</div>
+              <div className="text-lg text-stone-500">Total Break Time</div>
+              <div className="mt-6 pt-6 border-t-2 border-stone-100 text-stone-500">
+                Time: {last.startTime.toLocaleTimeString()} - {last.endTime.toLocaleTimeString()}
+              </div>
+            </div>
+            <div className="flex space-x-4">
+              <button onClick={() => setCurrentScreen('home')} className="flex-1 bg-stone-600 text-white p-5 rounded-xl font-bold text-xl hover:bg-stone-700 transition-colors">Home</button>
+              <button onClick={() => { setSelectedTasks([]); setCurrentScreen('planSession'); }} className="flex-1 bg-gradient-to-r from-lime-500 to-green-500 text-white p-5 rounded-xl font-bold text-xl">Start Work</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+const BreakScreen = ({ setCurrentScreen, isBreakRunning, setIsBreakRunning, breakTimeRemaining, breakDuration, setBreakDuration, breakLabel, setBreakLabel, startBreak, endBreak, currentBreak, breakElapsedTime, isIndefiniteBreak }) => {
+      // UPDATED: Default isIndefiniteSelection to true
+      const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
+      
+      const presets = ['Coffee break', 'Lunch break', 'Terrace break', 'Dinner break'];
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center mb-8"><button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button><h2 className="text-4xl font-bold text-stone-800">Take a Break</h2></div>
+            
+            <div className="bg-white p-10 rounded-3xl shadow-lg border-2 border-stone-200 text-center min-h-[500px] flex flex-col justify-center">
+              {!isBreakRunning ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                  {/* LEFT: Presets */}
+                  <div className="space-y-4">
+                    <h3 className="text-2xl font-bold text-stone-700 mb-6">Quick Select</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      {presets.map(type => (
+                        <button key={type} onClick={() => { setBreakLabel(type); }} className={`p-6 rounded-2xl border-2 text-xl font-bold transition-all ${breakLabel === type ? 'bg-orange-100 border-orange-400 text-orange-700 ring-2 ring-orange-200' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-white hover:shadow-md'}`}>
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* RIGHT: Custom Controls */}
+                  <div className="flex flex-col items-center justify-center h-full border-l-2 border-stone-100 pl-12">
+                    <Icons.Coffee size={64} className="mb-6 text-orange-400" />
+                    <h3 className="text-3xl font-bold text-stone-800 mb-8">Customize</h3>
+                    
+                    <div className="mb-8 w-full max-w-xs">
+                      <label className="block font-semibold mb-3 text-stone-600">Break Type</label>
+                      <input type="text" value={breakLabel} onChange={(e) => setBreakLabel(e.target.value)} placeholder="e.g. Nap" className="w-full p-4 border-2 border-stone-200 rounded-xl text-center text-lg focus:border-orange-400 outline-none transition-colors" />
+                    </div>
+
+                    <div className="mb-8 bg-stone-50 p-4 rounded-xl w-full max-w-xs">
+                      <div className="flex items-center justify-center space-x-3 mb-4">
+                        <input type="checkbox" id="indefinite" checked={isIndefiniteSelection} onChange={(e) => setIsIndefiniteSelection(e.target.checked)} className="w-6 h-6 text-orange-500 rounded focus:ring-orange-500 border-gray-300" />
+                        <label htmlFor="indefinite" className="text-xl font-bold text-stone-700 cursor-pointer">Indefinite Duration</label>
+                      </div>
+                      {!isIndefiniteSelection && (
+                        <div className="mt-4"><label className="block font-semibold mb-2 text-stone-500">Minutes</label><input type="text" value={breakDuration} onChange={(e) => setBreakDuration(parseInt(e.target.value)||5)} className="w-full p-3 border-2 rounded-xl text-center text-2xl font-bold text-stone-700" /></div>
+                      )}
+                    </div>
+                    
+                    <button onClick={() => startBreak(isIndefiniteSelection)} className="w-full max-w-xs bg-gradient-to-r from-orange-400 to-rose-400 text-white p-5 rounded-xl font-bold text-2xl shadow-lg hover:scale-105 transition-transform"><Icons.Play size={28} className="inline mr-2" />Start Break</button>
+                  </div>
+                </div>
+              ) : (
+                // RUNNING STATE
+                <div>
+                  <Icons.Coffee size={80} className="mx-auto mb-6 text-orange-400" />
+                  <h3 className="text-3xl font-bold text-stone-800 mb-3">{currentBreak?.label || 'Break Time'}</h3>
+                  <div className="text-8xl font-bold text-orange-400 mb-8 tracking-tight">
+                    {isIndefiniteBreak ? formatTime(breakElapsedTime) : formatTime(breakTimeRemaining)}
+                  </div>
+                  {isIndefiniteBreak && <div className="text-stone-500 mb-8 flex justify-center items-center text-xl"><Icons.Infinity size={24} className="mr-2"/> Open-ended break</div>}
+                  <div className="flex justify-center space-x-6">
+                    {!isIndefiniteBreak && (
+                       <button onClick={() => setIsBreakRunning(!isBreakRunning)} className="bg-white p-6 rounded-2xl shadow-lg border-2 border-stone-200 hover:bg-stone-50">{isBreakRunning ? <Icons.Pause size={40} className="text-orange-400" /> : <Icons.Play size={40} className="text-orange-400" />}</button>
+                    )}
+                    <button onClick={endBreak} className="bg-red-500 text-white px-10 py-6 rounded-2xl font-bold text-2xl shadow-lg hover:bg-red-600"><Icons.Square size={24} className="inline mr-2" />End Break</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const SessionLogScreen = ({ setCurrentScreen, sessions, breaks, workEvents }) => {
+      const [tab, setTab] = useState('timeline');
+      const getTimeline = () => {
+        const events = [
+          ...sessions.map(s => ({...s, type: 'session', sortTime: s.startTime})),
+          ...breaks.map(b => ({...b, type: 'break', sortTime: b.startTime})),
+          ...workEvents.map(e => ({...e, type: 'event', sortTime: new Date(e.time)}))
+        ];
+        return events.sort((a,b) => b.sortTime - a.sortTime);
+      };
+      const timelineData = getTimeline();
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center mb-8">
+              <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+              <h2 className="text-4xl font-bold text-stone-800">Activity Log</h2>
+            </div>
+            <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">
+              <button onClick={() => setTab('timeline')} className={`flex-1 min-w-[100px] p-4 rounded-xl font-bold text-lg transition-all ${tab === 'timeline' ? 'bg-white shadow-md text-stone-700 border-2 border-stone-200' : 'bg-white/50 text-stone-500'}`}>Timeline</button>
+              <button onClick={() => setTab('sessions')} className={`flex-1 min-w-[100px] p-4 rounded-xl font-bold text-lg transition-all ${tab === 'sessions' ? 'bg-white shadow-md text-rose-500 border-2 border-rose-200' : 'bg-white/50 text-stone-500'}`}>Sessions</button>
+              <button onClick={() => setTab('breaks')} className={`flex-1 min-w-[100px] p-4 rounded-xl font-bold text-lg transition-all ${tab === 'breaks' ? 'bg-white shadow-md text-orange-500 border-2 border-orange-200' : 'bg-white/50 text-stone-500'}`}>Breaks</button>
+            </div>
+            {tab === 'timeline' && (
+              <div className="space-y-4 relative before:absolute before:left-[29px] before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-300">
+                {timelineData.length === 0 && <div className="text-center py-10 text-stone-400">No activity yet</div>}
+                {timelineData.map((item, i) => (
+                  <div key={item.id || i} className="relative pl-16">
+                    <div className={`absolute left-4 top-4 w-8 h-8 rounded-full border-4 border-white shadow-sm z-10 flex items-center justify-center ${item.type === 'session' ? 'bg-rose-400' : item.type === 'break' ? 'bg-orange-400' : item.text === 'Workday Started' ? 'bg-yellow-400' : 'bg-indigo-500'}`}></div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200">
+                      {item.type === 'session' && (<><div className="flex justify-between mb-1"><h3 className="font-bold text-lg">Work Session</h3><span className="text-sm text-stone-500">{item.startTime.toLocaleTimeString()}</span></div><div className="text-stone-600">{item.actualDuration} min • {item.completedTasks.length} done • {item.tasks.length - item.completedTasks.length} not done</div></>)}
+                      {item.type === 'break' && (<><div className="flex justify-between mb-1"><h3 className="font-bold text-lg text-orange-600">Break: {item.label}</h3><span className="text-sm text-stone-500">{item.startTime.toLocaleTimeString()}</span></div><div className="text-stone-600">{item.actualDuration} minutes</div></>)}
+                      {item.type === 'event' && (<><div className="flex justify-between items-center"><h3 className={`font-bold text-lg ${item.text.includes('Start') ? 'text-yellow-600' : 'text-indigo-600'}`}>{item.text}</h3><span className="text-sm text-stone-500">{new Date(item.time).toLocaleTimeString()}</span></div></>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {tab === 'sessions' && (
+              <div className="space-y-4">
+                {sessions.length === 0 && <div className="text-center py-10 text-stone-400">No sessions yet</div>}
+                {sessions.slice().reverse().map((s, i) => (
+                  <div key={s.id} className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200">
+                    <div className="flex justify-between mb-2">
+                      <h3 className="font-bold text-xl">Session #{sessions.length - i}</h3>
+                      <div className="text-sm text-stone-500 bg-stone-100 px-3 py-1 rounded-full">{s.startTime.toLocaleTimeString()} - {s.endTime.toLocaleTimeString()}</div>
+                    </div>
+                    <div className="text-stone-600">{s.actualDuration} min • {s.completedTasks.length} done • {s.tasks.length - s.completedTasks.length} not done</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {tab === 'breaks' && (
+              <div className="space-y-4">
+                {breaks.length === 0 && <div className="text-center py-10 text-stone-400">No breaks taken yet</div>}
+                {breaks.slice().reverse().map((b, i) => (
+                  <div key={b.id} className="bg-white p-6 rounded-2xl shadow-sm border-2 border-orange-200">
+                    <div className="flex justify-between mb-2">
+                      <div className="flex items-center"><Icons.Coffee size={20} className="text-orange-400 mr-2" /><h3 className="font-bold text-xl text-stone-800">{b.label}</h3></div>
+                      <div className="text-sm text-stone-500 bg-stone-100 px-3 py-1 rounded-full">{b.startTime.toLocaleTimeString()} - {b.endTime.toLocaleTimeString()}</div>
+                    </div>
+                    <div className="text-stone-600 pl-7">{b.actualDuration} minutes</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+const DailyReportScreen = ({ report, downloadMarkdownReport, setCurrentScreen }) => {
+      // Helper to format minutes into "1h 30m"
+      const formatDur = (m) => m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
+
+      const timeline = [
+        ...report.sessions.map(s => ({ type: 'session', time: s.startTime, ...s })),
+        ...report.breaks.map(b => ({ type: 'break', time: b.startTime, ...b })),
+        ...(report.workEvents || []).map(e => ({ type: 'event', time: new Date(e.time), ...e }))
+      ].sort((a, b) => a.time - b.time);
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center mb-8">
+              <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+              <div className="flex-1"><h2 className="text-4xl font-bold text-stone-800">Daily Report</h2><p className="text-lg text-stone-600">{report.date.toLocaleDateString()}</p></div>
+              <button onClick={() => downloadMarkdownReport(report)} className="bg-gradient-to-r from-rose-400 to-orange-400 text-white px-6 py-4 rounded-xl font-semibold shadow-lg"><Icons.FileText size={22} className="inline mr-2"/>Export</button>
+            </div>
+             <div className="grid grid-cols-2 gap-6 mb-8">
+               <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-indigo-200 flex justify-between items-center">
+                  <div><div className="text-stone-500 font-medium">Total Master List Tasks</div><div className="text-3xl font-bold text-indigo-900">{report.totalMasterListTasks}</div></div>
+                  <Icons.CheckSquare size={32} className="text-purple-400" />
+               </div>
+               <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-green-200 flex justify-between items-center">
+                  <div><div className="text-stone-500 font-medium">Global Completion %</div><div className="text-3xl font-bold text-green-600">{report.globalCompletionRate}%</div></div>
+                  <Icons.BarChart3 size={32} className="text-green-300" />
+               </div>
+            </div>
+            <div className="grid grid-cols-3 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 text-center"><div className="text-4xl font-bold text-rose-500">{report.sessions.length}</div><div className="text-stone-600">Sessions</div></div>
+              
+              {/* UPDATED: Uses formatDur helper */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 text-center"><div className="text-4xl font-bold text-orange-500">{formatDur(report.totalBreakTime)}</div><div className="text-stone-600">Break Time</div></div>
+              
+              <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 text-center"><div className="text-4xl font-bold text-green-500">{report.totalTasksCompleted}</div><div className="text-stone-600">Session Tasks Done</div></div>
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-stone-800">Timeline</h3>
+              {timeline.length === 0 && <div className="text-stone-400 text-center py-8">No activity today</div>}
+              {timeline.map((item, i) => (
+                <div key={item.id || i} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 ${item.type === 'session' ? 'border-rose-400' : item.type === 'break' ? 'border-orange-400' : 'border-stone-500'}`}>
+                  <div className="flex justify-between font-bold">
+                    <span className={item.type === 'event' ? (item.text.includes('Start') ? 'text-orange-600' : 'text-indigo-600') : 'text-stone-800'}>
+                      {item.type === 'session' ? 'Work Session' : item.type === 'break' ? `Break: ${item.label}` : item.text}
+                    </span>
+                    <span>{item.time.toLocaleTimeString()}</span>
+                  </div>
+                  <div className="text-stone-600 mt-1">
+                    {item.type === 'session' && `${item.actualDuration} min • ${item.completedTasks.length} done • ${item.tasks.length - item.completedTasks.length} not done`}
+                    {item.type === 'break' && `${item.actualDuration} min`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+    
+// --- MAIN STRU COMPONENT ---
+    const Stru = () => {
+      // State Loading
+      const load = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch { return d; } };
+      const [currentScreen, setCurrentScreen] = useState('home');
+      const [tasks, setTasks] = useState(() => load('stru-tasks', []));
+      const [sessions, setSessions] = useState(() => load('stru-sessions', []).map(s => ({...s, startTime: new Date(s.startTime), endTime: new Date(s.endTime)})));
+      const [breaks, setBreaks] = useState(() => load('stru-breaks', []).map(b => ({...b, startTime: new Date(b.startTime), endTime: new Date(b.endTime)})));
+      const [workEvents, setWorkEvents] = useState(() => load('stru-workevents', []).map(e => ({...e, time: new Date(e.time)})));
+      
+      // NEW HISTORY STATE
+      const [history, setHistory] = useState(() => load('stru-history', []));
+
+      // Session State
+      const [sessionDuration, setSessionDuration] = useState(45);
+      const [selectedTasks, setSelectedTasks] = useState([]);
+      const [currentSession, setCurrentSession] = useState(null);
+      const [isSessionRunning, setIsSessionRunning] = useState(false);
+      const [timeRemaining, setTimeRemaining] = useState(0);
+      const [completedSessionTasks, setCompletedSessionTasks] = useState([]);
+
+      // Break State
+      const [breakDuration, setBreakDuration] = useState(5);
+      const [breakLabel, setBreakLabel] = useState('');
+      const [isBreakRunning, setIsBreakRunning] = useState(false);
+      const [breakTimeRemaining, setBreakTimeRemaining] = useState(0);
+      const [currentBreak, setCurrentBreak] = useState(null);
+      const [breakElapsedTime, setBreakElapsedTime] = useState(0);
+      const [isIndefiniteBreak, setIsIndefiniteBreak] = useState(false);
+
+      // Modal State
+      const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+      const [newTaskText, setNewTaskText] = useState('');
+      const [newTaskPriority, setNewTaskPriority] = useState('');
+      const [bulkTaskText, setBulkTaskText] = useState('');
+      const [showEditTaskModal, setShowEditTaskModal] = useState(false);
+      const [editingTask, setEditingTask] = useState(null);
+      const [showSoundSettings, setShowSoundSettings] = useState(false);
+      const [showBreakReminder, setShowBreakReminder] = useState(false);
+      const [showStartDayModal, setShowStartDayModal] = useState(false);
+      const [showEndDayModal, setShowEndDayModal] = useState(false);
+      const [showBreakSwitchModal, setShowBreakSwitchModal] = useState(false);
+      const changePriority = (id, pri) => setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: pri } : t));
+      
+      // NEW BATCH FUNCTION
+      const batchChangePriority = (ids, pri) => {
+        setTasks(prev => prev.map(t => ids.includes(t.id) ? { ...t, priority: pri } : t));
+      };
+
+      // Refs
+      const targetTimeRef = useRef(null);
+      const breakTargetTimeRef = useRef(null);
+      const breakStartTimeRef = useRef(null);
+      const workerRef = useRef(null);
+
+      // Persistence
+      useEffect(() => { localStorage.setItem('stru-tasks', JSON.stringify(tasks)); }, [tasks]);
+      useEffect(() => { localStorage.setItem('stru-sessions', JSON.stringify(sessions)); }, [sessions]);
+      useEffect(() => { localStorage.setItem('stru-breaks', JSON.stringify(breaks)); }, [breaks]);
+      useEffect(() => { localStorage.setItem('stru-workevents', JSON.stringify(workEvents)); }, [workEvents]);
+      useEffect(() => { localStorage.setItem('stru-history', JSON.stringify(history)); }, [history]); // Save History
+
+      // Notification Permission
+      useEffect(() => { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); }, []);
+
+      // Worker
+      useEffect(() => {
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        workerRef.current = new Worker(URL.createObjectURL(blob));
+        workerRef.current.onmessage = (e) => {
+          if (e.data === 'tick') {
+            if (targetTimeRef.current) {
+              const left = Math.ceil((targetTimeRef.current - Date.now()) / 1000);
+              setTimeRemaining(left > 0 ? left : 0);
+            }
+            if (breakStartTimeRef.current && !breakTargetTimeRef.current) {
+               const elapsed = Math.floor((Date.now() - breakStartTimeRef.current.getTime()) / 1000);
+               setBreakElapsedTime(elapsed);
+            } else if (breakTargetTimeRef.current) {
+               const left = Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000);
+               setBreakTimeRemaining(left > 0 ? left : 0);
+            }
+          }
+        };
+        return () => workerRef.current?.terminate();
+      }, []);
+
+      useEffect(() => {
+        if (isSessionRunning || isBreakRunning) workerRef.current?.postMessage('start');
+        else { workerRef.current?.postMessage('stop'); targetTimeRef.current = null; breakTargetTimeRef.current = null; breakStartTimeRef.current = null; }
+      }, [isSessionRunning, isBreakRunning]);
+
+      useEffect(() => {
+        if (isSessionRunning && timeRemaining === 0 && targetTimeRef.current) {
+          if (Math.ceil((targetTimeRef.current - Date.now()) / 1000) <= 0) endSession();
+        }
+      }, [timeRemaining, isSessionRunning]);
+
+      useEffect(() => {
+        if (isBreakRunning && !isIndefiniteBreak && breakTimeRemaining === 0 && breakTargetTimeRef.current) {
+          if (Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000) <= 0) endBreak();
+        }
+      }, [breakTimeRemaining, isBreakRunning, isIndefiniteBreak]);
+
+      useEffect(() => {
+        if (currentScreen === 'session' && isSessionRunning) document.title = `🟡 ${formatTime(timeRemaining)} | Work`;
+        else if (currentScreen === 'break' && isBreakRunning) document.title = `🟢 ${isIndefiniteBreak ? formatTime(breakElapsedTime) : formatTime(breakTimeRemaining)} | Break`;
+        else if (currentScreen === 'sessionSummary') document.title = '🔴 Session Ended';
+        else if (currentScreen === 'breakSummary') document.title = '☕ Break Ended';
+        else document.title = 'Stru';
+      }, [currentScreen, isSessionRunning, timeRemaining, isBreakRunning, breakTimeRemaining, breakElapsedTime, isIndefiniteBreak]);
+
+      // Sounds
+      const playBeeps = useCallback((type) => {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const freqs = type === 'start' ? [523.25, 659.25, 783.99] : [783.99, 659.25, 523.25];
+          freqs.forEach((f, i) => {
+            const osc = ctx.createOscillator(); const g = ctx.createGain();
+            osc.connect(g); g.connect(ctx.destination); osc.frequency.value = f; osc.type = 'sine';
+            const t = ctx.currentTime + (i * 0.15);
+            g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.3, t+0.02); g.gain.linearRampToValueAtTime(0, t+0.1);
+            osc.start(t); osc.stop(t+0.1);
+          });
+        } catch(e) {}
+      }, []);
+
+      const playBreakBeeps = useCallback((type) => {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const freqs = type === 'start' ? [349.23, 440.00, 523.25] : [659.25, 523.25];
+          const gap = type === 'start' ? 0.2 : 0.3;
+          const dur = type === 'start' ? 0.2 : 0.4;
+          freqs.forEach((f, i) => {
+            const osc = ctx.createOscillator(); const g = ctx.createGain();
+            osc.connect(g); g.connect(ctx.destination); osc.frequency.value = f; osc.type = 'sine';
+            const t = ctx.currentTime + (i * gap);
+            g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.2, t+0.05); g.gain.linearRampToValueAtTime(0, t+dur);
+            osc.start(t); osc.stop(t+dur);
+          });
+        } catch(e) {}
+      }, []);
+
+      const sendNotification = (t, b) => { if ('Notification' in window && Notification.permission === 'granted') new Notification(t, { body: b, icon: '🎉' }); };
+
+      // Data Helpers
+      const availableTasks = useMemo(() => tasks.filter(t => !t.completed).sort((a, b) => {
+        const w = { must: 0, should: 1, could: 2, want: 3, '': 4 }; return w[a.priority] - w[b.priority];
+      }), [tasks]);
+      
+      const priorities = useMemo(() => {
+        const stats = {
+           must: { active: 0, completed: 0, label: 'Must Do' },
+           should: { active: 0, completed: 0, label: 'Should Do' },
+           could: { active: 0, completed: 0, label: 'Could Do' },
+           want: { active: 0, completed: 0, label: 'Want to Do' },
+           none: { active: 0, completed: 0, label: 'No Priority' }
+        };
+        tasks.forEach(t => {
+           const key = t.priority === '' ? 'none' : t.priority;
+           if(stats[key]) { if (t.completed) stats[key].completed++; else stats[key].active++; }
+        });
+        return stats;
+      }, [tasks]);
+
+      // Handlers
+      const addTask = (txt, pri) => setTasks(prev => [...prev, { id: Date.now().toString(), text: txt.trim(), priority: pri, completed: false }]);
+      const addBulkTasks = () => {
+        const lines = bulkTaskText.split('\n').filter(l => l.trim());
+        setTasks(prev => [...prev, ...lines.map(l => ({ id: Date.now()+Math.random(), text: l.trim(), priority: newTaskPriority, completed: false }))]);
+        setBulkTaskText(''); setShowAddTaskModal(false);
+      };
+      const editTask = (id, txt, pri) => setTasks(prev => prev.map(t => t.id === id ? { ...t, text: txt, priority: pri } : t));
+      const deleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
+      const toggleTaskCompletion = (id) => setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+      const resetDay = (type) => {
+        if (type === 'tasks') { setTasks([]); localStorage.removeItem('stru-tasks'); }
+        else if (type === 'everything') { setTasks([]); setSessions([]); setBreaks([]); setWorkEvents([]); setHistory([]); localStorage.clear(); }
+      };
+
+      const handleStartDay = () => {
+        setTasks([]); setSessions([]); setBreaks([]); 
+        const event = { id: Date.now(), type: 'start', time: new Date(), text: 'Workday Started' };
+        setWorkEvents([event]);
+        setShowStartDayModal(true);
+      };
+
+      // UPDATED: handleEndDay now calculates stats and saves history
+      const handleEndDay = () => {
+        // Calculate Summary for History
+        const today = new Date();
+        const startEvent = workEvents.find(e => e.type === 'start') || { time: sessions[0]?.startTime || today };
+        const totalTasks = tasks.length;
+        const totalCompleted = tasks.filter(t => t.completed).length;
+        const rate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+        const totalBreakDur = breaks.reduce((s,b) => s+b.actualDuration, 0);
+
+        const summary = {
+           date: today,
+           startTime: startEvent.time,
+           endTime: today,
+           sessionCount: sessions.length,
+           taskCount: totalTasks,
+           completedCount: totalCompleted,
+           completionRate: rate,
+           breakCount: breaks.length,
+           breakDuration: totalBreakDur
+        };
+
+        // Save to history
+        setHistory(prev => [...prev, summary]);
+
+        const event = { id: Date.now(), type: 'end', time: new Date(), text: 'Workday Ended' };
+        setWorkEvents(prev => [...prev, event]);
+        setShowEndDayModal(true);
+      };
+
+      // NEW: Export Data
+      const exportData = () => {
+         const data = { tasks, sessions, breaks, workEvents, history };
+         const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = `stru-backup-${new Date().toISOString().split('T')[0]}.json`;
+         a.click();
+      };
+
+      // NEW: Import Data
+      const importData = (file) => {
+         const reader = new FileReader();
+         reader.onload = (e) => {
+            try {
+               const data = JSON.parse(e.target.result);
+               if(data.tasks) setTasks(data.tasks);
+               if(data.sessions) setSessions(data.sessions.map(s => ({...s, startTime: new Date(s.startTime), endTime: new Date(s.endTime)})));
+               if(data.breaks) setBreaks(data.breaks.map(b => ({...b, startTime: new Date(b.startTime), endTime: new Date(b.endTime)})));
+               if(data.workEvents) setWorkEvents(data.workEvents.map(e => ({...e, time: new Date(e.time)})));
+               if(data.history) setHistory(data.history);
+               alert('Backup restored successfully!');
+               window.location.reload();
+            } catch (err) { alert('Invalid backup file'); }
+         };
+         reader.readAsText(file);
+      };
+
+      const runSessionStart = () => {
+        const s = { id: Date.now().toString(), duration: sessionDuration, startTime: new Date(), tasks: selectedTasks.map(id => tasks.find(t => t.id === id)), completed: [] };
+        setCurrentSession(s); setTimeRemaining(sessionDuration * 60); targetTimeRef.current = Date.now() + (sessionDuration * 60000);
+        setCompletedSessionTasks([]); setIsSessionRunning(true); setCurrentScreen('session'); playBeeps('start');
+        setSelectedTasks([]); setShowBreakSwitchModal(false);
+      };
+
+      const startSession = () => {
+        const currentHour = new Date().getHours();
+        if (currentHour >= 22 || currentHour < 4) setShowBreakSwitchModal(true);
+        else runSessionStart();
+      };
+  
+      const endSession = () => {
+        if (currentSession) {
+          const end = new Date(); const dur = Math.max(1, Math.round((end - currentSession.startTime) / 60000));
+          const comp = currentSession.tasks.filter(t => completedSessionTasks.includes(t.id));
+          const incomp = currentSession.tasks.filter(t => !completedSessionTasks.includes(t.id));
+          setSessions(prev => [...prev, { ...currentSession, endTime: end, actualDuration: dur, completedTasks: comp, incompleteTasks: incomp }]);
+          setIsSessionRunning(false); setCurrentScreen('sessionSummary'); playBeeps('end'); sendNotification('Session Ended', 'Good job!'); setShowBreakReminder(true);
+        }
+      };
+      const completeSessionTask = (id) => { setCompletedSessionTasks(prev => [...prev, id]); setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t)); };
+
+      const startBreak = (isIndefinite) => {
+        const startTime = new Date();
+        const brk = { id: Date.now().toString(), startTime, duration: isIndefinite ? 0 : breakDuration, label: breakLabel || 'Break' };
+        setCurrentBreak(brk); setIsBreakRunning(true); setIsIndefiniteBreak(isIndefinite); breakStartTimeRef.current = startTime;
+        if (isIndefinite) { setBreakElapsedTime(0); breakTargetTimeRef.current = null; }
+        else { const durSec = breakDuration * 60; setBreakTimeRemaining(durSec); breakTargetTimeRef.current = Date.now() + (durSec * 1000); }
+        playBreakBeeps('start');
+      };
+      
+      const endBreak = () => {
+        if (currentBreak) {
+          const end = new Date(); const dur = Math.max(1, Math.round((end - currentBreak.startTime) / 60000));
+          setBreaks(prev => [...prev, { ...currentBreak, endTime: end, actualDuration: dur }]);
+          setIsBreakRunning(false); setBreakTimeRemaining(0); setBreakElapsedTime(0); setCurrentScreen('breakSummary'); playBreakBeeps('end'); sendNotification('Break Ended', 'Back to work!');
+        }
+      };
+
+      const getDailyReport = () => {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const ts = sessions.filter(s => { const d = new Date(s.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
+        const tb = breaks.filter(b => { const d = new Date(b.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
+        const te = workEvents.filter(e => { const d = new Date(e.time); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
+        const att = ts.reduce((s, i) => s + i.tasks.length, 0);
+        const com = ts.reduce((s, i) => s + i.completedTasks.length, 0);
+        
+        const totalMasterListTasks = tasks.length;
+        const totalCompleted = tasks.filter(t => t.completed).length;
+        const globalCompletionRate = totalMasterListTasks > 0 ? Math.round((totalCompleted / totalMasterListTasks) * 100) : 0;
+        
+        return { 
+           date: today, sessions: ts.map((s,i)=>({...s, number: i+1})), breaks: tb, workEvents: te, 
+           totalTasksAttempted: att, totalTasksCompleted: com, totalBreakTime: tb.reduce((s,b)=>s+b.actualDuration,0),
+           totalMasterListTasks, globalCompletionRate
+        };
+      };
+
+      const downloadMarkdownReport = (r) => {
+        let md = `# Daily Productivity Report\n\n**Date:** ${r.date.toLocaleDateString()}\n\n`;
+        md += `## Global Stats\n- Total Tasks in Master List: ${r.totalMasterListTasks}\n- Global Completion: ${r.globalCompletionRate}%\n\n`;
+        md += `## Session Summary\n- Sessions: ${r.sessions.length}\n- Breaks: ${r.breaks.length} (${r.totalBreakTime} min)\n- Session Tasks: ${r.totalTasksCompleted} Completed\n\n`;
+        md += `## Daily Timeline\n\n`;
+        const timeline = [
+          ...r.sessions.map(s => ({ time: s.startTime, text: `Work Session (${s.actualDuration}m)` })),
+          ...r.breaks.map(b => ({ time: b.startTime, text: `Break: ${b.label} (${b.actualDuration}m)` })),
+          ...(r.workEvents || []).map(e => ({ time: new Date(e.time), text: e.text }))
+        ].sort((a, b) => a.time - b.time);
+
+        if (timeline.length === 0) md += `No activity recorded.\n\n`;
+        timeline.forEach(t => { md += `- **${t.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}**: ${t.text}\n`; });
+        md += `\n`;
+
+        if (r.sessions.length > 0) {
+          md += `## Session Details\n\n`;
+          r.sessions.forEach(s => {
+            md += `### Session #${s.number} (${s.actualDuration}m)\n`;
+            if(s.completedTasks.length) md += `**Completed:**\n` + s.completedTasks.map(t => `- [x] ${t.text}`).join('\n') + '\n';
+            if(s.incompleteTasks && s.incompleteTasks.length) md += `**Incomplete:**\n` + s.incompleteTasks.map(t => `- [ ] ${t.text}`).join('\n') + '\n';
+            md += '\n';
+          });
+        }
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `stru-report-${new Date().toISOString().split('T')[0]}.md`; a.click();
+      };
+
+      return (
+        <div>
+          {currentScreen === 'home' && <HomeScreen setCurrentScreen={setCurrentScreen} setShowSoundSettings={setShowSoundSettings} availableTasks={availableTasks} dailyReport={getDailyReport()} priorities={priorities} handleStartDay={handleStartDay} handleEndDay={handleEndDay} />}
+          {currentScreen === 'masterList' && <MasterListScreen setCurrentScreen={setCurrentScreen} setShowAddTaskModal={setShowAddTaskModal} availableTasks={availableTasks} tasks={tasks} changePriority={changePriority} setEditingTask={setEditingTask} setShowEditTaskModal={setShowEditTaskModal} toggleTaskCompletion={toggleTaskCompletion} deleteTask={deleteTask} batchChangePriority={batchChangePriority} />}          {currentScreen === 'planSession' && <PlanSessionScreen setCurrentScreen={setCurrentScreen} sessionDuration={sessionDuration} setSessionDuration={setSessionDuration} startSession={startSession} selectedTasks={selectedTasks} setSelectedTasks={setSelectedTasks} availableTasks={availableTasks} />}
+          {currentScreen === 'session' && <SessionScreen currentSession={currentSession} timeRemaining={timeRemaining} isSessionRunning={isSessionRunning} setIsSessionRunning={setIsSessionRunning} endSession={endSession} completedSessionTasks={completedSessionTasks} completeSessionTask={completeSessionTask} />}
+          {currentScreen === 'sessionSummary' && <SessionSummaryScreen sessions={sessions} setCurrentScreen={setCurrentScreen} />}
+          {currentScreen === 'break' && <BreakScreen setCurrentScreen={setCurrentScreen} isBreakRunning={isBreakRunning} setIsBreakRunning={setIsBreakRunning} breakTimeRemaining={breakTimeRemaining} breakDuration={breakDuration} setBreakDuration={setBreakDuration} breakLabel={breakLabel} setBreakLabel={setBreakLabel} startBreak={startBreak} endBreak={endBreak} currentBreak={currentBreak} breakElapsedTime={breakElapsedTime} isIndefiniteBreak={isIndefiniteBreak} />}
+          {currentScreen === 'breakSummary' && <BreakSummaryScreen breaks={breaks} setCurrentScreen={setCurrentScreen} setSelectedTasks={setSelectedTasks} />}
+          {currentScreen === 'sessionLog' && <SessionLogScreen setCurrentScreen={setCurrentScreen} sessions={sessions} breaks={breaks} workEvents={workEvents} />}
+          {currentScreen === 'dailyReport' && <DailyReportScreen report={getDailyReport()} downloadMarkdownReport={downloadMarkdownReport} setCurrentScreen={setCurrentScreen} />}
+          {/* NEW HISTORY SCREEN */}
+          {currentScreen === 'history' && <HistoryScreen setCurrentScreen={setCurrentScreen} history={history} />}
+
+          <AddTaskModal showAddTaskModal={showAddTaskModal} setShowAddTaskModal={setShowAddTaskModal} newTaskText={newTaskText} setNewTaskText={setNewTaskText} newTaskPriority={newTaskPriority} setNewTaskPriority={setNewTaskPriority} bulkTaskText={bulkTaskText} setBulkTaskText={setBulkTaskText} addTask={addTask} addBulkTasks={addBulkTasks} />
+          <EditTaskModal showEditTaskModal={showEditTaskModal} setShowEditTaskModal={setShowEditTaskModal} editingTask={editingTask} setEditingTask={setEditingTask} editTask={editTask} />
+          <SettingsModal isOpen={showSoundSettings} onClose={() => setShowSoundSettings(false)} onResetDay={resetDay} onExport={exportData} onImport={importData} />
+          <BreakReminderModal isOpen={showBreakReminder} onTakeBreak={() => { setShowBreakReminder(false); setCurrentScreen('break'); }} onSkip={() => setShowBreakReminder(false)} />
+          <StartDayModal isOpen={showStartDayModal} onClose={() => setShowStartDayModal(false)} />
+          <EndDayModal isOpen={showEndDayModal} onClose={() => setShowEndDayModal(false)} />
+          <BreakSwitchModal isOpen={showBreakSwitchModal} onClose={() => setShowBreakSwitchModal(false)} onConfirm={runSessionStart} onEndDay={() => { setShowBreakSwitchModal(false); handleEndDay(); }} />
+        </div>
+      );
+    };
+    
+    ReactDOM.render(<Stru />, document.getElementById('root'));
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

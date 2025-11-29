@@ -468,7 +468,7 @@ const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTask
               <div className="mb-8 grid grid-cols-3 gap-3">
                 {[15, 30, 45, 60, 75, 90].map(d => <button key={d} onClick={() => setSessionDuration(d)} className={`p-4 rounded-xl font-semibold ${sessionDuration === d ? 'bg-gradient-to-r from-rose-400 to-orange-400 text-white' : 'bg-stone-100 text-stone-700'}`}>{d} min</button>)}
               </div>
-              <button onClick={startSession} className="w-full bg-gradient-to-r from-lime-400 to-green-500 text-white p-5 rounded-xl font-bold text-xl shadow-lg"><Icons.Play size={24} className="inline mr-2" />Start Session</button>
+              <button onClick={startSession} className="w-full bg-gradient-to-r from-lime-400 to-green-500 text-white py-3 px-5 rounded-xl font-bold text-xl shadow-lg"><Icons.Play size={24} className="inline mr-2" />Start Session</button>
             </div>
             
             {/* Select Tasks (2/3 width) */}
@@ -1134,6 +1134,7 @@ const DailyReportScreen = ({ report, downloadMarkdownReport, setCurrentScreen })
   </script>
 </body>
 </html>
+
 
 
 

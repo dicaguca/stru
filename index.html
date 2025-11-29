@@ -403,7 +403,7 @@ const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTask
 
             <div className="space-y-3">
               {availableTasks.map(t => (
-                <div key={t.id} onClick={() => isBatchMode && toggleSelection(t.id)} className={`${priorityColors[t.priority].bg} p-5 rounded-2xl border-2 ${isBatchMode && selectedIds.includes(t.id) ? 'border-stone-800 ring-2 ring-stone-800' : priorityColors[t.priority].border} flex items-center space-x-4 transition-all cursor-pointer`}>
+                <div key={t.id} onClick={() => isBatchMode && toggleSelection(t.id)} className={`${priorityColors[t.priority].bg} py-3 px-5 rounded-2xl border-2 ${isBatchMode && selectedIds.includes(t.id) ? 'border-stone-800 ring-2 ring-stone-800' : priorityColors[t.priority].border} flex items-center space-x-4 transition-all cursor-pointer`}>
                   {isBatchMode ? (
                      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${selectedIds.includes(t.id) ? 'bg-stone-800 border-stone-800' : 'border-stone-400 bg-white'}`}>
                        {selectedIds.includes(t.id) && <Icons.Check size={18} className="text-white" />}
@@ -424,7 +424,7 @@ const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTask
               
               {/* Completed Tasks (Visual Only) */}
               {!isBatchMode && tasks.filter(t => t.completed).map(t => (
-                <div key={t.id} className="bg-stone-100 p-5 rounded-2xl border-2 border-stone-200 flex items-center space-x-4 opacity-60">
+                <div key={t.id} className="bg-stone-100 py-3 px-5 rounded-2xl border-2 border-stone-200 flex items-center space-x-4 opacity-60">
                   <div className={`${priorityColors[t.priority].dot} w-5 h-5 rounded-full`} />
                   <span className="flex-1 text-lg text-stone-600 line-through font-medium">{t.text}</span>
                   <button onClick={() => toggleTaskCompletion(t.id)}><Icons.X size={20} className="text-stone-500" /></button>
@@ -1134,6 +1134,7 @@ const DailyReportScreen = ({ report, downloadMarkdownReport, setCurrentScreen })
   </script>
 </body>
 </html>
+
 
 
 

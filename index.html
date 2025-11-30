@@ -79,38 +79,34 @@ const priorityColors = {
       );
     };
 
-const AddTaskModal = ({ showAddTaskModal, setShowAddTaskModal, newTaskText, setNewTaskText, newTaskPriority, setNewTaskPriority, bulkTaskText, setBulkTaskText, addTask, addBulkTasks }) => {
-      if (!showAddTaskModal) return null;
-      return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
-            <h3 className="text-2xl font-bold text-stone-800 mb-6">Add Tasks</h3>
-            <div className="mb-6">
-              <label className="block text-lg font-semibold mb-3 text-stone-700">Priority Level</label>
-              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base">
-                <option value="">No Priority</option>
-                <option value="must">Priority (Rose)</option>
-                <option value="should">High (Orange)</option>
-                <option value="could">Medium (Yellow)</option>
-                <option value="want">Optional (Green)</option>
-              </select>
-            </div>
-            <div className="mb-6">
-              <label className="block text-lg font-semibold mb-3 text-stone-700">Single Task</label>
-              <input autoFocus type="text" value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} placeholder="Enter a task..." className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base" onKeyDown={(e) => { if (e.key === 'Enter' && newTaskText.trim()) { addTask(newTaskText, newTaskPriority); setNewTaskText(''); setShowAddTaskModal(false); }}} />
-            </div>
-            <div className="mb-8">
-              <label className="block text-lg font-semibold mb-3 text-stone-700">Or Multiple Tasks (one per line)</label>
-              <textarea value={bulkTaskText} onChange={(e) => setBulkTaskText(e.target.value)} placeholder="Task 1&#10;Task 2" rows={5} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none resize-none text-base" />
-            </div>
-            <div className="flex space-x-4">
-              <button onClick={() => { if (newTaskText.trim()) { addTask(newTaskText, newTaskPriority); setNewTaskText(''); setShowAddTaskModal(false); } else if (bulkTaskText.trim()) { addBulkTasks(); } }} disabled={!newTaskText.trim() && !bulkTaskText.trim()} className="flex-1 bg-gradient-to-r from-rose-400 to-orange-400 text-white p-4 rounded-xl font-semibold text-lg disabled:bg-stone-300 disabled:from-stone-300 disabled:to-stone-300">Add Tasks</button>
-              <button onClick={() => { setShowAddTaskModal(false); setNewTaskText(''); setBulkTaskText(''); }} className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg">Cancel</button>
-            </div>
-          </div>
+const AddTaskModal = ({ showAddTaskModal, setShowAddTaskModal, newTaskPriority, setNewTaskPriority, bulkTaskText, setBulkTaskText, addBulkTasks }) => {
+  if (!showAddTaskModal) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
+        <h3 className="text-2xl font-bold text-stone-800 mb-6">Add Tasks</h3>
+        <div className="mb-6">
+          <label className="block text-lg font-semibold mb-3 text-stone-700">Priority Level</label>
+          <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base">
+            <option value="">No Priority</option>
+            <option value="must">Priority (Rose)</option>
+            <option value="should">High (Orange)</option>
+            <option value="could">Medium (Yellow)</option>
+            <option value="want">Optional (Green)</option>
+          </select>
         </div>
-      );
-    };
+        <div className="mb-8">
+          <label className="block text-lg font-semibold mb-3 text-stone-700">Enter Tasks (one per line)</label>
+          <textarea autoFocus value={bulkTaskText} onChange={(e) => setBulkTaskText(e.target.value)} placeholder="Task 1&#10;Task 2&#10;Task 3" rows={10} className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none resize-none text-base" />
+        </div>
+        <div className="flex space-x-4">
+          <button onClick={() => { if (bulkTaskText.trim()) { addBulkTasks(); } }} disabled={!bulkTaskText.trim()} className="flex-1 bg-gradient-to-r from-rose-400 to-orange-400 text-white p-4 rounded-xl font-semibold text-lg disabled:bg-stone-300 disabled:from-stone-300 disabled:to-stone-300">Add Tasks</button>
+          <button onClick={() => { setShowAddTaskModal(false); setBulkTaskText(''); }} className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg">Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const EditTaskModal = ({ showEditTaskModal, setShowEditTaskModal, editingTask, setEditingTask, editTask }) => {
       if (!showEditTaskModal) return null;
@@ -141,6 +137,65 @@ const EditTaskModal = ({ showEditTaskModal, setShowEditTaskModal, editingTask, s
       );
     };
 
+const ExtensionModal = ({ isOpen, onClose, onConfirm, title, themeColor = 'orange' }) => {
+  const [customAmount, setCustomAmount] = useState('');
+  
+  if (!isOpen) return null;
+
+  const handleConfirm = (amount) => {
+    onConfirm(amount);
+    setCustomAmount('');
+    onClose();
+  };
+
+  const themeClasses = {
+    orange: { btn: 'bg-orange-100 text-orange-700 border-orange-300', confirm: 'from-orange-400 to-rose-400' },
+    green: { btn: 'bg-lime-100 text-lime-700 border-lime-300', confirm: 'from-lime-400 to-green-500' }
+  };
+  const theme = themeClasses[themeColor] || themeClasses.orange;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center">
+        <h3 className="text-2xl font-bold text-stone-800 mb-6">{title}</h3>
+        
+        {/* Quick Presets */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[5, 10, 15, 20, 30, 60].map(m => (
+            <button key={m} onClick={() => handleConfirm(m)} className={`p-3 rounded-xl border-2 font-bold transition-all hover:scale-105 ${theme.btn}`}>
+              +{m}m
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Input */}
+        <div className="flex items-center space-x-2 mb-6">
+          <input 
+            type="number" 
+            placeholder="Custom" 
+            value={customAmount}
+            onChange={(e) => setCustomAmount(e.target.value)}
+            className="flex-1 p-3 border-2 border-stone-200 rounded-xl outline-none font-bold text-center"
+            onKeyDown={(e) => {if(e.key === 'Enter' && customAmount) handleConfirm(parseInt(customAmount))}}
+          />
+          <span className="font-bold text-stone-500">min</span>
+        </div>
+
+        <div className="flex space-x-3">
+          <button 
+            onClick={() => { if(customAmount) handleConfirm(parseInt(customAmount)); }} 
+            disabled={!customAmount}
+            className={`flex-1 bg-gradient-to-r text-white p-3 rounded-xl font-bold ${theme.confirm} disabled:opacity-50`}
+          >
+            Extend
+          </button>
+          <button onClick={onClose} className="flex-1 bg-stone-200 text-stone-700 p-3 rounded-xl font-bold">Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+    
 const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport }) => {
       const [showResetConfirm, setShowResetConfirm] = useState(false);
       const fileInputRef = useRef(null);
@@ -317,56 +372,77 @@ const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport }) => {
     
     // --- SCREENS ---
 const HomeScreen = ({ setCurrentScreen, setShowSoundSettings, availableTasks, dailyReport, priorities, handleStartDay, handleEndDay }) => (
-      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-4">
-            <div className="text-center md:text-left"><h1 className="text-5xl font-bold text-stone-800 mb-2">Stru</h1><p className="text-xl text-stone-600">Structured Focus System</p></div>
-            <div className="flex gap-3">
-              <button onClick={handleStartDay} className="w-32 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="Start New Day"><Icons.Sun size={20} className="text-white" /><span>Start</span></button>
-              <button onClick={handleEndDay} className="w-32 bg-gradient-to-r from-indigo-900 via-purple-800 to-purple-900 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="End Workday"><Icons.Moon size={20} className="text-white" /><span>End</span></button>
-              <button onClick={() => setShowSoundSettings(true)} className="bg-white px-4 py-3 rounded-xl hover:bg-stone-50 border-2 border-stone-200 font-semibold text-stone-700 shadow-sm">⚙️</button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-8 mb-8">
-            <button onClick={() => setCurrentScreen('masterList')} className="bg-gradient-to-br from-rose-400 to-orange-400 p-10 rounded-3xl hover:from-rose-500 hover:to-orange-500 shadow-lg transform hover:scale-[1.02] transition-all text-left">
-              <Icons.CheckSquare size={56} className="text-white mb-4" /><h3 className="text-3xl font-bold text-white mb-2">Master Task List</h3><p className="text-rose-50 text-lg">Manage all your tasks</p>
-              <div className="mt-6 bg-white/20 rounded-xl p-3 flex justify-between items-center text-white"><span className="font-medium">Active Tasks</span><span className="text-2xl font-bold">{availableTasks.length}</span></div>
-            </button>
-            <button onClick={() => setCurrentScreen('planSession')} className="bg-gradient-to-br from-lime-400 to-green-500 p-10 rounded-3xl hover:from-lime-500 hover:to-green-600 shadow-lg transform hover:scale-[1.02] transition-all text-left">
-              <Icons.Clock size={56} className="text-white mb-4" /><h3 className="text-3xl font-bold text-white mb-2">Start Work Session</h3><p className="text-lime-50 text-lg">Plan and begin focused work</p>
-              <div className="mt-6 bg-white/20 rounded-xl p-3 flex justify-between items-center text-white"><span className="font-medium">Today's Sessions</span><span className="text-2xl font-bold">{dailyReport.sessions.length}</span></div>
-            </button>
-          </div>
-          <div className="grid grid-cols-4 gap-6"> {/* Changed grid to 4 columns */}
-            <button onClick={() => setCurrentScreen('break')} className="bg-white p-6 rounded-2xl hover:bg-orange-50 border-2 border-orange-200 shadow-sm hover:shadow-md text-left"><Icons.Coffee size={32} className="text-orange-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">Break</h3></button>
-            <button onClick={() => setCurrentScreen('sessionLog')} className="bg-white p-6 rounded-2xl hover:bg-rose-50 border-2 border-rose-200 shadow-sm hover:shadow-md text-left"><Icons.FileText size={32} className="text-rose-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">Log</h3></button>
-            <button onClick={() => setCurrentScreen('dailyReport')} className="bg-white p-6 rounded-2xl hover:bg-lime-50 border-2 border-lime-200 shadow-sm hover:shadow-md text-left"><Icons.BarChart3 size={32} className="text-lime-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">Report</h3></button>
-            {/* NEW HISTORY BUTTON */}
-            <button onClick={() => setCurrentScreen('history')} className="bg-white p-6 rounded-2xl hover:bg-indigo-50 border-2 border-indigo-200 shadow-sm hover:shadow-md text-left"><Icons.Calendar size={32} className="text-indigo-400 mb-2" /><h3 className="text-lg font-bold text-stone-800">History</h3></button>
-          </div>
-          <div className="mt-12 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200">
-            <h4 className="text-xl font-bold text-stone-800 mb-6">Task Overview</h4>
-            <div className="grid grid-cols-5 gap-4">
-              {Object.entries(priorities).map(([key, data]) => {
-                const k = key === 'none' ? '' : key;
-                return (
-                  <div key={key} className={`${priorityColors[k].bg} p-4 rounded-xl border-2 ${priorityColors[k].border}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div className={`${priorityColors[k].dot} w-4 h-4 rounded-full mt-1`}/>
-                      <div className="text-right">
-                        <div className={`text-2xl font-bold ${priorityColors[k].text}`}>{data.active}</div>
-                        <div className={`text-xs font-semibold ${priorityColors[k].text} opacity-70`}>{data.completed} done</div>
-                      </div>
-                    </div>
-                    <div className={`text-sm font-medium ${priorityColors[k].text}`}>{priorityColors[k].label}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+  <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
+    <div className="max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <div className="text-center md:text-left"><h1 className="text-5xl font-bold text-stone-800 mb-2">Stru</h1><p className="text-xl text-stone-600">Structured Focus System</p></div>
+        <div className="flex gap-3">
+          <button onClick={handleStartDay} className="w-32 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="Start New Day"><Icons.Sun size={20} className="text-white" /><span>Start</span></button>
+          <button onClick={handleEndDay} className="w-32 bg-gradient-to-r from-indigo-900 via-purple-800 to-purple-900 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="End Workday"><Icons.Moon size={20} className="text-white" /><span>End</span></button>
+          <button onClick={() => setShowSoundSettings(true)} className="bg-white px-4 py-3 rounded-xl hover:bg-stone-50 border-2 border-stone-200 font-semibold text-stone-700 shadow-sm">⚙️</button>
         </div>
       </div>
-    );
+      
+      {/* 1. Reduced size of main buttons */}
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        <button onClick={() => setCurrentScreen('masterList')} className="bg-gradient-to-br from-rose-400 to-orange-400 p-6 rounded-3xl hover:from-rose-500 hover:to-orange-500 shadow-lg transform hover:scale-[1.02] transition-all text-left">
+          <Icons.CheckSquare size={40} className="text-white mb-3" />
+          <h3 className="text-2xl font-bold text-white mb-1">Master Task List</h3>
+          <p className="text-rose-50 text-base">Manage all your tasks</p>
+          <div className="mt-4 bg-white/20 rounded-xl p-2 px-3 flex justify-between items-center text-white"><span className="font-medium text-sm">Active Tasks</span><span className="text-xl font-bold">{availableTasks.length}</span></div>
+        </button>
+        <button onClick={() => setCurrentScreen('planSession')} className="bg-gradient-to-br from-lime-400 to-green-500 p-6 rounded-3xl hover:from-lime-500 hover:to-green-600 shadow-lg transform hover:scale-[1.02] transition-all text-left">
+          <Icons.Clock size={40} className="text-white mb-3" />
+          <h3 className="text-2xl font-bold text-white mb-1">Start Work Session</h3>
+          <p className="text-lime-50 text-base">Plan and begin focused work</p>
+          <div className="mt-4 bg-white/20 rounded-xl p-2 px-3 flex justify-between items-center text-white"><span className="font-medium text-sm">Today's Sessions</span><span className="text-xl font-bold">{dailyReport.sessions.length}</span></div>
+        </button>
+      </div>
+
+      {/* 2. Horizontal layout for secondary buttons to save vertical space */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"> 
+        <button onClick={() => setCurrentScreen('break')} className="bg-white p-4 px-5 rounded-2xl hover:bg-orange-50 border-2 border-orange-200 shadow-sm hover:shadow-md text-left flex items-center gap-3">
+          <Icons.Coffee size={24} className="text-orange-400" />
+          <h3 className="text-lg font-bold text-stone-800">Break</h3>
+        </button>
+        <button onClick={() => setCurrentScreen('sessionLog')} className="bg-white p-4 px-5 rounded-2xl hover:bg-rose-50 border-2 border-rose-200 shadow-sm hover:shadow-md text-left flex items-center gap-3">
+          <Icons.FileText size={24} className="text-rose-400" />
+          <h3 className="text-lg font-bold text-stone-800">Log</h3>
+        </button>
+        <button onClick={() => setCurrentScreen('dailyReport')} className="bg-white p-4 px-5 rounded-2xl hover:bg-lime-50 border-2 border-lime-200 shadow-sm hover:shadow-md text-left flex items-center gap-3">
+          <Icons.BarChart3 size={24} className="text-lime-400" />
+          <h3 className="text-lg font-bold text-stone-800">Report</h3>
+        </button>
+        <button onClick={() => setCurrentScreen('history')} className="bg-white p-4 px-5 rounded-2xl hover:bg-indigo-50 border-2 border-indigo-200 shadow-sm hover:shadow-md text-left flex items-center gap-3">
+          <Icons.Calendar size={24} className="text-indigo-400" />
+          <h3 className="text-lg font-bold text-stone-800">History</h3>
+        </button>
+      </div>
+
+      <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200">
+        <h4 className="text-xl font-bold text-stone-800 mb-6">Task Overview</h4>
+        <div className="grid grid-cols-5 gap-4">
+          {Object.entries(priorities).map(([key, data]) => {
+            const k = key === 'none' ? '' : key;
+            return (
+              <div key={key} className={`${priorityColors[k].bg} p-4 rounded-xl border-2 ${priorityColors[k].border}`}>
+                <div className="flex justify-between items-start mb-2">
+                  <div className={`${priorityColors[k].dot} w-4 h-4 rounded-full mt-1`}/>
+                  <div className="text-right">
+                    <div className={`text-2xl font-bold ${priorityColors[k].text}`}>{data.active}</div>
+                    {/* 3. Increased font size for completed count */}
+                    <div className={`text-lg font-bold ${priorityColors[k].text} opacity-80`}>{data.completed} done</div>
+                  </div>
+                </div>
+                <div className={`text-sm font-medium ${priorityColors[k].text}`}>{priorityColors[k].label}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTasks, tasks, changePriority, setEditingTask, setShowEditTaskModal, toggleTaskCompletion, deleteTask, batchChangePriority }) => {
       const [isBatchMode, setIsBatchMode] = useState(false);
@@ -493,34 +569,61 @@ const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTask
       </div>
     );
 
-    const SessionScreen = ({ currentSession, timeRemaining, isSessionRunning, setIsSessionRunning, endSession, completedSessionTasks, completeSessionTask }) => {
-      const progress = currentSession ? ((currentSession.duration * 60 - timeRemaining) / (currentSession.duration * 60)) * 100 : 0;
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100 p-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-stone-800 mb-3">Focus Session</h2>
-            <div className="text-6xl font-bold text-green-600 mb-3">{formatTime(timeRemaining)}</div>
-            <div className="w-full max-w-xl mx-auto bg-stone-200 rounded-full h-4 overflow-hidden mb-8"><div className="bg-gradient-to-r from-lime-400 to-green-500 h-full transition-all duration-1000" style={{ width: `${progress}%` }} /></div>
-            <div className="flex justify-center space-x-4 mb-8">
-              <button onClick={() => setIsSessionRunning(!isSessionRunning)} className="bg-white p-5 rounded-2xl shadow-lg">{isSessionRunning ? <Icons.Pause size={40} className="text-orange-400" /> : <Icons.Play size={40} className="text-green-500" />}</button>
-              <button onClick={endSession} className="bg-red-500 text-white px-6 py-5 rounded-2xl font-bold text-lg shadow-lg"><Icons.Square size={20} className="inline mr-2" />End Session</button>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 max-w-2xl mx-auto text-left">
-              <h3 className="text-xl font-bold text-stone-800 mb-4">Tasks</h3>
-              <div className="space-y-3">
-                {currentSession?.tasks.map(t => (
-                  <div key={t.id} className={`p-4 rounded-2xl border-2 flex items-center space-x-4 ${completedSessionTasks.includes(t.id) ? 'bg-lime-50 border-lime-300 opacity-60' : `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}`}`}>
-                    <div className={`${priorityColors[t.priority].dot} w-4 h-4 rounded-full`} />
-                    <span className={`flex-1 ${completedSessionTasks.includes(t.id) ? 'line-through text-stone-500' : 'text-stone-800'}`}>{t.text}</span>
-                    {!completedSessionTasks.includes(t.id) ? <button onClick={() => completeSessionTask(t.id)} className="bg-gradient-to-r from-lime-400 to-green-500 text-white px-4 py-2 rounded-xl font-semibold text-sm">Complete</button> : <Icons.Check size={24} className="text-green-500" />}
+const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSessionTasks, completeSessionTask, extendSession, reorderSessionTask, addSessionTask, availableTasks }) => {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showExtendModal, setShowExtendModal] = useState(false); // New State
+  const progress = currentSession ? ((currentSession.duration * 60 - timeRemaining) / (currentSession.duration * 60)) * 100 : 0;
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100 p-8">
+      <div className="max-w-4xl mx-auto text-center">
+        <h2 className="text-3xl font-bold text-stone-800 mb-3">Focus Session</h2>
+        <div className="text-6xl font-bold text-green-600 mb-3">{formatTime(timeRemaining)}</div>
+        <div className="w-full max-w-xl mx-auto bg-stone-200 rounded-full h-4 overflow-hidden mb-8"><div className="bg-gradient-to-r from-lime-400 to-green-500 h-full transition-all duration-1000" style={{ width: `${progress}%` }} /></div>
+        
+        <div className="flex justify-center space-x-4 mb-8">
+          {/* Updated Extend Button */}
+          <button onClick={() => setShowExtendModal(true)} className="bg-white text-stone-700 px-6 py-5 rounded-2xl font-bold text-lg shadow-lg hover:bg-stone-50 border-2 border-stone-200 flex items-center"><Icons.Plus size={20} className="mr-1"/> Extend</button>
+          <button onClick={endSession} className="bg-red-500 text-white px-8 py-5 rounded-2xl font-bold text-lg shadow-lg hover:bg-red-600"><Icons.Square size={20} className="inline mr-2" />End Session</button>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 max-w-2xl mx-auto text-left relative">
+          <div className="flex justify-between items-center mb-4">
+             <h3 className="text-xl font-bold text-stone-800">Tasks</h3>
+             <button onClick={() => setShowAddModal(true)} className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100">+ Add Task</button>
+          </div>
+          
+          <div className="space-y-3">
+            {currentSession?.tasks.map((t, index) => (
+              <div key={t.id} className={`p-4 rounded-2xl border-2 flex items-center gap-3 group ${completedSessionTasks.includes(t.id) ? 'bg-lime-50 border-lime-300 opacity-60' : `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}`}`}>
+                {!completedSessionTasks.includes(t.id) && (
+                  <div className="flex flex-col gap-1 mr-1">
+                    <button onClick={() => reorderSessionTask(index, -1)} disabled={index === 0} className="text-stone-400 hover:text-stone-800 disabled:opacity-0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="18 15 12 9 6 15"></polyline></svg></button>
+                    <button onClick={() => reorderSessionTask(index, 1)} disabled={index === currentSession.tasks.length - 1} className="text-stone-400 hover:text-stone-800 disabled:opacity-0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
                   </div>
-                ))}
+                )}
+                <div className={`${priorityColors[t.priority].dot} w-4 h-4 rounded-full flex-shrink-0`} />
+                <span className={`flex-1 ${completedSessionTasks.includes(t.id) ? 'line-through text-stone-500' : 'text-stone-800'}`}>{t.text}</span>
+                {!completedSessionTasks.includes(t.id) ? <button onClick={() => completeSessionTask(t.id)} className="bg-gradient-to-r from-lime-400 to-green-500 text-white px-4 py-2 rounded-xl font-semibold text-sm whitespace-nowrap">Complete</button> : <Icons.Check size={24} className="text-green-500" />}
               </div>
-            </div>
+            ))}
           </div>
         </div>
-      );
-    };
+      </div>
+      
+      {/* Modals */}
+      <SessionAddTaskModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} availableTasks={availableTasks.filter(t => !currentSession?.tasks.find(ct => ct.id === t.id))} onAdd={(t) => { addSessionTask(t); setShowAddModal(false); }} />
+      
+      <ExtensionModal 
+        isOpen={showExtendModal} 
+        onClose={() => setShowExtendModal(false)} 
+        onConfirm={extendSession} 
+        title="Extend Session" 
+        themeColor="green"
+      />
+    </div>
+  );
+};
 
     const SessionSummaryScreen = ({ sessions, setCurrentScreen }) => {
       const last = sessions[sessions.length-1];
@@ -569,77 +672,82 @@ const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTask
       );
     };
 
-const BreakScreen = ({ setCurrentScreen, isBreakRunning, setIsBreakRunning, breakTimeRemaining, breakDuration, setBreakDuration, breakLabel, setBreakLabel, startBreak, endBreak, currentBreak, breakElapsedTime, isIndefiniteBreak }) => {
-      // UPDATED: Default isIndefiniteSelection to true
-      const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
-      
-      const presets = ['Coffee break', 'Lunch break', 'Terrace break', 'Dinner break'];
+const BreakScreen = ({ setCurrentScreen, isBreakRunning, breakTimeRemaining, breakDuration, setBreakDuration, breakLabel, setBreakLabel, startBreak, endBreak, currentBreak, breakElapsedTime, isIndefiniteBreak, extendBreak }) => {
+  const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
+  const [showExtendModal, setShowExtendModal] = useState(false); // New State
+  const presets = ['Coffee break', 'Lunch break', 'Terrace break', 'Dinner break'];
 
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center mb-8"><button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button><h2 className="text-4xl font-bold text-stone-800">Take a Break</h2></div>
-            
-            <div className="bg-white p-10 rounded-3xl shadow-lg border-2 border-stone-200 text-center min-h-[500px] flex flex-col justify-center">
-              {!isBreakRunning ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                  {/* LEFT: Presets */}
-                  <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-stone-700 mb-6">Quick Select</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      {presets.map(type => (
-                        <button key={type} onClick={() => { setBreakLabel(type); }} className={`p-6 rounded-2xl border-2 text-xl font-bold transition-all ${breakLabel === type ? 'bg-orange-100 border-orange-400 text-orange-700 ring-2 ring-orange-200' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-white hover:shadow-md'}`}>
-                          {type}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* RIGHT: Custom Controls */}
-                  <div className="flex flex-col items-center justify-center h-full border-l-2 border-stone-100 pl-12">
-                    <Icons.Coffee size={64} className="mb-6 text-orange-400" />
-                    <h3 className="text-3xl font-bold text-stone-800 mb-8">Customize</h3>
-                    
-                    <div className="mb-8 w-full max-w-xs">
-                      <label className="block font-semibold mb-3 text-stone-600">Break Type</label>
-                      <input type="text" value={breakLabel} onChange={(e) => setBreakLabel(e.target.value)} placeholder="e.g. Nap" className="w-full p-4 border-2 border-stone-200 rounded-xl text-center text-lg focus:border-orange-400 outline-none transition-colors" />
-                    </div>
-
-                    <div className="mb-8 bg-stone-50 p-4 rounded-xl w-full max-w-xs">
-                      <div className="flex items-center justify-center space-x-3 mb-4">
-                        <input type="checkbox" id="indefinite" checked={isIndefiniteSelection} onChange={(e) => setIsIndefiniteSelection(e.target.checked)} className="w-6 h-6 text-orange-500 rounded focus:ring-orange-500 border-gray-300" />
-                        <label htmlFor="indefinite" className="text-xl font-bold text-stone-700 cursor-pointer">Indefinite Duration</label>
-                      </div>
-                      {!isIndefiniteSelection && (
-                        <div className="mt-4"><label className="block font-semibold mb-2 text-stone-500">Minutes</label><input type="text" value={breakDuration} onChange={(e) => setBreakDuration(parseInt(e.target.value)||5)} className="w-full p-3 border-2 rounded-xl text-center text-2xl font-bold text-stone-700" /></div>
-                      )}
-                    </div>
-                    
-                    <button onClick={() => startBreak(isIndefiniteSelection)} className="w-full max-w-xs bg-gradient-to-r from-orange-400 to-rose-400 text-white p-5 rounded-xl font-bold text-2xl shadow-lg hover:scale-105 transition-transform"><Icons.Play size={28} className="inline mr-2" />Start Break</button>
-                  </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center mb-8"><button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button><h2 className="text-4xl font-bold text-stone-800">Take a Break</h2></div>
+        
+        <div className="bg-white p-10 rounded-3xl shadow-lg border-2 border-stone-200 text-center min-h-[500px] flex flex-col justify-center">
+          {!isBreakRunning ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              {/* Presets */}
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-stone-700 mb-6">Quick Select</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {presets.map(type => (
+                    <button key={type} onClick={() => { setBreakLabel(type); }} className={`p-6 rounded-2xl border-2 text-xl font-bold transition-all ${breakLabel === type ? 'bg-orange-100 border-orange-400 text-orange-700 ring-2 ring-orange-200' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-white hover:shadow-md'}`}>
+                      {type}
+                    </button>
+                  ))}
                 </div>
-              ) : (
-                // RUNNING STATE
-                <div>
-                  <Icons.Coffee size={80} className="mx-auto mb-6 text-orange-400" />
-                  <h3 className="text-3xl font-bold text-stone-800 mb-3">{currentBreak?.label || 'Break Time'}</h3>
-                  <div className="text-8xl font-bold text-orange-400 mb-8 tracking-tight">
-                    {isIndefiniteBreak ? formatTime(breakElapsedTime) : formatTime(breakTimeRemaining)}
-                  </div>
-                  {isIndefiniteBreak && <div className="text-stone-500 mb-8 flex justify-center items-center text-xl"><Icons.Infinity size={24} className="mr-2"/> Open-ended break</div>}
-                  <div className="flex justify-center space-x-6">
-                    {!isIndefiniteBreak && (
-                       <button onClick={() => setIsBreakRunning(!isBreakRunning)} className="bg-white p-6 rounded-2xl shadow-lg border-2 border-stone-200 hover:bg-stone-50">{isBreakRunning ? <Icons.Pause size={40} className="text-orange-400" /> : <Icons.Play size={40} className="text-orange-400" />}</button>
-                    )}
-                    <button onClick={endBreak} className="bg-red-500 text-white px-10 py-6 rounded-2xl font-bold text-2xl shadow-lg hover:bg-red-600"><Icons.Square size={24} className="inline mr-2" />End Break</button>
-                  </div>
+              </div>
+
+              {/* Custom Controls */}
+              <div className="flex flex-col items-center justify-center h-full border-l-2 border-stone-100 pl-12">
+                <Icons.Coffee size={64} className="mb-6 text-orange-400" />
+                <h3 className="text-3xl font-bold text-stone-800 mb-8">Customize</h3>
+                <div className="mb-8 w-full max-w-xs">
+                  <label className="block font-semibold mb-3 text-stone-600">Break Type</label>
+                  <input type="text" value={breakLabel} onChange={(e) => setBreakLabel(e.target.value)} placeholder="e.g. Nap" className="w-full p-4 border-2 border-stone-200 rounded-xl text-center text-lg focus:border-orange-400 outline-none transition-colors" />
                 </div>
-              )}
+                <div className="mb-8 bg-stone-50 p-4 rounded-xl w-full max-w-xs">
+                  <div className="flex items-center justify-center space-x-3 mb-4">
+                    <input type="checkbox" id="indefinite" checked={isIndefiniteSelection} onChange={(e) => setIsIndefiniteSelection(e.target.checked)} className="w-6 h-6 text-orange-500 rounded focus:ring-orange-500 border-gray-300" />
+                    <label htmlFor="indefinite" className="text-xl font-bold text-stone-700 cursor-pointer">Indefinite Duration</label>
+                  </div>
+                  {!isIndefiniteSelection && (
+                    <div className="mt-4"><label className="block font-semibold mb-2 text-stone-500">Minutes</label><input type="text" value={breakDuration} onChange={(e) => setBreakDuration(parseInt(e.target.value)||5)} className="w-full p-3 border-2 rounded-xl text-center text-2xl font-bold text-stone-700" /></div>
+                  )}
+                </div>
+                <button onClick={() => startBreak(isIndefiniteSelection)} className="w-full max-w-xs bg-gradient-to-r from-orange-400 to-rose-400 text-white p-5 rounded-xl font-bold text-2xl shadow-lg hover:scale-105 transition-transform"><Icons.Play size={28} className="inline mr-2" />Start Break</button>
+              </div>
             </div>
-          </div>
+          ) : (
+            // RUNNING STATE
+            <div>
+              <Icons.Coffee size={80} className="mx-auto mb-6 text-orange-400" />
+              <h3 className="text-3xl font-bold text-stone-800 mb-3">{currentBreak?.label || 'Break Time'}</h3>
+              <div className="text-8xl font-bold text-orange-400 mb-8 tracking-tight">
+                {isIndefiniteBreak ? formatTime(breakElapsedTime) : formatTime(breakTimeRemaining)}
+              </div>
+              {isIndefiniteBreak && <div className="text-stone-500 mb-8 flex justify-center items-center text-xl"><Icons.Infinity size={24} className="mr-2"/> Open-ended break</div>}
+              <div className="flex justify-center space-x-6">
+                {!isIndefiniteBreak && (
+                   // Updated Extend Button
+                   <button onClick={() => setShowExtendModal(true)} className="bg-white text-stone-700 px-8 py-6 rounded-2xl font-bold text-2xl shadow-lg border-2 border-stone-200 hover:bg-stone-50 flex items-center"><Icons.Plus size={24} className="mr-2"/> Extend</button>
+                )}
+                <button onClick={endBreak} className="bg-red-500 text-white px-10 py-6 rounded-2xl font-bold text-2xl shadow-lg hover:bg-red-600"><Icons.Square size={24} className="inline mr-2" />End Break</button>
+              </div>
+              
+              <ExtensionModal 
+                isOpen={showExtendModal} 
+                onClose={() => setShowExtendModal(false)} 
+                onConfirm={extendBreak} 
+                title="Extend Break" 
+                themeColor="orange"
+              />
+            </div>
+          )}
         </div>
-      );
-    };
+      </div>
+    </div>
+  );
+};
 
     const SessionLogScreen = ({ setCurrentScreen, sessions, breaks, workEvents }) => {
       const [tab, setTab] = useState('timeline');
@@ -773,367 +881,346 @@ const DailyReportScreen = ({ report, downloadMarkdownReport, setCurrentScreen })
     };
     
 // --- MAIN STRU COMPONENT ---
-    const Stru = () => {
-      // State Loading
-      const load = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch { return d; } };
-      const [currentScreen, setCurrentScreen] = useState('home');
-      const [tasks, setTasks] = useState(() => load('stru-tasks', []));
-      const [sessions, setSessions] = useState(() => load('stru-sessions', []).map(s => ({...s, startTime: new Date(s.startTime), endTime: new Date(s.endTime)})));
-      const [breaks, setBreaks] = useState(() => load('stru-breaks', []).map(b => ({...b, startTime: new Date(b.startTime), endTime: new Date(b.endTime)})));
-      const [workEvents, setWorkEvents] = useState(() => load('stru-workevents', []).map(e => ({...e, time: new Date(e.time)})));
-      
-      // NEW HISTORY STATE
-      const [history, setHistory] = useState(() => load('stru-history', []));
+const Stru = () => {
+  // --- STATE LOADING ---
+  const load = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch { return d; } };
+  const [currentScreen, setCurrentScreen] = useState('home');
+  const [tasks, setTasks] = useState(() => load('stru-tasks', []));
+  const [sessions, setSessions] = useState(() => load('stru-sessions', []).map(s => ({...s, startTime: new Date(s.startTime), endTime: new Date(s.endTime)})));
+  const [breaks, setBreaks] = useState(() => load('stru-breaks', []).map(b => ({...b, startTime: new Date(b.startTime), endTime: new Date(b.endTime)})));
+  const [workEvents, setWorkEvents] = useState(() => load('stru-workevents', []).map(e => ({...e, time: new Date(e.time)})));
+  const [history, setHistory] = useState(() => load('stru-history', []));
 
-      // Session State
-      const [sessionDuration, setSessionDuration] = useState(45);
-      const [selectedTasks, setSelectedTasks] = useState([]);
-      const [currentSession, setCurrentSession] = useState(null);
-      const [isSessionRunning, setIsSessionRunning] = useState(false);
-      const [timeRemaining, setTimeRemaining] = useState(0);
-      const [completedSessionTasks, setCompletedSessionTasks] = useState([]);
+  // --- SESSION STATE ---
+  const [sessionDuration, setSessionDuration] = useState(45);
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [isSessionRunning, setIsSessionRunning] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [completedSessionTasks, setCompletedSessionTasks] = useState([]);
 
-      // Break State
-      const [breakDuration, setBreakDuration] = useState(5);
-      const [breakLabel, setBreakLabel] = useState('');
-      const [isBreakRunning, setIsBreakRunning] = useState(false);
-      const [breakTimeRemaining, setBreakTimeRemaining] = useState(0);
-      const [currentBreak, setCurrentBreak] = useState(null);
-      const [breakElapsedTime, setBreakElapsedTime] = useState(0);
-      const [isIndefiniteBreak, setIsIndefiniteBreak] = useState(false);
+  // --- BREAK STATE ---
+  const [breakDuration, setBreakDuration] = useState(5);
+  const [breakLabel, setBreakLabel] = useState('');
+  const [isBreakRunning, setIsBreakRunning] = useState(false);
+  const [breakTimeRemaining, setBreakTimeRemaining] = useState(0);
+  const [currentBreak, setCurrentBreak] = useState(null);
+  const [breakElapsedTime, setBreakElapsedTime] = useState(0);
+  const [isIndefiniteBreak, setIsIndefiniteBreak] = useState(false);
 
-      // Modal State
-      const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-      const [newTaskText, setNewTaskText] = useState('');
-      const [newTaskPriority, setNewTaskPriority] = useState('');
-      const [bulkTaskText, setBulkTaskText] = useState('');
-      const [showEditTaskModal, setShowEditTaskModal] = useState(false);
-      const [editingTask, setEditingTask] = useState(null);
-      const [showSoundSettings, setShowSoundSettings] = useState(false);
-      const [showBreakReminder, setShowBreakReminder] = useState(false);
-      const [showStartDayModal, setShowStartDayModal] = useState(false);
-      const [showEndDayModal, setShowEndDayModal] = useState(false);
-      const [showBreakSwitchModal, setShowBreakSwitchModal] = useState(false);
-      const changePriority = (id, pri) => setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: pri } : t));
-      
-      // NEW BATCH FUNCTION
-      const batchChangePriority = (ids, pri) => {
-        setTasks(prev => prev.map(t => ids.includes(t.id) ? { ...t, priority: pri } : t));
-      };
-
-      // Refs
-      const targetTimeRef = useRef(null);
-      const breakTargetTimeRef = useRef(null);
-      const breakStartTimeRef = useRef(null);
-      const workerRef = useRef(null);
-
-      // Persistence
-      useEffect(() => { localStorage.setItem('stru-tasks', JSON.stringify(tasks)); }, [tasks]);
-      useEffect(() => { localStorage.setItem('stru-sessions', JSON.stringify(sessions)); }, [sessions]);
-      useEffect(() => { localStorage.setItem('stru-breaks', JSON.stringify(breaks)); }, [breaks]);
-      useEffect(() => { localStorage.setItem('stru-workevents', JSON.stringify(workEvents)); }, [workEvents]);
-      useEffect(() => { localStorage.setItem('stru-history', JSON.stringify(history)); }, [history]); // Save History
-
-      // Notification Permission
-      useEffect(() => { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); }, []);
-
-      // Worker
-      useEffect(() => {
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        workerRef.current = new Worker(URL.createObjectURL(blob));
-        workerRef.current.onmessage = (e) => {
-          if (e.data === 'tick') {
-            if (targetTimeRef.current) {
-              const left = Math.ceil((targetTimeRef.current - Date.now()) / 1000);
-              setTimeRemaining(left > 0 ? left : 0);
-            }
-            if (breakStartTimeRef.current && !breakTargetTimeRef.current) {
-               const elapsed = Math.floor((Date.now() - breakStartTimeRef.current.getTime()) / 1000);
-               setBreakElapsedTime(elapsed);
-            } else if (breakTargetTimeRef.current) {
-               const left = Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000);
-               setBreakTimeRemaining(left > 0 ? left : 0);
-            }
-          }
-        };
-        return () => workerRef.current?.terminate();
-      }, []);
-
-      useEffect(() => {
-        if (isSessionRunning || isBreakRunning) workerRef.current?.postMessage('start');
-        else { workerRef.current?.postMessage('stop'); targetTimeRef.current = null; breakTargetTimeRef.current = null; breakStartTimeRef.current = null; }
-      }, [isSessionRunning, isBreakRunning]);
-
-      useEffect(() => {
-        if (isSessionRunning && timeRemaining === 0 && targetTimeRef.current) {
-          if (Math.ceil((targetTimeRef.current - Date.now()) / 1000) <= 0) endSession();
-        }
-      }, [timeRemaining, isSessionRunning]);
-
-      useEffect(() => {
-        if (isBreakRunning && !isIndefiniteBreak && breakTimeRemaining === 0 && breakTargetTimeRef.current) {
-          if (Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000) <= 0) endBreak();
-        }
-      }, [breakTimeRemaining, isBreakRunning, isIndefiniteBreak]);
-
-      useEffect(() => {
-        if (currentScreen === 'session' && isSessionRunning) document.title = `🟡 ${formatTime(timeRemaining)} | Work`;
-        else if (currentScreen === 'break' && isBreakRunning) document.title = `🟢 ${isIndefiniteBreak ? formatTime(breakElapsedTime) : formatTime(breakTimeRemaining)} | Break`;
-        else if (currentScreen === 'sessionSummary') document.title = '🔴 Session Ended';
-        else if (currentScreen === 'breakSummary') document.title = '☕ Break Ended';
-        else document.title = 'Stru';
-      }, [currentScreen, isSessionRunning, timeRemaining, isBreakRunning, breakTimeRemaining, breakElapsedTime, isIndefiniteBreak]);
-
-      // Sounds
-      const playBeeps = useCallback((type) => {
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          const freqs = type === 'start' ? [523.25, 659.25, 783.99] : [783.99, 659.25, 523.25];
-          freqs.forEach((f, i) => {
-            const osc = ctx.createOscillator(); const g = ctx.createGain();
-            osc.connect(g); g.connect(ctx.destination); osc.frequency.value = f; osc.type = 'sine';
-            const t = ctx.currentTime + (i * 0.15);
-            g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.3, t+0.02); g.gain.linearRampToValueAtTime(0, t+0.1);
-            osc.start(t); osc.stop(t+0.1);
-          });
-        } catch(e) {}
-      }, []);
-
-      const playBreakBeeps = useCallback((type) => {
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          const freqs = type === 'start' ? [349.23, 440.00, 523.25] : [659.25, 523.25];
-          const gap = type === 'start' ? 0.2 : 0.3;
-          const dur = type === 'start' ? 0.2 : 0.4;
-          freqs.forEach((f, i) => {
-            const osc = ctx.createOscillator(); const g = ctx.createGain();
-            osc.connect(g); g.connect(ctx.destination); osc.frequency.value = f; osc.type = 'sine';
-            const t = ctx.currentTime + (i * gap);
-            g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.2, t+0.05); g.gain.linearRampToValueAtTime(0, t+dur);
-            osc.start(t); osc.stop(t+dur);
-          });
-        } catch(e) {}
-      }, []);
-
-      const sendNotification = (t, b) => { if ('Notification' in window && Notification.permission === 'granted') new Notification(t, { body: b, icon: '🎉' }); };
-
-      // Data Helpers
-      const availableTasks = useMemo(() => tasks.filter(t => !t.completed).sort((a, b) => {
-        const w = { must: 0, should: 1, could: 2, want: 3, '': 4 }; return w[a.priority] - w[b.priority];
-      }), [tasks]);
-      
-      const priorities = useMemo(() => {
-        const stats = {
-           must: { active: 0, completed: 0, label: 'Must Do' },
-           should: { active: 0, completed: 0, label: 'Should Do' },
-           could: { active: 0, completed: 0, label: 'Could Do' },
-           want: { active: 0, completed: 0, label: 'Want to Do' },
-           none: { active: 0, completed: 0, label: 'No Priority' }
-        };
-        tasks.forEach(t => {
-           const key = t.priority === '' ? 'none' : t.priority;
-           if(stats[key]) { if (t.completed) stats[key].completed++; else stats[key].active++; }
-        });
-        return stats;
-      }, [tasks]);
-
-      // Handlers
-      const addTask = (txt, pri) => setTasks(prev => [...prev, { id: Date.now().toString(), text: txt.trim(), priority: pri, completed: false }]);
-      const addBulkTasks = () => {
-        const lines = bulkTaskText.split('\n').filter(l => l.trim());
-        setTasks(prev => [...prev, ...lines.map(l => ({ id: Date.now()+Math.random(), text: l.trim(), priority: newTaskPriority, completed: false }))]);
-        setBulkTaskText(''); setShowAddTaskModal(false);
-      };
-      const editTask = (id, txt, pri) => setTasks(prev => prev.map(t => t.id === id ? { ...t, text: txt, priority: pri } : t));
-      const deleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
-      const toggleTaskCompletion = (id) => setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-      const resetDay = (type) => {
-        if (type === 'tasks') { setTasks([]); localStorage.removeItem('stru-tasks'); }
-        else if (type === 'everything') { setTasks([]); setSessions([]); setBreaks([]); setWorkEvents([]); setHistory([]); localStorage.clear(); }
-      };
-
-      const handleStartDay = () => {
-        setTasks([]); setSessions([]); setBreaks([]); 
-        const event = { id: Date.now(), type: 'start', time: new Date(), text: 'Workday Started' };
-        setWorkEvents([event]);
-        setShowStartDayModal(true);
-      };
-
-      // UPDATED: handleEndDay now calculates stats and saves history
-      const handleEndDay = () => {
-        // Calculate Summary for History
-        const today = new Date();
-        const startEvent = workEvents.find(e => e.type === 'start') || { time: sessions[0]?.startTime || today };
-        const totalTasks = tasks.length;
-        const totalCompleted = tasks.filter(t => t.completed).length;
-        const rate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
-        const totalBreakDur = breaks.reduce((s,b) => s+b.actualDuration, 0);
-
-        const summary = {
-           date: today,
-           startTime: startEvent.time,
-           endTime: today,
-           sessionCount: sessions.length,
-           taskCount: totalTasks,
-           completedCount: totalCompleted,
-           completionRate: rate,
-           breakCount: breaks.length,
-           breakDuration: totalBreakDur
-        };
-
-        // Save to history
-        setHistory(prev => [...prev, summary]);
-
-        const event = { id: Date.now(), type: 'end', time: new Date(), text: 'Workday Ended' };
-        setWorkEvents(prev => [...prev, event]);
-        setShowEndDayModal(true);
-      };
-
-      // NEW: Export Data
-      const exportData = () => {
-         const data = { tasks, sessions, breaks, workEvents, history };
-         const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-         const url = URL.createObjectURL(blob);
-         const a = document.createElement('a');
-         a.href = url;
-         a.download = `stru-backup-${new Date().toISOString().split('T')[0]}.json`;
-         a.click();
-      };
-
-      // NEW: Import Data
-      const importData = (file) => {
-         const reader = new FileReader();
-         reader.onload = (e) => {
-            try {
-               const data = JSON.parse(e.target.result);
-               if(data.tasks) setTasks(data.tasks);
-               if(data.sessions) setSessions(data.sessions.map(s => ({...s, startTime: new Date(s.startTime), endTime: new Date(s.endTime)})));
-               if(data.breaks) setBreaks(data.breaks.map(b => ({...b, startTime: new Date(b.startTime), endTime: new Date(b.endTime)})));
-               if(data.workEvents) setWorkEvents(data.workEvents.map(e => ({...e, time: new Date(e.time)})));
-               if(data.history) setHistory(data.history);
-               alert('Backup restored successfully!');
-               window.location.reload();
-            } catch (err) { alert('Invalid backup file'); }
-         };
-         reader.readAsText(file);
-      };
-
-      const runSessionStart = () => {
-        const s = { id: Date.now().toString(), duration: sessionDuration, startTime: new Date(), tasks: selectedTasks.map(id => tasks.find(t => t.id === id)), completed: [] };
-        setCurrentSession(s); setTimeRemaining(sessionDuration * 60); targetTimeRef.current = Date.now() + (sessionDuration * 60000);
-        setCompletedSessionTasks([]); setIsSessionRunning(true); setCurrentScreen('session'); playBeeps('start');
-        setSelectedTasks([]); setShowBreakSwitchModal(false);
-      };
-
-      const startSession = () => {
-        const currentHour = new Date().getHours();
-        if (currentHour >= 22 || currentHour < 4) setShowBreakSwitchModal(true);
-        else runSessionStart();
-      };
+  // --- MODAL STATE ---
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [newTaskPriority, setNewTaskPriority] = useState('');
+  const [bulkTaskText, setBulkTaskText] = useState('');
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [showSoundSettings, setShowSoundSettings] = useState(false);
+  const [showBreakReminder, setShowBreakReminder] = useState(false);
+  const [showStartDayModal, setShowStartDayModal] = useState(false);
+  const [showEndDayModal, setShowEndDayModal] = useState(false);
+  const [showBreakSwitchModal, setShowBreakSwitchModal] = useState(false);
   
-      const endSession = () => {
-        if (currentSession) {
-          const end = new Date(); const dur = Math.max(1, Math.round((end - currentSession.startTime) / 60000));
-          const comp = currentSession.tasks.filter(t => completedSessionTasks.includes(t.id));
-          const incomp = currentSession.tasks.filter(t => !completedSessionTasks.includes(t.id));
-          setSessions(prev => [...prev, { ...currentSession, endTime: end, actualDuration: dur, completedTasks: comp, incompleteTasks: incomp }]);
-          setIsSessionRunning(false); setCurrentScreen('sessionSummary'); playBeeps('end'); sendNotification('Session Ended', 'Good job!'); setShowBreakReminder(true);
+  // --- HANDLERS ---
+  const changePriority = (id, pri) => setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: pri } : t));
+  const batchChangePriority = (ids, pri) => setTasks(prev => prev.map(t => ids.includes(t.id) ? { ...t, priority: pri } : t));
+
+  // --- REFS & WORKER ---
+  const targetTimeRef = useRef(null);
+  const breakTargetTimeRef = useRef(null);
+  const breakStartTimeRef = useRef(null);
+  const workerRef = useRef(null);
+
+  useEffect(() => { localStorage.setItem('stru-tasks', JSON.stringify(tasks)); }, [tasks]);
+  useEffect(() => { localStorage.setItem('stru-sessions', JSON.stringify(sessions)); }, [sessions]);
+  useEffect(() => { localStorage.setItem('stru-breaks', JSON.stringify(breaks)); }, [breaks]);
+  useEffect(() => { localStorage.setItem('stru-workevents', JSON.stringify(workEvents)); }, [workEvents]);
+  useEffect(() => { localStorage.setItem('stru-history', JSON.stringify(history)); }, [history]);
+  useEffect(() => { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); }, []);
+
+  useEffect(() => {
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    workerRef.current = new Worker(URL.createObjectURL(blob));
+    workerRef.current.onmessage = (e) => {
+      if (e.data === 'tick') {
+        if (targetTimeRef.current) {
+          const left = Math.ceil((targetTimeRef.current - Date.now()) / 1000);
+          setTimeRemaining(left > 0 ? left : 0);
         }
-      };
-      const completeSessionTask = (id) => { setCompletedSessionTasks(prev => [...prev, id]); setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t)); };
-
-      const startBreak = (isIndefinite) => {
-        const startTime = new Date();
-        const brk = { id: Date.now().toString(), startTime, duration: isIndefinite ? 0 : breakDuration, label: breakLabel || 'Break' };
-        setCurrentBreak(brk); setIsBreakRunning(true); setIsIndefiniteBreak(isIndefinite); breakStartTimeRef.current = startTime;
-        if (isIndefinite) { setBreakElapsedTime(0); breakTargetTimeRef.current = null; }
-        else { const durSec = breakDuration * 60; setBreakTimeRemaining(durSec); breakTargetTimeRef.current = Date.now() + (durSec * 1000); }
-        playBreakBeeps('start');
-      };
-      
-      const endBreak = () => {
-        if (currentBreak) {
-          const end = new Date(); const dur = Math.max(1, Math.round((end - currentBreak.startTime) / 60000));
-          setBreaks(prev => [...prev, { ...currentBreak, endTime: end, actualDuration: dur }]);
-          setIsBreakRunning(false); setBreakTimeRemaining(0); setBreakElapsedTime(0); setCurrentScreen('breakSummary'); playBreakBeeps('end'); sendNotification('Break Ended', 'Back to work!');
+        if (breakStartTimeRef.current && !breakTargetTimeRef.current) {
+           const elapsed = Math.floor((Date.now() - breakStartTimeRef.current.getTime()) / 1000);
+           setBreakElapsedTime(elapsed);
+        } else if (breakTargetTimeRef.current) {
+           const left = Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000);
+           setBreakTimeRemaining(left > 0 ? left : 0);
         }
-      };
-
-      const getDailyReport = () => {
-        const today = new Date(); today.setHours(0,0,0,0);
-        const ts = sessions.filter(s => { const d = new Date(s.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
-        const tb = breaks.filter(b => { const d = new Date(b.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
-        const te = workEvents.filter(e => { const d = new Date(e.time); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
-        const att = ts.reduce((s, i) => s + i.tasks.length, 0);
-        const com = ts.reduce((s, i) => s + i.completedTasks.length, 0);
-        
-        const totalMasterListTasks = tasks.length;
-        const totalCompleted = tasks.filter(t => t.completed).length;
-        const globalCompletionRate = totalMasterListTasks > 0 ? Math.round((totalCompleted / totalMasterListTasks) * 100) : 0;
-        
-        return { 
-           date: today, sessions: ts.map((s,i)=>({...s, number: i+1})), breaks: tb, workEvents: te, 
-           totalTasksAttempted: att, totalTasksCompleted: com, totalBreakTime: tb.reduce((s,b)=>s+b.actualDuration,0),
-           totalMasterListTasks, globalCompletionRate
-        };
-      };
-
-      const downloadMarkdownReport = (r) => {
-        let md = `# Daily Productivity Report\n\n**Date:** ${r.date.toLocaleDateString()}\n\n`;
-        md += `## Global Stats\n- Total Tasks in Master List: ${r.totalMasterListTasks}\n- Global Completion: ${r.globalCompletionRate}%\n\n`;
-        md += `## Session Summary\n- Sessions: ${r.sessions.length}\n- Breaks: ${r.breaks.length} (${r.totalBreakTime} min)\n- Session Tasks: ${r.totalTasksCompleted} Completed\n\n`;
-        md += `## Daily Timeline\n\n`;
-        const timeline = [
-          ...r.sessions.map(s => ({ time: s.startTime, text: `Work Session (${s.actualDuration}m)` })),
-          ...r.breaks.map(b => ({ time: b.startTime, text: `Break: ${b.label} (${b.actualDuration}m)` })),
-          ...(r.workEvents || []).map(e => ({ time: new Date(e.time), text: e.text }))
-        ].sort((a, b) => a.time - b.time);
-
-        if (timeline.length === 0) md += `No activity recorded.\n\n`;
-        timeline.forEach(t => { md += `- **${t.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}**: ${t.text}\n`; });
-        md += `\n`;
-
-        if (r.sessions.length > 0) {
-          md += `## Session Details\n\n`;
-          r.sessions.forEach(s => {
-            md += `### Session #${s.number} (${s.actualDuration}m)\n`;
-            if(s.completedTasks.length) md += `**Completed:**\n` + s.completedTasks.map(t => `- [x] ${t.text}`).join('\n') + '\n';
-            if(s.incompleteTasks && s.incompleteTasks.length) md += `**Incomplete:**\n` + s.incompleteTasks.map(t => `- [ ] ${t.text}`).join('\n') + '\n';
-            md += '\n';
-          });
-        }
-        const blob = new Blob([md], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `stru-report-${new Date().toISOString().split('T')[0]}.md`; a.click();
-      };
-
-      return (
-        <div>
-          {currentScreen === 'home' && <HomeScreen setCurrentScreen={setCurrentScreen} setShowSoundSettings={setShowSoundSettings} availableTasks={availableTasks} dailyReport={getDailyReport()} priorities={priorities} handleStartDay={handleStartDay} handleEndDay={handleEndDay} />}
-          {currentScreen === 'masterList' && <MasterListScreen setCurrentScreen={setCurrentScreen} setShowAddTaskModal={setShowAddTaskModal} availableTasks={availableTasks} tasks={tasks} changePriority={changePriority} setEditingTask={setEditingTask} setShowEditTaskModal={setShowEditTaskModal} toggleTaskCompletion={toggleTaskCompletion} deleteTask={deleteTask} batchChangePriority={batchChangePriority} />}          {currentScreen === 'planSession' && <PlanSessionScreen setCurrentScreen={setCurrentScreen} sessionDuration={sessionDuration} setSessionDuration={setSessionDuration} startSession={startSession} selectedTasks={selectedTasks} setSelectedTasks={setSelectedTasks} availableTasks={availableTasks} />}
-          {currentScreen === 'session' && <SessionScreen currentSession={currentSession} timeRemaining={timeRemaining} isSessionRunning={isSessionRunning} setIsSessionRunning={setIsSessionRunning} endSession={endSession} completedSessionTasks={completedSessionTasks} completeSessionTask={completeSessionTask} />}
-          {currentScreen === 'sessionSummary' && <SessionSummaryScreen sessions={sessions} setCurrentScreen={setCurrentScreen} />}
-          {currentScreen === 'break' && <BreakScreen setCurrentScreen={setCurrentScreen} isBreakRunning={isBreakRunning} setIsBreakRunning={setIsBreakRunning} breakTimeRemaining={breakTimeRemaining} breakDuration={breakDuration} setBreakDuration={setBreakDuration} breakLabel={breakLabel} setBreakLabel={setBreakLabel} startBreak={startBreak} endBreak={endBreak} currentBreak={currentBreak} breakElapsedTime={breakElapsedTime} isIndefiniteBreak={isIndefiniteBreak} />}
-          {currentScreen === 'breakSummary' && <BreakSummaryScreen breaks={breaks} setCurrentScreen={setCurrentScreen} setSelectedTasks={setSelectedTasks} />}
-          {currentScreen === 'sessionLog' && <SessionLogScreen setCurrentScreen={setCurrentScreen} sessions={sessions} breaks={breaks} workEvents={workEvents} />}
-          {currentScreen === 'dailyReport' && <DailyReportScreen report={getDailyReport()} downloadMarkdownReport={downloadMarkdownReport} setCurrentScreen={setCurrentScreen} />}
-          {/* NEW HISTORY SCREEN */}
-          {currentScreen === 'history' && <HistoryScreen setCurrentScreen={setCurrentScreen} history={history} />}
-
-          <AddTaskModal showAddTaskModal={showAddTaskModal} setShowAddTaskModal={setShowAddTaskModal} newTaskText={newTaskText} setNewTaskText={setNewTaskText} newTaskPriority={newTaskPriority} setNewTaskPriority={setNewTaskPriority} bulkTaskText={bulkTaskText} setBulkTaskText={setBulkTaskText} addTask={addTask} addBulkTasks={addBulkTasks} />
-          <EditTaskModal showEditTaskModal={showEditTaskModal} setShowEditTaskModal={setShowEditTaskModal} editingTask={editingTask} setEditingTask={setEditingTask} editTask={editTask} />
-          <SettingsModal isOpen={showSoundSettings} onClose={() => setShowSoundSettings(false)} onResetDay={resetDay} onExport={exportData} onImport={importData} />
-          <BreakReminderModal isOpen={showBreakReminder} onTakeBreak={() => { setShowBreakReminder(false); setCurrentScreen('break'); }} onSkip={() => setShowBreakReminder(false)} />
-          <StartDayModal isOpen={showStartDayModal} onClose={() => setShowStartDayModal(false)} />
-          <EndDayModal isOpen={showEndDayModal} onClose={() => setShowEndDayModal(false)} />
-          <BreakSwitchModal isOpen={showBreakSwitchModal} onClose={() => setShowBreakSwitchModal(false)} onConfirm={runSessionStart} onEndDay={() => { setShowBreakSwitchModal(false); handleEndDay(); }} />
-        </div>
-      );
+      }
     };
+    return () => workerRef.current?.terminate();
+  }, []);
+
+  useEffect(() => {
+    if (isSessionRunning || isBreakRunning) workerRef.current?.postMessage('start');
+    else { workerRef.current?.postMessage('stop'); targetTimeRef.current = null; breakTargetTimeRef.current = null; breakStartTimeRef.current = null; }
+  }, [isSessionRunning, isBreakRunning]);
+
+  useEffect(() => {
+    if (isSessionRunning && timeRemaining === 0 && targetTimeRef.current) {
+      if (Math.ceil((targetTimeRef.current - Date.now()) / 1000) <= 0) endSession();
+    }
+  }, [timeRemaining, isSessionRunning]);
+
+  useEffect(() => {
+    if (isBreakRunning && !isIndefiniteBreak && breakTimeRemaining === 0 && breakTargetTimeRef.current) {
+      if (Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000) <= 0) endBreak();
+    }
+  }, [breakTimeRemaining, isBreakRunning, isIndefiniteBreak]);
+
+  useEffect(() => {
+    if (currentScreen === 'session' && isSessionRunning) document.title = `🟡 ${formatTime(timeRemaining)} | Work`;
+    else if (currentScreen === 'break' && isBreakRunning) document.title = `🟢 ${isIndefiniteBreak ? formatTime(breakElapsedTime) : formatTime(breakTimeRemaining)} | Break`;
+    else if (currentScreen === 'sessionSummary') document.title = '🔴 Session Ended';
+    else if (currentScreen === 'breakSummary') document.title = '☕ Break Ended';
+    else document.title = 'Stru';
+  }, [currentScreen, isSessionRunning, timeRemaining, isBreakRunning, breakTimeRemaining, breakElapsedTime, isIndefiniteBreak]);
+
+  // --- AUDIO ---
+  const playBeeps = useCallback((type) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const freqs = type === 'start' ? [523.25, 659.25, 783.99] : [783.99, 659.25, 523.25];
+      freqs.forEach((f, i) => {
+        const osc = ctx.createOscillator(); const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination); osc.frequency.value = f; osc.type = 'sine';
+        const t = ctx.currentTime + (i * 0.15);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.3, t+0.02); g.gain.linearRampToValueAtTime(0, t+0.1);
+        osc.start(t); osc.stop(t+0.1);
+      });
+    } catch(e) {}
+  }, []);
+
+  const playBreakBeeps = useCallback((type) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const freqs = type === 'start' ? [349.23, 440.00, 523.25] : [659.25, 523.25];
+      const gap = type === 'start' ? 0.2 : 0.3;
+      const dur = type === 'start' ? 0.2 : 0.4;
+      freqs.forEach((f, i) => {
+        const osc = ctx.createOscillator(); const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination); osc.frequency.value = f; osc.type = 'sine';
+        const t = ctx.currentTime + (i * gap);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.2, t+0.05); g.gain.linearRampToValueAtTime(0, t+dur);
+        osc.start(t); osc.stop(t+dur);
+      });
+    } catch(e) {}
+  }, []);
+  const sendNotification = (t, b) => { if ('Notification' in window && Notification.permission === 'granted') new Notification(t, { body: b, icon: '🎉' }); };
+
+  // --- DATA ---
+  const availableTasks = useMemo(() => tasks.filter(t => !t.completed).sort((a, b) => {
+    const w = { must: 0, should: 1, could: 2, want: 3, '': 4 }; return w[a.priority] - w[b.priority];
+  }), [tasks]);
+  
+  const priorities = useMemo(() => {
+    const stats = {
+       must: { active: 0, completed: 0, label: 'Must Do' },
+       should: { active: 0, completed: 0, label: 'Should Do' },
+       could: { active: 0, completed: 0, label: 'Could Do' },
+       want: { active: 0, completed: 0, label: 'Want to Do' },
+       none: { active: 0, completed: 0, label: 'No Priority' }
+    };
+    tasks.forEach(t => {
+       const key = t.priority === '' ? 'none' : t.priority;
+       if(stats[key]) { if (t.completed) stats[key].completed++; else stats[key].active++; }
+    });
+    return stats;
+  }, [tasks]);
+
+  // --- ACTIONS ---
+  const addTask = (txt, pri) => setTasks(prev => [...prev, { id: Date.now().toString(), text: txt.trim(), priority: pri, completed: false }]);
+  
+  // Updated addBulkTasks
+  const addBulkTasks = () => {
+    const lines = bulkTaskText.split('\n').filter(l => l.trim());
+    setTasks(prev => [...prev, ...lines.map(l => ({ id: Date.now()+Math.random(), text: l.trim(), priority: newTaskPriority, completed: false }))]);
+    setBulkTaskText(''); setShowAddTaskModal(false);
+  };
+  
+  const editTask = (id, txt, pri) => setTasks(prev => prev.map(t => t.id === id ? { ...t, text: txt, priority: pri } : t));
+  const deleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
+  const toggleTaskCompletion = (id) => setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const resetDay = (type) => {
+    if (type === 'tasks') { setTasks([]); localStorage.removeItem('stru-tasks'); }
+    else if (type === 'everything') { setTasks([]); setSessions([]); setBreaks([]); setWorkEvents([]); setHistory([]); localStorage.clear(); }
+  };
+  const handleStartDay = () => {
+    setTasks([]); setSessions([]); setBreaks([]); 
+    const event = { id: Date.now(), type: 'start', time: new Date(), text: 'Workday Started' };
+    setWorkEvents([event]);
+    setShowStartDayModal(true);
+  };
+  const handleEndDay = () => {
+    const today = new Date();
+    const startEvent = workEvents.find(e => e.type === 'start') || { time: sessions[0]?.startTime || today };
+    const totalTasks = tasks.length;
+    const totalCompleted = tasks.filter(t => t.completed).length;
+    const rate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+    const totalBreakDur = breaks.reduce((s,b) => s+b.actualDuration, 0);
+    const summary = { date: today, startTime: startEvent.time, endTime: today, sessionCount: sessions.length, taskCount: totalTasks, completedCount: totalCompleted, completionRate: rate, breakCount: breaks.length, breakDuration: totalBreakDur };
+    setHistory(prev => [...prev, summary]);
+    const event = { id: Date.now(), type: 'end', time: new Date(), text: 'Workday Ended' };
+    setWorkEvents(prev => [...prev, event]);
+    setShowEndDayModal(true);
+  };
+  const exportData = () => {
+     const data = { tasks, sessions, breaks, workEvents, history };
+     const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+     const url = URL.createObjectURL(blob);
+     const a = document.createElement('a'); a.href = url; a.download = `stru-backup-${new Date().toISOString().split('T')[0]}.json`; a.click();
+  };
+  const importData = (file) => {
+     const reader = new FileReader();
+     reader.onload = (e) => {
+        try {
+           const data = JSON.parse(e.target.result);
+           if(data.tasks) setTasks(data.tasks);
+           if(data.sessions) setSessions(data.sessions.map(s => ({...s, startTime: new Date(s.startTime), endTime: new Date(s.endTime)})));
+           if(data.breaks) setBreaks(data.breaks.map(b => ({...b, startTime: new Date(b.startTime), endTime: new Date(b.endTime)})));
+           if(data.workEvents) setWorkEvents(data.workEvents.map(e => ({...e, time: new Date(e.time)})));
+           if(data.history) setHistory(data.history);
+           alert('Backup restored successfully!'); window.location.reload();
+        } catch (err) { alert('Invalid backup file'); }
+     };
+     reader.readAsText(file);
+  };
+
+  const runSessionStart = () => {
+    const s = { id: Date.now().toString(), duration: sessionDuration, startTime: new Date(), tasks: selectedTasks.map(id => tasks.find(t => t.id === id)), completed: [] };
+    setCurrentSession(s); setTimeRemaining(sessionDuration * 60); targetTimeRef.current = Date.now() + (sessionDuration * 60000);
+    setCompletedSessionTasks([]); setIsSessionRunning(true); setCurrentScreen('session'); playBeeps('start');
+    setSelectedTasks([]); setShowBreakSwitchModal(false);
+  };
+  const startSession = () => {
+    const currentHour = new Date().getHours();
+    if (currentHour >= 22 || currentHour < 4) setShowBreakSwitchModal(true);
+    else runSessionStart();
+  };
+  
+  // --- EXTEND & MANAGE SESSIONS ---
+  const extendSession = (mins) => {
+    const ms = mins * 60 * 1000;
+    targetTimeRef.current += ms;
+    setSessionDuration(prev => prev + mins);
+    setCurrentSession(prev => ({ ...prev, duration: prev.duration + mins }));
+  };
+
+  const reorderSessionTask = (index, direction) => {
+    if (!currentSession) return;
+    const newTasks = [...currentSession.tasks];
+    if (direction === -1 && index > 0) {
+       [newTasks[index], newTasks[index - 1]] = [newTasks[index - 1], newTasks[index]];
+    } else if (direction === 1 && index < newTasks.length - 1) {
+       [newTasks[index], newTasks[index + 1]] = [newTasks[index + 1], newTasks[index]];
+    }
+    setCurrentSession({...currentSession, tasks: newTasks});
+  };
+
+  const addSessionTask = (task) => {
+    if (!currentSession) return;
+    setCurrentSession(prev => ({...prev, tasks: [...prev.tasks, task]}));
+  };
+
+  const endSession = () => {
+    if (currentSession) {
+      const end = new Date(); const dur = Math.max(1, Math.round((end - currentSession.startTime) / 60000));
+      const comp = currentSession.tasks.filter(t => completedSessionTasks.includes(t.id));
+      const incomp = currentSession.tasks.filter(t => !completedSessionTasks.includes(t.id));
+      setSessions(prev => [...prev, { ...currentSession, endTime: end, actualDuration: dur, completedTasks: comp, incompleteTasks: incomp }]);
+      setIsSessionRunning(false); setCurrentScreen('sessionSummary'); playBeeps('end'); sendNotification('Session Ended', 'Good job!'); setShowBreakReminder(true);
+    }
+  };
+  const completeSessionTask = (id) => { setCompletedSessionTasks(prev => [...prev, id]); setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t)); };
+
+  const startBreak = (isIndefinite) => {
+    const startTime = new Date();
+    const brk = { id: Date.now().toString(), startTime, duration: isIndefinite ? 0 : breakDuration, label: breakLabel || 'Break' };
+    setCurrentBreak(brk); setIsBreakRunning(true); setIsIndefiniteBreak(isIndefinite); breakStartTimeRef.current = startTime;
+    if (isIndefinite) { setBreakElapsedTime(0); breakTargetTimeRef.current = null; }
+    else { const durSec = breakDuration * 60; setBreakTimeRemaining(durSec); breakTargetTimeRef.current = Date.now() + (durSec * 1000); }
+    playBreakBeeps('start');
+  };
+  
+  // Updated extendBreak
+  const extendBreak = (mins) => {
+     if (breakTargetTimeRef.current) {
+        breakTargetTimeRef.current += mins * 60 * 1000;
+        // Keep state in sync for consistency
+        if(currentBreak) setCurrentBreak(prev => ({...prev, duration: prev.duration + mins}));
+     }
+  };
+
+  const endBreak = () => {
+    if (currentBreak) {
+      const end = new Date(); const dur = Math.max(1, Math.round((end - currentBreak.startTime) / 60000));
+      setBreaks(prev => [...prev, { ...currentBreak, endTime: end, actualDuration: dur }]);
+      setIsBreakRunning(false); setBreakTimeRemaining(0); setBreakElapsedTime(0); setCurrentScreen('breakSummary'); playBreakBeeps('end'); sendNotification('Break Ended', 'Back to work!');
+    }
+  };
+
+  const getDailyReport = () => {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const ts = sessions.filter(s => { const d = new Date(s.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
+    const tb = breaks.filter(b => { const d = new Date(b.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
+    const te = workEvents.filter(e => { const d = new Date(e.time); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
+    const att = ts.reduce((s, i) => s + i.tasks.length, 0);
+    const com = ts.reduce((s, i) => s + i.completedTasks.length, 0);
+    const totalMasterListTasks = tasks.length;
+    const totalCompleted = tasks.filter(t => t.completed).length;
+    const globalCompletionRate = totalMasterListTasks > 0 ? Math.round((totalCompleted / totalMasterListTasks) * 100) : 0;
+    return { date: today, sessions: ts.map((s,i)=>({...s, number: i+1})), breaks: tb, workEvents: te, totalTasksAttempted: att, totalTasksCompleted: com, totalBreakTime: tb.reduce((s,b)=>s+b.actualDuration,0), totalMasterListTasks, globalCompletionRate };
+  };
+
+  const downloadMarkdownReport = (r) => {
+    let md = `# Daily Productivity Report\n\n**Date:** ${r.date.toLocaleDateString()}\n\n`;
+    md += `## Global Stats\n- Total Tasks in Master List: ${r.totalMasterListTasks}\n- Global Completion: ${r.globalCompletionRate}%\n\n`;
+    md += `## Session Summary\n- Sessions: ${r.sessions.length}\n- Breaks: ${r.breaks.length} (${r.totalBreakTime} min)\n- Session Tasks: ${r.totalTasksCompleted} Completed\n\n`;
+    md += `## Daily Timeline\n\n`;
+    const timeline = [ ...r.sessions.map(s => ({ time: s.startTime, text: `Work Session (${s.actualDuration}m)` })), ...r.breaks.map(b => ({ time: b.startTime, text: `Break: ${b.label} (${b.actualDuration}m)` })), ...(r.workEvents || []).map(e => ({ time: new Date(e.time), text: e.text })) ].sort((a, b) => a.time - b.time);
+    if (timeline.length === 0) md += `No activity recorded.\n\n`;
+    timeline.forEach(t => { md += `- **${t.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}**: ${t.text}\n`; });
+    md += `\n`;
+    if (r.sessions.length > 0) { md += `## Session Details\n\n`; r.sessions.forEach(s => { md += `### Session #${s.number} (${s.actualDuration}m)\n`; if(s.completedTasks.length) md += `**Completed:**\n` + s.completedTasks.map(t => `- [x] ${t.text}`).join('\n') + '\n'; if(s.incompleteTasks && s.incompleteTasks.length) md += `**Incomplete:**\n` + s.incompleteTasks.map(t => `- [ ] ${t.text}`).join('\n') + '\n'; md += '\n'; }); }
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `stru-report-${new Date().toISOString().split('T')[0]}.md`; a.click();
+  };
+
+  return (
+    <div>
+      {currentScreen === 'home' && <HomeScreen setCurrentScreen={setCurrentScreen} setShowSoundSettings={setShowSoundSettings} availableTasks={availableTasks} dailyReport={getDailyReport()} priorities={priorities} handleStartDay={handleStartDay} handleEndDay={handleEndDay} />}
+      {currentScreen === 'masterList' && <MasterListScreen setCurrentScreen={setCurrentScreen} setShowAddTaskModal={setShowAddTaskModal} availableTasks={availableTasks} tasks={tasks} changePriority={changePriority} setEditingTask={setEditingTask} setShowEditTaskModal={setShowEditTaskModal} toggleTaskCompletion={toggleTaskCompletion} deleteTask={deleteTask} batchChangePriority={batchChangePriority} />}          {currentScreen === 'planSession' && <PlanSessionScreen setCurrentScreen={setCurrentScreen} sessionDuration={sessionDuration} setSessionDuration={setSessionDuration} startSession={startSession} selectedTasks={selectedTasks} setSelectedTasks={setSelectedTasks} availableTasks={availableTasks} />}
+      {currentScreen === 'session' && <SessionScreen currentSession={currentSession} timeRemaining={timeRemaining} isSessionRunning={isSessionRunning} setIsSessionRunning={setIsSessionRunning} endSession={endSession} completedSessionTasks={completedSessionTasks} completeSessionTask={completeSessionTask} extendSession={extendSession} reorderSessionTask={reorderSessionTask} addSessionTask={addSessionTask} availableTasks={availableTasks} />}
+      {currentScreen === 'sessionSummary' && <SessionSummaryScreen sessions={sessions} setCurrentScreen={setCurrentScreen} />}
+      {currentScreen === 'break' && <BreakScreen setCurrentScreen={setCurrentScreen} isBreakRunning={isBreakRunning} setIsBreakRunning={setIsBreakRunning} breakTimeRemaining={breakTimeRemaining} breakDuration={breakDuration} setBreakDuration={setBreakDuration} breakLabel={breakLabel} setBreakLabel={setBreakLabel} startBreak={startBreak} endBreak={endBreak} currentBreak={currentBreak} breakElapsedTime={breakElapsedTime} isIndefiniteBreak={isIndefiniteBreak} extendBreak={extendBreak} />}
+      {currentScreen === 'breakSummary' && <BreakSummaryScreen breaks={breaks} setCurrentScreen={setCurrentScreen} setSelectedTasks={setSelectedTasks} />}
+      {currentScreen === 'sessionLog' && <SessionLogScreen setCurrentScreen={setCurrentScreen} sessions={sessions} breaks={breaks} workEvents={workEvents} />}
+      {currentScreen === 'dailyReport' && <DailyReportScreen report={getDailyReport()} downloadMarkdownReport={downloadMarkdownReport} setCurrentScreen={setCurrentScreen} />}
+      {currentScreen === 'history' && <HistoryScreen setCurrentScreen={setCurrentScreen} history={history} />}
+
+      <AddTaskModal showAddTaskModal={showAddTaskModal} setShowAddTaskModal={setShowAddTaskModal} newTaskPriority={newTaskPriority} setNewTaskPriority={setNewTaskPriority} bulkTaskText={bulkTaskText} setBulkTaskText={setBulkTaskText} addBulkTasks={addBulkTasks} />
+      <EditTaskModal showEditTaskModal={showEditTaskModal} setShowEditTaskModal={setShowEditTaskModal} editingTask={editingTask} setEditingTask={setEditingTask} editTask={editTask} />
+      <SettingsModal isOpen={showSoundSettings} onClose={() => setShowSoundSettings(false)} onResetDay={resetDay} onExport={exportData} onImport={importData} />
+      <BreakReminderModal isOpen={showBreakReminder} onTakeBreak={() => { setShowBreakReminder(false); setCurrentScreen('break'); }} onSkip={() => setShowBreakReminder(false)} />
+      <StartDayModal isOpen={showStartDayModal} onClose={() => setShowStartDayModal(false)} />
+      <EndDayModal isOpen={showEndDayModal} onClose={() => setShowEndDayModal(false)} />
+      <BreakSwitchModal isOpen={showBreakSwitchModal} onClose={() => setShowBreakSwitchModal(false)} onConfirm={runSessionStart} onEndDay={() => { setShowBreakSwitchModal(false); handleEndDay(); }} />
+    </div>
+  );
+};
     
     ReactDOM.render(<Stru />, document.getElementById('root'));
   </script>
 </body>
 </html>
+
 
 
 

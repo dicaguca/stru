@@ -527,48 +527,67 @@ const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTask
       );
     };
 
-    const PlanSessionScreen = ({ setCurrentScreen, sessionDuration, setSessionDuration, startSession, selectedTasks, setSelectedTasks, availableTasks }) => (
-      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center mb-8">
-            <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
-            <h2 className="text-4xl font-bold text-stone-800">Plan Focus Session</h2>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Session Setup (1/3 width) */}
-            <div className="lg:col-span-1 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200 h-fit">
-              <h3 className="text-2xl font-bold mb-6 text-stone-800">Session Setup</h3>
-              <div className="mb-8">
-                <label className="block text-lg font-semibold mb-3 text-stone-700">Duration (minutes)</label>
-                <input type="text" value={sessionDuration} onChange={(e) => { const v = e.target.value; if(/^\d*$/.test(v)) setSessionDuration(v === '' ? '' : parseInt(v)||45); }} className="w-full p-4 border-2 border-stone-200 rounded-xl text-lg font-medium" />
-              </div>
-              <div className="mb-8 grid grid-cols-3 gap-3">
-                {[15, 30, 45, 60, 75, 90].map(d => <button key={d} onClick={() => setSessionDuration(d)} className={`p-4 rounded-xl font-semibold ${sessionDuration === d ? 'bg-gradient-to-r from-rose-400 to-orange-400 text-white' : 'bg-stone-100 text-stone-700'}`}>{d} min</button>)}
-              </div>
-              <button onClick={startSession} className="w-full bg-gradient-to-r from-lime-400 to-green-500 text-white p-5 rounded-xl font-bold text-xl shadow-lg"><Icons.Play size={24} className="inline mr-2" />Start Session</button>
+const PlanSessionScreen = ({ setCurrentScreen, sessionDuration, setSessionDuration, startSession, selectedTasks, setSelectedTasks, availableTasks }) => {
+  // Update "now" every minute so the estimate stays fresh
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
+  const endTime = new Date(now.getTime() + (sessionDuration || 0) * 60000);
+  const timeString = `${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center mb-8">
+          <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+          <h2 className="text-4xl font-bold text-stone-800">Plan Focus Session</h2>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Session Setup */}
+          <div className="lg:col-span-1 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200 h-fit">
+            <h3 className="text-2xl font-bold mb-6 text-stone-800">Session Setup</h3>
+            <div className="mb-6">
+              <label className="block text-lg font-semibold mb-3 text-stone-700">Duration (minutes)</label>
+              <input type="text" value={sessionDuration} onChange={(e) => { const v = e.target.value; if(/^\d*$/.test(v)) setSessionDuration(v === '' ? '' : parseInt(v)||45); }} className="w-full p-4 border-2 border-stone-200 rounded-xl text-lg font-medium" />
             </div>
             
-            {/* Select Tasks (2/3 width) */}
-            <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200">
-              <h3 className="text-2xl font-bold mb-2 text-stone-800">Select Tasks</h3>
-              <div className="text-stone-500 font-medium mb-6 flex space-x-6">
-                <span className="text-green-600">Selected: {selectedTasks.length}</span>
-                <span>Remaining Available: {availableTasks.length - selectedTasks.length}</span>
-              </div>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {availableTasks.map(t => (
-                  <button key={t.id} onClick={() => setSelectedTasks(p => p.includes(t.id) ? p.filter(id => id !== t.id) : [...p, t.id])} className={`w-full text-left py-3 px-5 rounded-2xl border-2 flex items-center space-x-4 ${selectedTasks.includes(t.id) ? `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}` : 'bg-stone-50 border-stone-200'}`}>
-                    <div className={`${priorityColors[t.priority].dot} w-5 h-5 rounded-full`} />
-                    <span className="flex-1 text-lg font-medium text-stone-800">{t.text}</span>
-                    {selectedTasks.includes(t.id) && <Icons.Check size={24} className="text-lime-600" />}
-                  </button>
-                ))}
-              </div>
+            {/* NEW: Estimated Time Display */}
+            <div className="mb-8 bg-stone-50 border-2 border-stone-100 p-4 rounded-xl text-center">
+              <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Estimated Schedule</div>
+              <div className="text-xl font-bold text-stone-700">{timeString}</div>
+            </div>
+
+            <div className="mb-8 grid grid-cols-3 gap-3">
+              {[15, 30, 45, 60, 75, 90].map(d => <button key={d} onClick={() => setSessionDuration(d)} className={`p-4 rounded-xl font-semibold ${sessionDuration === d ? 'bg-gradient-to-r from-rose-400 to-orange-400 text-white' : 'bg-stone-100 text-stone-700'}`}>{d} min</button>)}
+            </div>
+            <button onClick={startSession} className="w-full bg-gradient-to-r from-lime-400 to-green-500 text-white p-5 rounded-xl font-bold text-xl shadow-lg"><Icons.Play size={24} className="inline mr-2" />Start Session</button>
+          </div>
+          
+          {/* Select Tasks */}
+          <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border-2 border-stone-200">
+            <h3 className="text-2xl font-bold mb-2 text-stone-800">Select Tasks</h3>
+            <div className="text-stone-500 font-medium mb-6 flex space-x-6">
+              <span className="text-green-600">Selected: {selectedTasks.length}</span>
+              <span>Remaining Available: {availableTasks.length - selectedTasks.length}</span>
+            </div>
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {availableTasks.map(t => (
+                <button key={t.id} onClick={() => setSelectedTasks(p => p.includes(t.id) ? p.filter(id => id !== t.id) : [...p, t.id])} className={`w-full text-left py-3 px-5 rounded-2xl border-2 flex items-center space-x-4 ${selectedTasks.includes(t.id) ? `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}` : 'bg-stone-50 border-stone-200'}`}>
+                  <div className={`${priorityColors[t.priority].dot} w-5 h-5 rounded-full`} />
+                  <span className="flex-1 text-lg font-medium text-stone-800">{t.text}</span>
+                  {selectedTasks.includes(t.id) && <Icons.Check size={24} className="text-lime-600" />}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
+};
     
 // Missing Helper Component (Required for Add Task button)
 const SessionAddTaskModal = ({ isOpen, onClose, availableTasks, onAdd }) => {
@@ -596,13 +615,34 @@ const SessionAddTaskModal = ({ isOpen, onClose, availableTasks, onAdd }) => {
 const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSessionTasks, completeSessionTask, extendSession, reorderSessionTask, addSessionTask, availableTasks }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showExtendModal, setShowExtendModal] = useState(false);
+  
+  // Calculate Estimates
+  const startTime = currentSession ? currentSession.startTime : new Date();
+  const endTime = currentSession ? new Date(startTime.getTime() + currentSession.duration * 60000) : new Date();
   const progress = currentSession ? ((currentSession.duration * 60 - timeRemaining) / (currentSession.duration * 60)) * 100 : 0;
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100 p-8">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-3xl font-bold text-stone-800 mb-3">Focus Session</h2>
-        <div className="text-6xl font-bold text-green-600 mb-3">{formatTime(timeRemaining)}</div>
+        <h2 className="text-3xl font-bold text-stone-800 mb-2">Focus Session</h2>
+        
+        {/* Timer */}
+        <div className="text-6xl font-bold text-green-600 mb-4">{formatTime(timeRemaining)}</div>
+
+        {/* NEW: Time Info Row */}
+        <div className="flex justify-center items-center space-x-8 mb-6">
+           <div className="text-center">
+             <div className="text-xs font-bold text-stone-400 uppercase tracking-wider">Started</div>
+             <div className="text-xl font-bold text-stone-700">{startTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+           </div>
+           <div className="w-px h-8 bg-stone-300"></div>
+           <div className="text-center">
+             <div className="text-xs font-bold text-stone-400 uppercase tracking-wider">Est. Finish</div>
+             <div className="text-xl font-bold text-stone-700">{endTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+           </div>
+        </div>
+
+        {/* Progress Bar */}
         <div className="w-full max-w-xl mx-auto bg-stone-200 rounded-full h-4 overflow-hidden mb-8"><div className="bg-gradient-to-r from-lime-400 to-green-500 h-full transition-all duration-1000" style={{ width: `${progress}%` }} /></div>
         
         <div className="flex justify-center space-x-4 mb-8">
@@ -610,7 +650,6 @@ const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSes
           <button onClick={endSession} className="bg-red-500 text-white px-8 py-5 rounded-2xl font-bold text-lg shadow-lg hover:bg-red-600"><Icons.Square size={20} className="inline mr-2" />End Session</button>
         </div>
 
-        {/* CHANGED: max-w-2xl -> w-full to use the full parent width */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 w-full mx-auto text-left relative">
           <div className="flex justify-between items-center mb-4">
              <h3 className="text-xl font-bold text-stone-800">Tasks</h3>
@@ -623,7 +662,6 @@ const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSes
               return (
                 <div key={t.id} className={`p-0 rounded-2xl border-2 flex items-stretch overflow-hidden group transition-all ${isCompleted ? 'bg-lime-50 border-lime-300 opacity-60' : `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}`}`}>
                   
-                  {/* Left-side Control Pad for Reordering */}
                   {!isCompleted && (
                     <div className="flex flex-col border-r-2 border-black/5 bg-white/30 w-14 flex-shrink-0">
                       <button onClick={() => reorderSessionTask(index, -1)} disabled={index === 0} className="flex-1 flex items-center justify-center hover:bg-black/10 disabled:opacity-30 text-stone-700 transition-colors">
@@ -636,7 +674,7 @@ const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSes
                     </div>
                   )}
 
-                  <div className="flex-1 p-4 flex items-center gap-3 min-w-0"> {/* Added min-w-0 for text truncation/wrapping safety */}
+                  <div className="flex-1 p-4 flex items-center gap-3 min-w-0">
                     <div className={`${priorityColors[t.priority].dot} w-4 h-4 rounded-full flex-shrink-0`} />
                     <span className={`flex-1 text-lg ${isCompleted ? 'line-through text-stone-500' : 'text-stone-800 font-medium'}`}>{t.text}</span>
                     {!isCompleted ? (
@@ -1099,15 +1137,30 @@ const Stru = () => {
     setWorkEvents([event]);
     setShowStartDayModal(true);
   };
-  const handleEndDay = () => {
-    const today = new Date();
+const handleEndDay = () => {
+    const today = new Date(); // This is effectively "now" (end time)
+    // Find the start event to use as the anchor date
     const startEvent = workEvents.find(e => e.type === 'start') || { time: sessions[0]?.startTime || today };
+    
     const totalTasks = tasks.length;
     const totalCompleted = tasks.filter(t => t.completed).length;
     const rate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
     const totalBreakDur = breaks.reduce((s,b) => s+b.actualDuration, 0);
-    const summary = { date: today, startTime: startEvent.time, endTime: today, sessionCount: sessions.length, taskCount: totalTasks, completedCount: totalCompleted, completionRate: rate, breakCount: breaks.length, breakDuration: totalBreakDur };
+
+    const summary = { 
+       date: startEvent.time, // FIXED: Uses start time for the date record
+       startTime: startEvent.time,
+       endTime: today,
+       sessionCount: sessions.length,
+       taskCount: totalTasks,
+       completedCount: totalCompleted,
+       completionRate: rate,
+       breakCount: breaks.length,
+       breakDuration: totalBreakDur
+    };
+
     setHistory(prev => [...prev, summary]);
+
     const event = { id: Date.now(), type: 'end', time: new Date(), text: 'Workday Ended' };
     setWorkEvents(prev => [...prev, event]);
     setShowEndDayModal(true);
@@ -1261,6 +1314,7 @@ const Stru = () => {
   </script>
 </body>
 </html>
+
 
 
 

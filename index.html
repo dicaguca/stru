@@ -259,7 +259,9 @@
                 d.setDate(d.getDate() + days);
                 setSelectedDate(d.toISOString().split('T')[0]);
             };
-            const displayDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            // Parse date in local timezone to avoid UTC conversion issues
+            const [year, month, day] = selectedDate.split('-').map(Number);
+            const displayDate = new Date(year, month - 1, day).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
             // Calculate Today and Yesterday strings
             const todayStr = new Date().toISOString().split('T')[0];

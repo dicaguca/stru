@@ -386,8 +386,8 @@ const HomeScreen = ({ setCurrentScreen, setShowSoundSettings, availableTasks, da
         </div>
       </div>
       
-      {/* 1. Added much more space (mb-16) here */}
-      <div className="grid grid-cols-2 gap-6 mb-16">
+      {/* 1. Added more space (mb-10) here */}
+      <div className="grid grid-cols-2 gap-6 mb-10">
         <button onClick={() => setCurrentScreen('masterList')} className="bg-gradient-to-br from-rose-400 to-orange-400 p-6 rounded-3xl hover:from-rose-500 hover:to-orange-500 shadow-lg transform hover:scale-[1.02] transition-all text-left">
           <Icons.CheckSquare size={40} className="text-white mb-3" />
           <h3 className="text-2xl font-bold text-white mb-1">Master Task List</h3>
@@ -610,7 +610,8 @@ const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSes
           <button onClick={endSession} className="bg-red-500 text-white px-8 py-5 rounded-2xl font-bold text-lg shadow-lg hover:bg-red-600"><Icons.Square size={20} className="inline mr-2" />End Session</button>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 max-w-2xl mx-auto text-left relative">
+        {/* CHANGED: max-w-2xl -> w-full to use the full parent width */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 w-full mx-auto text-left relative">
           <div className="flex justify-between items-center mb-4">
              <h3 className="text-xl font-bold text-stone-800">Tasks</h3>
              <button onClick={() => setShowAddModal(true)} className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100">+ Add Task</button>
@@ -622,9 +623,9 @@ const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSes
               return (
                 <div key={t.id} className={`p-0 rounded-2xl border-2 flex items-stretch overflow-hidden group transition-all ${isCompleted ? 'bg-lime-50 border-lime-300 opacity-60' : `${priorityColors[t.priority].bg} ${priorityColors[t.priority].border}`}`}>
                   
-                  {/* NEW: Left-side Control Pad for Reordering */}
+                  {/* Left-side Control Pad for Reordering */}
                   {!isCompleted && (
-                    <div className="flex flex-col border-r-2 border-black/5 bg-white/30 w-14">
+                    <div className="flex flex-col border-r-2 border-black/5 bg-white/30 w-14 flex-shrink-0">
                       <button onClick={() => reorderSessionTask(index, -1)} disabled={index === 0} className="flex-1 flex items-center justify-center hover:bg-black/10 disabled:opacity-30 text-stone-700 transition-colors">
                         <Icons.ChevronUp size={28} />
                       </button>
@@ -635,7 +636,7 @@ const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSes
                     </div>
                   )}
 
-                  <div className="flex-1 p-4 flex items-center gap-3">
+                  <div className="flex-1 p-4 flex items-center gap-3 min-w-0"> {/* Added min-w-0 for text truncation/wrapping safety */}
                     <div className={`${priorityColors[t.priority].dot} w-4 h-4 rounded-full flex-shrink-0`} />
                     <span className={`flex-1 text-lg ${isCompleted ? 'line-through text-stone-500' : 'text-stone-800 font-medium'}`}>{t.text}</span>
                     {!isCompleted ? (
@@ -643,7 +644,7 @@ const SessionScreen = ({ currentSession, timeRemaining, endSession, completedSes
                         Complete
                       </button>
                     ) : (
-                      <Icons.Check size={28} className="text-green-600 mr-2" />
+                      <Icons.Check size={28} className="text-green-600 mr-2 flex-shrink-0" />
                     )}
                   </div>
                 </div>
@@ -1260,6 +1261,7 @@ const Stru = () => {
   </script>
 </body>
 </html>
+
 
 
 

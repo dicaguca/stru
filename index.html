@@ -320,58 +320,61 @@ const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport }) => {
       return m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
     };
 
-    const HistoryScreen = ({ setCurrentScreen, history }) => (
-      <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center mb-8">
-            <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl shadow-sm"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
-            <h2 className="text-4xl font-bold text-stone-800">History Log</h2>
-          </div>
-          
-          {history.length === 0 ? (
-            <div className="text-center py-20 text-stone-500 text-xl">No history recorded yet. Complete a workday to see stats here!</div>
-          ) : (
-            <div className="bg-white rounded-3xl shadow-lg border-2 border-stone-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-stone-50 border-b-2 border-stone-200 text-stone-600">
-                      <th className="p-5 font-bold">Date</th>
-                      <th className="p-5 font-bold">Hours</th>
-                      <th className="p-5 font-bold">Sessions</th>
-                      <th className="p-5 font-bold">Tasks</th>
-                      <th className="p-5 font-bold text-center">% Done</th>
-                      <th className="p-5 font-bold">Breaks</th>
-                      <th className="p-5 font-bold">Break Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.slice().reverse().map((day, i) => (
-                      <tr key={i} className="border-b border-stone-100 hover:bg-stone-50 transition-colors">
-                        <td className="p-5 font-bold text-stone-800">{new Date(day.date).toLocaleDateString()}</td>
-                        <td className="p-5 text-sm text-stone-600">
-                          {new Date(day.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - {new Date(day.endTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                        </td>
-                        <td className="p-5"><span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full font-bold text-sm">{day.sessionCount}</span></td>
-                        <td className="p-5 text-stone-600">{day.completedCount} / {day.taskCount}</td>
-                        <td className="p-5 text-center">
-                          <div className="w-full bg-stone-200 rounded-full h-2.5 dark:bg-gray-700">
-                            <div className="bg-green-500 h-2.5 rounded-full" style={{width: `${day.completionRate}%`}}></div>
-                          </div>
-                          <div className="text-xs mt-1 font-bold text-green-600">{day.completionRate}%</div>
-                        </td>
-                        <td className="p-5 text-stone-600">{day.breakCount}</td>
-                        <td className="p-5 font-medium text-orange-600">{formatDur(day.breakDuration)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+const HistoryScreen = ({ setCurrentScreen, history }) => (
+  <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200 p-8">
+    <div className="max-w-6xl mx-auto">
+      <div className="flex items-center mb-8">
+        <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl shadow-sm"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+        <h2 className="text-4xl font-bold text-stone-800">History Log</h2>
       </div>
-    );
+      
+      {history.length === 0 ? (
+        <div className="text-center py-20 text-stone-500 text-xl">No history recorded yet. Complete a workday to see stats here!</div>
+      ) : (
+        <div className="bg-white rounded-3xl shadow-lg border-2 border-stone-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-stone-50 border-b-2 border-stone-200 text-stone-600">
+                  <th className="p-5 font-bold">Date</th>
+                  <th className="p-5 font-bold">Hours</th>
+                  <th className="p-5 font-bold">Sessions</th>
+                  <th className="p-5 font-bold">Tasks</th>
+                  <th className="p-5 font-bold text-center">% Done</th>
+                  <th className="p-5 font-bold">Breaks</th>
+                  <th className="p-5 font-bold">Break Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.slice().reverse().map((day, i) => (
+                  <tr key={i} className="border-b border-stone-100 hover:bg-stone-50 transition-colors">
+                    {/* CHANGED: Added weekday: 'short' to the date options */}
+                    <td className="p-5 font-bold text-stone-800">
+                      {new Date(day.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric' })}
+                    </td>
+                    <td className="p-5 text-sm text-stone-600">
+                      {new Date(day.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - {new Date(day.endTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                    </td>
+                    <td className="p-5"><span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full font-bold text-sm">{day.sessionCount}</span></td>
+                    <td className="p-5 text-stone-600">{day.completedCount} / {day.taskCount}</td>
+                    <td className="p-5 text-center">
+                      <div className="w-full bg-stone-200 rounded-full h-2.5 dark:bg-gray-700">
+                        <div className="bg-green-500 h-2.5 rounded-full" style={{width: `${day.completionRate}%`}}></div>
+                      </div>
+                      <div className="text-xs mt-1 font-bold text-green-600">{day.completionRate}%</div>
+                    </td>
+                    <td className="p-5 text-stone-600">{day.breakCount}</td>
+                    <td className="p-5 font-medium text-orange-600">{formatDur(day.breakDuration)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+);
     
     // --- SCREENS ---
 const HomeScreen = ({ setCurrentScreen, setShowSoundSettings, availableTasks, dailyReport, priorities, handleStartDay, handleEndDay }) => (
@@ -381,13 +384,15 @@ const HomeScreen = ({ setCurrentScreen, setShowSoundSettings, availableTasks, da
         <div className="text-center md:text-left"><h1 className="text-5xl font-bold text-stone-800 mb-2">Stru</h1><p className="text-xl text-stone-600">Structured Focus System</p></div>
         <div className="flex gap-3">
           <button onClick={handleStartDay} className="w-32 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="Start New Day"><Icons.Sun size={20} className="text-white" /><span>Start</span></button>
-          <button onClick={handleEndDay} className="w-32 bg-gradient-to-r from-indigo-900 via-purple-800 to-purple-900 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="End Workday"><Icons.Moon size={20} className="text-white" /><span>End</span></button>
+          
+          {/* CHANGED: Gradient is now from-purple-600 to-indigo-900 (Light to Dark) */}
+          <button onClick={handleEndDay} className="w-32 bg-gradient-to-r from-purple-600 to-indigo-900 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-105 transition-all" title="End Workday"><Icons.Moon size={20} className="text-white" /><span>End</span></button>
+          
           <button onClick={() => setShowSoundSettings(true)} className="bg-white px-4 py-3 rounded-xl hover:bg-stone-50 border-2 border-stone-200 font-semibold text-stone-700 shadow-sm">⚙️</button>
         </div>
       </div>
       
-      {/* 1. Added more space (mb-10) here */}
-      <div className="grid grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-2 gap-6 mb-6">
         <button onClick={() => setCurrentScreen('masterList')} className="bg-gradient-to-br from-rose-400 to-orange-400 p-6 rounded-3xl hover:from-rose-500 hover:to-orange-500 shadow-lg transform hover:scale-[1.02] transition-all text-left">
           <Icons.CheckSquare size={40} className="text-white mb-3" />
           <h3 className="text-2xl font-bold text-white mb-1">Master Task List</h3>
@@ -444,7 +449,6 @@ const HomeScreen = ({ setCurrentScreen, setShowSoundSettings, availableTasks, da
     </div>
   </div>
 );
-
 const MasterListScreen = ({ setCurrentScreen, setShowAddTaskModal, availableTasks, tasks, changePriority, setEditingTask, setShowEditTaskModal, toggleTaskCompletion, deleteTask, batchChangePriority }) => {
       const [isBatchMode, setIsBatchMode] = useState(false);
       const [selectedIds, setSelectedIds] = useState([]);
@@ -1314,6 +1318,7 @@ const handleEndDay = () => {
   </script>
 </body>
 </html>
+
 
 
 

@@ -43,7 +43,7 @@ const Icons = {
       ChevronUp: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="18 15 12 9 6 15"></polyline></svg>,
       ChevronDown: ({size=24,className=''})=> <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 12 15 18 9"></polyline></svg>
     };
-
+ 
 const priorityColors = {
       must: {bg:'bg-rose-100',border:'border-rose-400',text:'text-rose-700',dot:'bg-rose-400',label:'Priority'},
       should: {bg:'bg-orange-100',border:'border-orange-400',text:'text-orange-700',dot:'bg-orange-400',label:'High'},
@@ -53,6 +53,11 @@ const priorityColors = {
     };
     const priorityOrder = ['must','should','could','want',''];
     const formatTime = (sec) => `${Math.floor(sec/60)}:${(sec%60).toString().padStart(2,'0')}`;
+    const formatDur = (m) => { 
+      const h = Math.floor(m / 60); 
+      const min = m % 60; 
+      return h > 0 ? `${h}h ${min}m` : `${min}m`; 
+    };
     const workerCode = `let interval=null;self.onmessage=function(e){if(e.data==='start'){if(!interval){interval=setInterval(()=>self.postMessage('tick'),1000)}}else if(e.data==='stop'){if(interval){clearInterval(interval);interval=null}}};`;
 
     // --- EXTERNAL COMPONENTS ---
@@ -908,64 +913,91 @@ const BreakScreen = ({ setCurrentScreen, isBreakRunning, breakTimeRemaining, bre
       );
     };
 
-const DailyReportScreen = ({ report, downloadMarkdownReport, setCurrentScreen }) => {
-      // Helper to format minutes into "1h 30m"
-      const formatDur = (m) => m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
+constconst DailyReportScreen = ({ report, downloadMarkdownReport, setCurrentScreen }) => (
+  <div className="min-h-screen bg-gradient-to-br from-lime-50 to-lime-100 p-8">
+    <div className="max-w-5xl mx-auto">
+      <div className="flex items-center mb-8">
+        <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl shadow-sm"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
+        <h2 className="text-4xl font-bold text-stone-800">Daily Report</h2>
+        <button onClick={() => downloadMarkdownReport(report)} className="ml-auto bg-stone-800 text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-900"><Icons.FileText size={20}/> <span>Download</span></button>
+      </div>
 
-      const timeline = [
-        ...report.sessions.map(s => ({ type: 'session', time: s.startTime, ...s })),
-        ...report.breaks.map(b => ({ type: 'break', time: b.startTime, ...b })),
-        ...(report.workEvents || []).map(e => ({ type: 'event', time: new Date(e.time), ...e }))
-      ].sort((a, b) => a.time - b.time);
-
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
-          <div className="max-w-5xl mx-auto">
-            <div className="flex items-center mb-8">
-              <button onClick={() => setCurrentScreen('home')} className="mr-4 p-3 hover:bg-white rounded-xl"><Icons.ArrowLeft className="text-stone-600" size={28} /></button>
-              <div className="flex-1"><h2 className="text-4xl font-bold text-stone-800">Daily Report</h2><p className="text-lg text-stone-600">{report.date.toLocaleDateString()}</p></div>
-              <button onClick={() => downloadMarkdownReport(report)} className="bg-gradient-to-r from-rose-400 to-orange-400 text-white px-6 py-4 rounded-xl font-semibold shadow-lg"><Icons.FileText size={22} className="inline mr-2"/>Export</button>
-            </div>
-             <div className="grid grid-cols-2 gap-6 mb-8">
-               <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-indigo-200 flex justify-between items-center">
-                  <div><div className="text-stone-500 font-medium">Total Master List Tasks</div><div className="text-3xl font-bold text-indigo-900">{report.totalMasterListTasks}</div></div>
-                  <Icons.CheckSquare size={32} className="text-purple-400" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Global Stats */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-stone-200">
+          <h3 className="text-xl font-bold text-stone-800 mb-4">Task Completion</h3>
+          <div className="flex items-center justify-center py-4">
+            <div className="relative w-40 h-40">
+               <svg className="w-full h-full" viewBox="0 0 36 36">
+                 <path className="text-stone-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.5" />
+                 <path className="text-lime-500" strokeDasharray={`${report.globalCompletionRate}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.5" />
+               </svg>
+               <div className="absolute inset-0 flex flex-col items-center justify-center text-stone-800">
+                 <span className="text-3xl font-bold">{report.globalCompletionRate}%</span>
+                 <span className="text-xs text-stone-500 font-bold uppercase">Done</span>
                </div>
-               <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-green-200 flex justify-between items-center">
-                  <div><div className="text-stone-500 font-medium">Global Completion %</div><div className="text-3xl font-bold text-green-600">{report.globalCompletionRate}%</div></div>
-                  <Icons.BarChart3 size={32} className="text-green-300" />
-               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 text-center"><div className="text-4xl font-bold text-rose-500">{report.sessions.length}</div><div className="text-stone-600">Sessions</div></div>
-              
-              {/* UPDATED: Uses formatDur helper */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 text-center"><div className="text-4xl font-bold text-orange-500">{formatDur(report.totalBreakTime)}</div><div className="text-stone-600">Break Time</div></div>
-              
-              <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 text-center"><div className="text-4xl font-bold text-green-500">{report.totalTasksCompleted}</div><div className="text-stone-600">Session Tasks Done</div></div>
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-stone-800">Timeline</h3>
-              {timeline.length === 0 && <div className="text-stone-400 text-center py-8">No activity today</div>}
-              {timeline.map((item, i) => (
-                <div key={item.id || i} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 ${item.type === 'session' ? 'border-rose-400' : item.type === 'break' ? 'border-orange-400' : 'border-stone-500'}`}>
-                  <div className="flex justify-between font-bold">
-                    <span className={item.type === 'event' ? (item.text.includes('Start') ? 'text-orange-600' : 'text-indigo-600') : 'text-stone-800'}>
-                      {item.type === 'session' ? 'Work Session' : item.type === 'break' ? `Break: ${item.label}` : item.text}
-                    </span>
-                    <span>{item.time.toLocaleTimeString()}</span>
-                  </div>
-                  <div className="text-stone-600 mt-1">
-                    {item.type === 'session' && `${item.actualDuration} min • ${item.completedTasks.length} done • ${item.tasks.length - item.completedTasks.length} not done`}
-                    {item.type === 'break' && `${item.actualDuration} min`}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
+          <div className="flex justify-between mt-4 text-center">
+             <div><div className="text-2xl font-bold text-stone-800">{report.totalMasterListTasks}</div><div className="text-xs font-bold text-stone-400 uppercase">Total</div></div>
+             <div><div className="text-2xl font-bold text-lime-600">{report.totalTasksCompleted}</div><div className="text-xs font-bold text-stone-400 uppercase">Done</div></div>
+             <div><div className="text-2xl font-bold text-orange-400">{report.totalMasterListTasks - report.totalTasksCompleted}</div><div className="text-xs font-bold text-stone-400 uppercase">Left</div></div>
+          </div>
         </div>
-      );
-    };
+        
+        {/* Session Stats */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-stone-200">
+          <h3 className="text-xl font-bold text-stone-800 mb-4">Today's Activity</h3>
+          <div className="grid grid-cols-2 gap-4">
+             <div className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-100">
+                <div className="text-sm font-bold text-orange-600 mb-1">Sessions</div>
+                <div className="text-2xl font-bold text-stone-800">{report.sessions.length}</div>
+             </div>
+             
+             {/* NEW: Work Time Box */}
+             <div className="bg-rose-50 p-4 rounded-2xl border-2 border-rose-100">
+                <div className="text-sm font-bold text-rose-600 mb-1">Work Time</div>
+                <div className="text-2xl font-bold text-stone-800">{formatDur(report.totalWorkTime || 0)}</div>
+             </div>
+
+             <div className="bg-green-50 p-4 rounded-2xl border-2 border-green-100">
+                <div className="text-sm font-bold text-green-600 mb-1">Tasks Done</div>
+                <div className="text-2xl font-bold text-stone-800">{report.totalTasksCompleted}</div>
+             </div>
+             <div className="bg-blue-50 p-4 rounded-2xl border-2 border-blue-100">
+                <div className="text-sm font-bold text-blue-600 mb-1">Break Time</div>
+                <div className="text-2xl font-bold text-stone-800">{formatDur(report.totalBreakTime)}</div>
+             </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-white p-8 rounded-3xl shadow-sm border-2 border-stone-200">
+        <h3 className="text-xl font-bold text-stone-800 mb-6">Timeline</h3>
+        <div className="space-y-6 pl-4 border-l-2 border-stone-100">
+          {[
+            ...report.sessions.map(s => ({ time: s.startTime, type: 'work', title: `Focus Session #${s.number}`, duration: `${s.actualDuration}m`, detail: `${s.completedTasks.length} tasks completed` })),
+            ...report.breaks.map(b => ({ time: b.startTime, type: 'break', title: `Break: ${b.label}`, duration: `${b.actualDuration}m`, detail: 'Recharging' })),
+            ...report.workEvents.map(e => ({ time: new Date(e.time), type: 'event', title: e.text, duration: '', detail: '' }))
+          ].sort((a,b) => a.time - b.time).map((item, i) => (
+             <div key={i} className="relative pl-8">
+               <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 ${item.type === 'work' ? 'bg-rose-400 border-rose-200' : item.type === 'break' ? 'bg-blue-400 border-blue-200' : 'bg-stone-400 border-stone-200'}`}></div>
+               <div className="flex justify-between items-start">
+                 <div>
+                   <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">{item.time.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                   <h4 className="text-lg font-bold text-stone-800">{item.title}</h4>
+                   {item.detail && <p className="text-stone-500 text-sm">{item.detail}</p>}
+                 </div>
+                 {item.duration && <div className="font-bold text-stone-400">{item.duration}</div>}
+               </div>
+             </div>
+          ))}
+          {report.sessions.length === 0 && report.breaks.length === 0 && report.workEvents.length === 0 && <p className="text-stone-500 italic">No activity recorded today yet.</p>}
+        </div>
+      </div>
+    </div>
+  </div>
+);
     
 // --- MAIN STRU COMPONENT ---
 const Stru = () => {
@@ -1145,25 +1177,24 @@ const Stru = () => {
     setWorkEvents([event]);
     setShowStartDayModal(true);
   };
-const handleEndDay = () => {
+  
+  // Handle End Day (uses start time for date)
+  const handleEndDay = () => {
     const today = new Date();
-    // Use the Start Event time if available, otherwise fallback to session start or "now"
     const startEvent = workEvents.find(e => e.type === 'start') || { time: sessions[0]?.startTime || today };
-    
     const totalTasks = tasks.length;
     const totalCompleted = tasks.filter(t => t.completed).length;
     const rate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
     
-    // Calculate Totals
     const totalBreakDur = breaks.reduce((s,b) => s+b.actualDuration, 0);
-    const totalWorkDur = sessions.reduce((s,c) => s + (c.actualDuration || 0), 0); // NEW Calculation
+    const totalWorkDur = sessions.reduce((s,c) => s + (c.actualDuration || 0), 0);
 
     const summary = { 
        date: startEvent.time,
        startTime: startEvent.time, 
        endTime: today, 
-       sessionCount: sessions.length,
-       workDuration: totalWorkDur, // Saved to history
+       sessionCount: sessions.length, 
+       workDuration: totalWorkDur,
        taskCount: totalTasks, 
        completedCount: totalCompleted, 
        completionRate: rate, 
@@ -1176,7 +1207,7 @@ const handleEndDay = () => {
     setWorkEvents(prev => [...prev, event]);
     setShowEndDayModal(true);
   };
-  
+
   const exportData = () => {
      const data = { tasks, sessions, breaks, workEvents, history };
      const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
@@ -1211,7 +1242,6 @@ const handleEndDay = () => {
     else runSessionStart();
   };
   
-  // --- EXTEND & MANAGE SESSIONS ---
   const extendSession = (mins) => {
     const ms = mins * 60 * 1000;
     targetTimeRef.current += ms;
@@ -1255,11 +1285,9 @@ const handleEndDay = () => {
     playBreakBeeps('start');
   };
   
-  // Updated extendBreak
   const extendBreak = (mins) => {
      if (breakTargetTimeRef.current) {
         breakTargetTimeRef.current += mins * 60 * 1000;
-        // Keep state in sync for consistency
         if(currentBreak) setCurrentBreak(prev => ({...prev, duration: prev.duration + mins}));
      }
   };
@@ -1279,16 +1307,35 @@ const handleEndDay = () => {
     const te = workEvents.filter(e => { const d = new Date(e.time); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
     const att = ts.reduce((s, i) => s + i.tasks.length, 0);
     const com = ts.reduce((s, i) => s + i.completedTasks.length, 0);
+    
+    // NEW: Calculate Total Work Time for Today
+    const totalWorkTime = ts.reduce((acc, s) => acc + (s.actualDuration || 0), 0);
+    
     const totalMasterListTasks = tasks.length;
     const totalCompleted = tasks.filter(t => t.completed).length;
     const globalCompletionRate = totalMasterListTasks > 0 ? Math.round((totalCompleted / totalMasterListTasks) * 100) : 0;
-    return { date: today, sessions: ts.map((s,i)=>({...s, number: i+1})), breaks: tb, workEvents: te, totalTasksAttempted: att, totalTasksCompleted: com, totalBreakTime: tb.reduce((s,b)=>s+b.actualDuration,0), totalMasterListTasks, globalCompletionRate };
+    
+    return { 
+      date: today, 
+      sessions: ts.map((s,i)=>({...s, number: i+1})), 
+      breaks: tb, 
+      workEvents: te, 
+      totalTasksAttempted: att, 
+      totalTasksCompleted: com, 
+      totalBreakTime: tb.reduce((s,b)=>s+b.actualDuration,0),
+      totalWorkTime, // Added here
+      totalMasterListTasks, 
+      globalCompletionRate 
+    };
   };
 
   const downloadMarkdownReport = (r) => {
     let md = `# Daily Productivity Report\n\n**Date:** ${r.date.toLocaleDateString()}\n\n`;
     md += `## Global Stats\n- Total Tasks in Master List: ${r.totalMasterListTasks}\n- Global Completion: ${r.globalCompletionRate}%\n\n`;
-    md += `## Session Summary\n- Sessions: ${r.sessions.length}\n- Breaks: ${r.breaks.length} (${r.totalBreakTime} min)\n- Session Tasks: ${r.totalTasksCompleted} Completed\n\n`;
+    
+    // UPDATED MARKDOWN SECTION
+    md += `## Session Summary\n- Sessions: ${r.sessions.length} (${r.totalWorkTime} min)\n- Breaks: ${r.breaks.length} (${r.totalBreakTime} min)\n- Session Tasks: ${r.totalTasksCompleted} Completed\n\n`;
+    
     md += `## Daily Timeline\n\n`;
     const timeline = [ ...r.sessions.map(s => ({ time: s.startTime, text: `Work Session (${s.actualDuration}m)` })), ...r.breaks.map(b => ({ time: b.startTime, text: `Break: ${b.label} (${b.actualDuration}m)` })), ...(r.workEvents || []).map(e => ({ time: new Date(e.time), text: e.text })) ].sort((a, b) => a.time - b.time);
     if (timeline.length === 0) md += `No activity recorded.\n\n`;
@@ -1326,6 +1373,7 @@ const handleEndDay = () => {
   </script>
 </body>
 </html>
+
 
 
 

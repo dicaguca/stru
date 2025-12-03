@@ -319,12 +319,6 @@ const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport }) => {
       );
     };
 
-// Global Helper for "1h 30m" format
-    const formatDur = (m) => {
-      if (!m) return '0m';
-      return m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
-    };
-
 const HistoryScreen = ({ setCurrentScreen, history }) => (
   <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200 p-8">
     <div className="max-w-6xl mx-auto">
@@ -1373,6 +1367,7 @@ const Stru = () => {
   </script>
 </body>
 </html>
+
 
 
 

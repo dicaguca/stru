@@ -1294,30 +1294,32 @@ const Stru = () => {
     }
   };
 
-  const getDailyReport = () => {
+const getDailyReport = () => {
     const today = new Date(); today.setHours(0,0,0,0);
     const ts = sessions.filter(s => { const d = new Date(s.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
     const tb = breaks.filter(b => { const d = new Date(b.startTime); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
     const te = workEvents.filter(e => { const d = new Date(e.time); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
-    const att = ts.reduce((s, i) => s + i.tasks.length, 0);
-    const com = ts.reduce((s, i) => s + i.completedTasks.length, 0);
     
-    // NEW: Calculate Total Work Time for Today
-    const totalWorkTime = ts.reduce((acc, s) => acc + (s.actualDuration || 0), 0);
+    // --- NEW SIMPLIFIED LOGIC ---
+    // Since you refresh daily, we simply count what is in the list right now.
     
     const totalMasterListTasks = tasks.length;
-    const totalCompleted = tasks.filter(t => t.completed).length;
-    const globalCompletionRate = totalMasterListTasks > 0 ? Math.round((totalCompleted / totalMasterListTasks) * 100) : 0;
+    const totalTasksCompleted = tasks.filter(t => t.completed).length; // Counts ALL completed tasks (manual + session)
+    const globalCompletionRate = totalMasterListTasks > 0 ? Math.round((totalTasksCompleted / totalMasterListTasks) * 100) : 0;
+    
+    // Calculate Session Specifics (just for the timeline/session stats)
+    const totalSessionTasksAttempted = ts.reduce((s, i) => s + i.tasks.length, 0);
+    const totalWorkTime = ts.reduce((acc, s) => acc + (s.actualDuration || 0), 0);
     
     return { 
       date: today, 
       sessions: ts.map((s,i)=>({...s, number: i+1})), 
       breaks: tb, 
       workEvents: te, 
-      totalTasksAttempted: att, 
-      totalTasksCompleted: com, 
+      totalTasksAttempted: totalSessionTasksAttempted, 
+      totalTasksCompleted, // This now includes MANUAL completions too!
       totalBreakTime: tb.reduce((s,b)=>s+b.actualDuration,0),
-      totalWorkTime, // Added here
+      totalWorkTime, 
       totalMasterListTasks, 
       globalCompletionRate 
     };
@@ -1367,6 +1369,7 @@ const Stru = () => {
   </script>
 </body>
 </html>
+
 
 
 

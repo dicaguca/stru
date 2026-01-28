@@ -113,7 +113,13 @@
         const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
         const [showExtendModal, setShowExtendModal] = useState(false);
 
-        const breakStartTimeRef = useRef(null); // Date
+        // Local refs (always exist)
+        const localBreakStartTimeRef = useRef(null);   // Date.now() baseline (number)
+        const localBreakTargetTimeRef = useRef(null);  // Date.now() target (number)
+
+        // Prefer shared refs from app.jsx if present, otherwise fall back to local
+        const breakStartTimeRef = window.Stru?.timerRefs?.breakStartTimeRef || localBreakStartTimeRef;
+        const breakTargetTimeRef = window.Stru?.timerRefs?.breakTargetTimeRef || localBreakTargetTimeRef;
 
         const [breaks, setBreaks] = useState(loadBreaks);
 
@@ -139,9 +145,17 @@
             if (isIndefinite) {
                 setBreakElapsedTime(0);
                 setBreakTimeRemaining(0);
+
+                // Lag-proof elapsed time baseline
+                breakStartTimeRef.current = Date.now();
+                breakTargetTimeRef.current = null;
             } else {
                 const durSec = Math.max(1, breakDuration) * 60;
                 setBreakTimeRemaining(durSec);
+
+                // Lag-proof countdown target
+                breakTargetTimeRef.current = Date.now() + durSec * 1000;
+                breakStartTimeRef.current = null;
             }
 
             // store active break object in state-like variable
@@ -195,6 +209,7 @@
             setBreakElapsedTime(0);
             setIsIndefiniteBreak(false);
             breakStartTimeRef.current = null;
+            breakTargetTimeRef.current = null;
 
             Stru.playBreakBeeps("end");
             go("/break-summary");

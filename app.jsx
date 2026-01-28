@@ -136,6 +136,7 @@ const App = () => {
     }, []);
 
     /* ---------- break ---------- */
+    const [activeBreak, setActiveBreak] = useState(null);
     const [isBreakRunning, setIsBreakRunning] = useState(false);
     const [breakTimeRemaining, setBreakTimeRemaining] = useState(0);
     const [breakElapsedTime, setBreakElapsedTime] = useState(0);
@@ -236,6 +237,20 @@ const App = () => {
         requestAnimationFrame(finish);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sessionEndQueued, activeSession]);
+
+    /* =========================
+   AUTO-END TIMED BREAKS
+========================= */
+    useEffect(() => {
+        if (!isBreakRunning) return;
+        if (isIndefiniteBreak) return;
+
+        if (breakTimeRemaining <= 0) {
+            endBreakAndSave();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isBreakRunning, isIndefiniteBreak, breakTimeRemaining]);
+
 
     /* =========================
        TAB TITLE (old behavior)
@@ -515,6 +530,100 @@ const App = () => {
         setShowBreakReminder(true);
     };
 
+    /* =========================
+       BREAK LIFECYCLE (centralized)
+    ========================= */
+    const startBreakFromUI = ({ label, isIndefinite, durationMin }) => {
+        const startMs = Date.now();
+        const safeLabel = (label || "").trim() || "Break";
+
+        const brk = {
+            id: uid(),
+            startTime: new Date(startMs),
+            label: safeLabel,
+            duration: isIndefinite ? 0 : Math.max(1, Number(durationMin) || 5), // minutes (planned)
+            isIndefinite: !!isIndefinite,
+        };
+
+        setActiveBreak(brk);
+
+        setIsBreakRunning(true);
+        setIsIndefiniteBreak(!!isIndefinite);
+
+        // baseline for elapsed math
+        breakStartTimeRef.current = startMs;
+
+        if (isIndefinite) {
+            breakTargetTimeRef.current = null;
+            setBreakElapsedTime(0);
+            setBreakTimeRemaining(0);
+        } else {
+            const durSec = Math.max(1, brk.duration) * 60;
+            breakTargetTimeRef.current = startMs + durSec * 1000;
+            setBreakTimeRemaining(durSec);
+            setBreakElapsedTime(0);
+        }
+
+        Stru.playBreakBeeps("start");
+    };
+
+    const extendBreakInApp = (mins) => {
+        const m = Number(mins) || 0;
+        if (m <= 0) return;
+        if (!isBreakRunning) return;
+        if (isIndefiniteBreak) return;
+
+        // extend planned minutes metadata
+        setActiveBreak((prev) =>
+            prev ? { ...prev, duration: (Number(prev.duration) || 0) + m } : prev
+        );
+
+        // extend lag-proof target time (ms)
+        if (breakTargetTimeRef.current) {
+            breakTargetTimeRef.current += m * 60 * 1000;
+        }
+
+        // keep UI responsive immediately (timer loop will keep it accurate)
+        setBreakTimeRemaining((prev) => prev + m * 60);
+    };
+
+    const endBreakAndSave = () => {
+        if (!activeBreak || !breakStartTimeRef.current) {
+            // If something is missing, just exit break mode cleanly
+            setIsBreakRunning(false);
+            setIsIndefiniteBreak(false);
+            setBreakTimeRemaining(0);
+            setBreakElapsedTime(0);
+            breakStartTimeRef.current = null;
+            breakTargetTimeRef.current = null;
+            setActiveBreak(null);
+            go("/home");
+            return;
+        }
+
+        const endMs = Date.now();
+        const durMin = Math.max(1, Math.round((endMs - breakStartTimeRef.current) / 60000));
+
+        const finished = {
+            ...activeBreak,
+            endTime: new Date(endMs),
+            actualDuration: durMin,
+        };
+
+        setBreaks((prev) => [...prev, finished]);
+
+        // reset break state
+        setIsBreakRunning(false);
+        setBreakTimeRemaining(0);
+        setBreakElapsedTime(0);
+        setIsIndefiniteBreak(false);
+        breakStartTimeRef.current = null;
+        breakTargetTimeRef.current = null;
+        setActiveBreak(null);
+
+        Stru.playBreakBeeps("end");
+        go("/break-summary");
+    };
 
     /* =========================
        ROUTING
@@ -529,6 +638,7 @@ const App = () => {
                 <Stru.Screens.SessionScreen
                     session={activeSession}
                     timeRemainingSec={timeRemaining}
+                    onComplete={endSessionAndSave}
                     onExtend={(mins) => {
                         const m = Number(mins) || 0;
                         if (m <= 0) return;
@@ -582,18 +692,18 @@ const App = () => {
                 return (
                     <Stru.Screens.BreakScreen
                         isBreakRunning={isBreakRunning}
-                        setIsBreakRunning={setIsBreakRunning}
                         breakTimeRemaining={breakTimeRemaining}
-                        setBreakTimeRemaining={setBreakTimeRemaining}
                         breakElapsedTime={breakElapsedTime}
-                        setBreakElapsedTime={setBreakElapsedTime}
                         isIndefiniteBreak={isIndefiniteBreak}
-                        setIsIndefiniteBreak={setIsIndefiniteBreak}
+                        activeBreak={activeBreak}
+                        onStartBreak={startBreakFromUI}
+                        onExtendBreak={extendBreakInApp}
+                        onEndBreak={endBreakAndSave}
                     />
                 );
 
             case "/break-summary":
-                return <Stru.Screens.BreakSummaryScreen />;
+                return <Stru.Screens.BreakSummaryScreen breaks={breaks} />;
 
             case "/session-log":
                 return <Stru.Screens.SessionLogScreen sessions={sessions} breaks={breaks} workEvents={workEvents} />;

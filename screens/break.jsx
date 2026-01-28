@@ -113,7 +113,6 @@
         const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
         const [showExtendModal, setShowExtendModal] = useState(false);
 
-        const breakTargetTimeRef = useRef(null); // ms timestamp
         const breakStartTimeRef = useRef(null); // Date
 
         const [breaks, setBreaks] = useState(loadBreaks);
@@ -140,11 +139,9 @@
             if (isIndefinite) {
                 setBreakElapsedTime(0);
                 setBreakTimeRemaining(0);
-                breakTargetTimeRef.current = null;
             } else {
                 const durSec = Math.max(1, breakDuration) * 60;
                 setBreakTimeRemaining(durSec);
-                breakTargetTimeRef.current = Date.now() + durSec * 1000;
             }
 
             // store active break object in state-like variable
@@ -158,14 +155,12 @@
 
         const extendBreak = (mins) => {
             const m = Number(mins) || 0;
-            if (!breakTargetTimeRef.current || m <= 0) return;
+            if (m <= 0 || isIndefiniteBreak) return;
 
-            breakTargetTimeRef.current += m * 60 * 1000;
             setCurrentBreak((prev) =>
                 prev ? { ...prev, duration: (prev.duration || 0) + m } : prev
             );
 
-            // also bump remaining immediately so UI updates without waiting a tick
             setBreakTimeRemaining((prev) => prev + m * 60);
         };
 
@@ -199,7 +194,6 @@
             setBreakTimeRemaining(0);
             setBreakElapsedTime(0);
             setIsIndefiniteBreak(false);
-            breakTargetTimeRef.current = null;
             breakStartTimeRef.current = null;
 
             Stru.playBreakBeeps("end");
@@ -208,36 +202,6 @@
             window.Stru?.refreshBreaksFromStorage?.();
             Stru.state?.syncBreaks?.();
         };
-
-        // ticking logic (replaces the original worker tick)
-        useEffect(() => {
-            if (!isBreakRunning) return;
-
-            const tick = () => {
-                if (isIndefiniteBreak) {
-                    if (!breakStartTimeRef.current) return;
-                    const elapsedSec = Math.floor(
-                        (Date.now() - breakStartTimeRef.current.getTime()) / 1000
-                    );
-                    setBreakElapsedTime(elapsedSec);
-                    return;
-                }
-
-                if (!breakTargetTimeRef.current) return;
-                const remainingSec = Math.max(
-                    0,
-                    Math.floor((breakTargetTimeRef.current - Date.now()) / 1000)
-                );
-                setBreakTimeRemaining(remainingSec);
-
-                // when timed break reaches 0, we do NOT auto-end in the original UI.
-                // User still clicks "End Break".
-            };
-
-            tick();
-            const id = setInterval(tick, 1000);
-            return () => clearInterval(id);
-        }, [isBreakRunning, isIndefiniteBreak]);
 
         return (
             <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">

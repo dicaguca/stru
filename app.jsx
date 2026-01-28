@@ -309,6 +309,7 @@ const App = () => {
 
         // THIS is the only place we append to history
         const summary = {
+            id: uid(),
             date: startTime,
             startTime,
             endTime: now,
@@ -322,6 +323,11 @@ const App = () => {
         };
 
         setHistory((prev) => [...prev, summary]);
+    };
+
+    const deleteHistoryEntry = (id) => {
+        if (!id) return;
+        setHistory((prev) => prev.filter((h) => h?.id !== id));
     };
 
     // ---- SETTINGS ACTIONS (old behavior) ----
@@ -496,7 +502,12 @@ const App = () => {
                 return <Stru.Screens.DailyReportScreen />;
 
             case "/history":
-                return <Stru.Screens.HistoryScreen history={history} />;
+                return (
+                    <Stru.Screens.HistoryScreen
+                        history={history}
+                        onDeleteHistory={deleteHistoryEntry}
+                    />
+                );
 
             case "/home":
             default:

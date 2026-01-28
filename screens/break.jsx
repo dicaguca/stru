@@ -4,7 +4,7 @@
     const { Icons } = Stru;
     const { go } = Stru.router;
 
-    const { useState, useEffect, useRef } = React;
+    const { useState } = React;
 
     // Match original helper
     const formatTime = (sec) => {
@@ -14,40 +14,12 @@
         return `${m}:${r.toString().padStart(2, "0")}`;
     };
 
-    const STORAGE_KEY = "stru-breaks";
-    const ACTIVE_BREAK_KEY = "stru-active-break";
-
-    const loadBreaks = () => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            const arr = raw ? JSON.parse(raw) : [];
-            return Array.isArray(arr)
-                ? arr.map((b) => ({
-                    ...b,
-                    startTime: b?.startTime ? new Date(b.startTime) : null,
-                    endTime: b?.endTime ? new Date(b.endTime) : null,
-                }))
-                : [];
-        } catch {
-            return [];
-        }
-    };
-
-    const saveBreaks = (breaks) => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(breaks));
-        } catch {
-            // ignore
-        }
-    };
 
     /* =========================
        BREAK SUMMARY (original)
     ========================= */
-    const BreakSummaryScreen = () => {
-        const [breaks] = useState(loadBreaks);
-
-        const last = breaks[breaks.length - 1];
+    const BreakSummaryScreen = ({ breaks = [] }) => {
+        const last = (breaks || [])[breaks.length - 1];
         if (!last) return null;
 
         return (
@@ -68,8 +40,8 @@
                         <div className="text-lg text-stone-500">Total Break Time</div>
                         <div className="mt-6 pt-6 border-t-2 border-stone-100 text-stone-500">
                             Time:{" "}
-                            {last.startTime ? last.startTime.toLocaleTimeString() : ""}{" "}
-                            - {last.endTime ? last.endTime.toLocaleTimeString() : ""}
+                            {last.startTime ? new Date(last.startTime).toLocaleTimeString() : ""}{" "}
+                            - {last.endTime ? new Date(last.endTime).toLocaleTimeString() : ""}
                         </div>
                     </div>
 
@@ -93,19 +65,18 @@
     };
 
     /* =========================
-       BREAK SCREEN (original)
+       BREAK SCREEN (centralized)
     ========================= */
     const BreakScreen = ({
         isBreakRunning,
-        setIsBreakRunning,
         breakTimeRemaining,
-        setBreakTimeRemaining,
         breakElapsedTime,
-        setBreakElapsedTime,
         isIndefiniteBreak,
-        setIsIndefiniteBreak,
+        activeBreak,
+        onStartBreak,
+        onExtendBreak,
+        onEndBreak,
     }) => {
-
         // UI state (matches original defaults)
         const [breakDuration, setBreakDuration] = useState(5);
         const [breakLabel, setBreakLabel] = useState("");
@@ -113,124 +84,26 @@
         const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
         const [showExtendModal, setShowExtendModal] = useState(false);
 
-        // Local refs (always exist)
-        const localBreakStartTimeRef = useRef(null);   // Date.now() baseline (number)
-        const localBreakTargetTimeRef = useRef(null);  // Date.now() target (number)
-
-        // Prefer shared refs from app.jsx if present, otherwise fall back to local
-        const breakStartTimeRef = window.Stru?.timerRefs?.breakStartTimeRef || localBreakStartTimeRef;
-        const breakTargetTimeRef = window.Stru?.timerRefs?.breakTargetTimeRef || localBreakTargetTimeRef;
-
-        const [breaks, setBreaks] = useState(loadBreaks);
-
-        useEffect(() => {
-            saveBreaks(breaks);
-        }, [breaks]);
-
         const presets = ["Coffee break", "Lunch break", "Terrace break", "Dinner break"];
 
         const startBreak = (isIndefinite) => {
-            const start = Date.now(); // always a number (ms)
-            const brk = {
-                id: Date.now().toString(),
-                startTime: new Date(start),
-                duration: isIndefinite ? 0 : breakDuration, // minutes (UI)
+            onStartBreak?.({
                 label: breakLabel || "Break",
-            };
-
-            setIsBreakRunning(true);
-            setIsIndefiniteBreak(!!isIndefinite);
-
-            // Always keep a start baseline for duration math (ms)
-            breakStartTimeRef.current = start;
-
-            if (isIndefinite) {
-                setBreakElapsedTime(0);
-                setBreakTimeRemaining(0);
-
-                // No countdown target for indefinite breaks
-                breakTargetTimeRef.current = null;
-            } else {
-                const durSec = Math.max(1, Number(breakDuration) || 0) * 60;
-
-                // Lag-proof countdown target (ms)
-                breakTargetTimeRef.current = start + durSec * 1000;
-
-                // Optional: keep UI immediately consistent
-                setBreakTimeRemaining(durSec);
-                setBreakElapsedTime(0);
-            }
-
-            setCurrentBreak(brk);
-            Stru.playBreakBeeps("start");
+                isIndefinite: !!isIndefinite,
+                durationMin: breakDuration,
+            });
         };
 
-        // Keep currentBreak as state for rendering label in running view
-        const [currentBreak, setCurrentBreak] = useState(null);
-
         const extendBreak = (mins) => {
-            const m = Number(mins) || 0;
-            if (m <= 0 || isIndefiniteBreak) return;
-
-            // Extend UI metadata (minutes)
-            setCurrentBreak((prev) =>
-                prev ? { ...prev, duration: (Number(prev.duration) || 0) + m } : prev
-            );
-
-            // Extend the lag-proof target (ms)
-            if (breakTargetTimeRef.current) {
-                breakTargetTimeRef.current += m * 60 * 1000;
-            }
-
-            // Optional: keep UI responsive immediately (App timer will correct anyway)
-            setBreakTimeRemaining((prev) => prev + m * 60);
+            onExtendBreak?.(mins);
         };
 
         const endBreak = () => {
-            if (!currentBreak || !breakStartTimeRef.current) {
-                setIsBreakRunning(false);
-                go("/home");
-                return;
-            }
-
-            const endMs = Date.now();
-            const durMin = Math.max(1, Math.round((endMs - breakStartTimeRef.current) / 60000));
-
-            const finished = {
-                ...currentBreak,
-                endTime: new Date(endMs),
-                actualDuration: durMin,
-            };
-
-            setBreaks((prev) => {
-                const next = [...prev, finished];
-                localStorage.setItem("stru-breaks", JSON.stringify(next));
-                return next;
-            });
-
-            // reset break state
-            setIsBreakRunning(false);
-            setBreakTimeRemaining(0);
-            setBreakElapsedTime(0);
-            setIsIndefiniteBreak(false);
-            breakStartTimeRef.current = null;
-            breakTargetTimeRef.current = null;
-
-            Stru.playBreakBeeps("end");
-            go("/break-summary");
-
-            window.Stru?.refreshBreaksFromStorage?.();
-            Stru.state?.syncBreaks?.();
+            onEndBreak?.();
         };
 
-        useEffect(() => {
-            if (!isBreakRunning) return;
-            if (isIndefiniteBreak) return;
-            if (breakTimeRemaining > 0) return;
-
-            endBreak();
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [isBreakRunning, isIndefiniteBreak, breakTimeRemaining]);
+        // Auto-end is handled in app.jsx now, so this effect is NOT needed here.
+        // (Leaving no auto-end logic in this file avoids double-ending.)
 
         return (
             <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">
@@ -341,7 +214,7 @@
                             <div>
                                 <Icons.Coffee size={80} className="mx-auto mb-6 text-orange-400" />
                                 <h3 className="text-3xl font-bold text-stone-800 mb-3">
-                                    {currentBreak?.label || "Break Time"}
+                                    {activeBreak?.label || "Break Time"}
                                 </h3>
 
                                 <div className="text-8xl font-bold text-orange-400 mb-8 tracking-tight">

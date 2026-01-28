@@ -76,13 +76,13 @@
         );
     };
 
-    const SessionScreen = ({ session, onComplete, onCancel }) => {
+    const SessionScreen = ({ session, timeRemainingSec, onExtend, onComplete, onCancel }) => {
         // Safety fallback
         const base = session || { duration: 25 * 60, startTime: new Date(), tasks: [], completedTasks: [] };
 
-        // We keep UI state here, then write back into session object so App saves correct data.
-        const [timeRemaining, setTimeRemaining] = useState(Number(base.duration) || 0);
-        const [totalPlanned, setTotalPlanned] = useState(Number(base.duration) || 0);
+        // Timer comes from App (single source of truth)
+        const timeRemaining = Number(timeRemainingSec) || 0;
+        const totalPlanned = Number(base.duration) || 0;
 
         const [tasks, setTasks] = useState(Array.isArray(base.tasks) ? base.tasks : []);
         const [completedIds, setCompletedIds] = useState(
@@ -103,17 +103,9 @@
         }, [orderedTasks, completedIds]);
 
 
-        // Timer tick
-        useEffect(() => {
-            if (timeRemaining <= 0) return;
-            const id = setInterval(() => setTimeRemaining((t) => Math.max(0, t - 1)), 1000);
-            return () => clearInterval(id);
-        }, [timeRemaining]);
-
         // Keep the session object in sync (so app.jsx saves the right info)
         useEffect(() => {
             if (!session) return;
-            session.duration = totalPlanned;
             session.tasks = tasks;
 
             const completed = tasks.filter((t) => completedIds.includes(t.id));
@@ -137,9 +129,7 @@
         const extendSession = (mins) => {
             const m = Number(mins) || 0;
             if (m <= 0) return;
-            const add = m * 60;
-            setTimeRemaining((t) => t + add);
-            setTotalPlanned((t) => t + add);
+            onExtend?.(m);
             setShowExtendModal(false);
         };
 

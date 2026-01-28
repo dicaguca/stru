@@ -182,17 +182,22 @@ const App = () => {
     useEffect(() => {
         if (!sessionEndQueued) return;
 
-        // If session already ended/canceled, just clear the flag.
         if (!activeSession) {
             setSessionEndQueued(false);
             return;
         }
 
-        // Let React paint 00:00, then end + beep + navigate.
-        requestAnimationFrame(() => {
+        const finish = () => {
             endSessionAndSave();
             setSessionEndQueued(false);
-        });
+        };
+
+        if (document.visibilityState === "hidden") {
+            finish();
+            return;
+        }
+
+        requestAnimationFrame(finish);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sessionEndQueued, activeSession]);
 

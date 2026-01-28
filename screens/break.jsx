@@ -15,6 +15,7 @@
     };
 
     const STORAGE_KEY = "stru-breaks";
+    const ACTIVE_BREAK_KEY = "stru-active-break";
 
     const loadBreaks = () => {
         try {
@@ -94,21 +95,20 @@
     /* =========================
        BREAK SCREEN (original)
     ========================= */
-    const BreakScreen = () => {
+    const BreakScreen = ({
+        isBreakRunning,
+        setIsBreakRunning,
+        breakTimeRemaining,
+        setBreakTimeRemaining,
+        breakElapsedTime,
+        setBreakElapsedTime,
+        isIndefiniteBreak,
+        setIsIndefiniteBreak,
+    }) => {
+
         // UI state (matches original defaults)
         const [breakDuration, setBreakDuration] = useState(5);
         const [breakLabel, setBreakLabel] = useState("");
-
-        const {
-            isBreakRunning,
-            setIsBreakRunning,
-            breakTimeRemaining,
-            setBreakTimeRemaining,
-            breakElapsedTime,
-            setBreakElapsedTime,
-            isIndefiniteBreak,
-            setIsIndefiniteBreak,
-        } = window.Stru.breakState;
 
         const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
         const [showExtendModal, setShowExtendModal] = useState(false);
@@ -202,6 +202,15 @@
             window.Stru?.refreshBreaksFromStorage?.();
             Stru.state?.syncBreaks?.();
         };
+
+        useEffect(() => {
+            if (!isBreakRunning) return;
+            if (isIndefiniteBreak) return;
+            if (breakTimeRemaining > 0) return;
+
+            endBreak();
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [isBreakRunning, isIndefiniteBreak, breakTimeRemaining]);
 
         return (
             <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">

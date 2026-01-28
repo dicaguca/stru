@@ -445,6 +445,18 @@ const App = () => {
         setShowBreakReminder(true);
     };
 
+    /* =========================
+       AUTO-END SESSION AT 0
+    ========================= */
+    useEffect(() => {
+        if (!activeSession) return;
+        if (timeRemaining > 0) return;
+
+        setActiveSession(null);
+        endSessionAndSave();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [timeRemaining, activeSession]);
+
 
     /* =========================
        ROUTING
@@ -458,6 +470,15 @@ const App = () => {
             return (
                 <Stru.Screens.SessionScreen
                     session={activeSession}
+                    timeRemainingSec={timeRemaining}
+                    onExtend={(mins) => {
+                        const m = Number(mins) || 0;
+                        if (m <= 0) return;
+                        const add = m * 60;
+
+                        setTimeRemaining((t) => t + add);
+                        setActiveSession((prev) => (prev ? { ...prev, duration: (Number(prev.duration) || 0) + add } : prev));
+                    }}
                     onComplete={endSessionAndSave}
                     onCancel={() => {
                         setActiveSession(null);

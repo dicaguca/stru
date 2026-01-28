@@ -333,14 +333,21 @@ const App = () => {
     // ---- SETTINGS ACTIONS (old behavior) ----
     const resetDay = (clearType) => {
         if (clearType === "tasks") {
+            // Clear only tasks (keep everything else)
             localStorage.setItem("stru-tasks", JSON.stringify([]));
         } else if (clearType === "everything") {
-            localStorage.setItem("stru-tasks", JSON.stringify([]));
-            localStorage.setItem("stru-sessions", JSON.stringify([]));
-            localStorage.setItem("stru-breaks", JSON.stringify([]));
-            localStorage.setItem("stru-workevents", JSON.stringify([]));
-            localStorage.setItem("stru-history", JSON.stringify([]));
+            // Clear ONLY Stru data, never other apps on the same origin
+            const STRU_KEYS = [
+                "stru-tasks",
+                "stru-sessions",
+                "stru-breaks",
+                "stru-workevents",
+                "stru-history",
+            ];
+
+            STRU_KEYS.forEach((k) => localStorage.removeItem(k));
         }
+
         window.location.reload();
     };
 

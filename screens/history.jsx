@@ -12,6 +12,11 @@
         return rem ? `${h}h ${rem}m` : `${h}h`;
     };
 
+    const toDate = (x) => {
+        const d = x instanceof Date ? x : new Date(x);
+        return Number.isNaN(d.getTime()) ? null : d;
+    };
+
     // If the passed "history" is NOT already daily summaries,
     // we convert session-like entries into daily summaries so the UI still works.
     const coerceToDailySummaries = (history) => {
@@ -74,7 +79,7 @@
         return Array.from(byDay.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
     };
 
-    const HistoryScreen = ({ history }) => {
+    const HistoryScreen = ({ history, onDeleteHistory }) => {
         const days = coerceToDailySummaries(history);
 
         return (
@@ -109,6 +114,7 @@
                                             <th className="p-5 font-bold text-center">% Done</th>
                                             <th className="p-5 font-bold">Breaks</th>
                                             <th className="p-5 font-bold">Break Time</th>
+                                            <th className="p-5 font-bold text-right"></th>
                                         </tr>
                                     </thead>
 
@@ -116,65 +122,88 @@
                                         {days
                                             .slice()
                                             .reverse()
-                                            .map((day, i) => (
-                                                <tr
-                                                    key={i}
-                                                    className="border-b border-stone-100 hover:bg-stone-50 transition-colors"
-                                                >
-                                                    <td className="p-5 font-bold text-stone-800">
-                                                        {new Date(day.date).toLocaleDateString(undefined, {
-                                                            weekday: "short",
-                                                            year: "numeric",
-                                                            month: "numeric",
-                                                            day: "numeric",
-                                                        })}
-                                                    </td>
+                                            .map((day, i) => {
+                                                const d0 = toDate(day.date) || toDate(day.startTime) || new Date();
+                                                const st = toDate(day.startTime) || d0;
+                                                const et = toDate(day.endTime) || st;
 
-                                                    <td className="p-5 text-sm text-stone-600">
-                                                        {new Date(day.startTime).toLocaleTimeString([], {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}{" "}
-                                                        -{" "}
-                                                        {new Date(day.endTime).toLocaleTimeString([], {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}
-                                                    </td>
+                                                return (
+                                                    <tr
+                                                        key={day?.id ?? i}
+                                                        className="border-b border-stone-100 hover:bg-stone-50 transition-colors"
+                                                    >
+                                                        <td className="p-5 font-bold text-stone-800">
+                                                            {d0.toLocaleDateString(undefined, {
+                                                                weekday: "short",
+                                                                year: "numeric",
+                                                                month: "numeric",
+                                                                day: "numeric",
+                                                            })}
+                                                        </td>
 
-                                                    <td className="p-5">
-                                                        <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full font-bold text-sm">
-                                                            {day.sessionCount}
-                                                        </span>
-                                                    </td>
+                                                        <td className="p-5 text-sm text-stone-600">
+                                                            {st.toLocaleTimeString([], {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            })}{" "}
+                                                            -{" "}
+                                                            {et.toLocaleTimeString([], {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            })}
+                                                        </td>
 
-                                                    <td className="p-5 font-medium text-rose-600">
-                                                        {formatDur(day.workDuration || 0)}
-                                                    </td>
+                                                        <td className="p-5">
+                                                            <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full font-bold text-sm">
+                                                                {day.sessionCount}
+                                                            </span>
+                                                        </td>
 
-                                                    <td className="p-5 text-stone-600">
-                                                        {day.completedCount} / {day.taskCount}
-                                                    </td>
+                                                        <td className="p-5 font-medium text-rose-600">
+                                                            {formatDur(day.workDuration || 0)}
+                                                        </td>
 
-                                                    <td className="p-5 text-center">
-                                                        <div className="w-full bg-stone-200 rounded-full h-2.5 dark:bg-gray-700">
-                                                            <div
-                                                                className="bg-green-500 h-2.5 rounded-full"
-                                                                style={{ width: `${day.completionRate}%` }}
-                                                            ></div>
-                                                        </div>
-                                                        <div className="text-xs mt-1 font-bold text-green-600">
-                                                            {day.completionRate}%
-                                                        </div>
-                                                    </td>
+                                                        <td className="p-5 text-stone-600">
+                                                            {day.completedCount} / {day.taskCount}
+                                                        </td>
 
-                                                    <td className="p-5 text-stone-600">{day.breakCount}</td>
+                                                        <td className="p-5 text-center">
+                                                            <div className="w-full bg-stone-200 rounded-full h-2.5">
+                                                                <div
+                                                                    className="bg-green-500 h-2.5 rounded-full"
+                                                                    style={{ width: `${day.completionRate}%` }}
+                                                                />
+                                                            </div>
+                                                            <div className="text-xs mt-1 font-bold text-green-600">
+                                                                {day.completionRate}%
+                                                            </div>
+                                                        </td>
 
-                                                    <td className="p-5 font-medium text-orange-600">
-                                                        {formatDur(day.breakDuration)}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                        <td className="p-5 text-stone-600">
+                                                            {day.breakCount}
+                                                        </td>
+
+                                                        <td className="p-5 font-medium text-orange-600">
+                                                            {formatDur(day.breakDuration)}
+                                                        </td>
+
+                                                        <td className="p-5 text-right">
+                                                            {!!day?.id && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (!window.confirm("Delete this history entry?")) return;
+                                                                        onDeleteHistory?.(day.id);
+                                                                    }}
+                                                                    title="Delete entry"
+                                                                    className="p-2 rounded-lg hover:bg-red-50 text-red-500"
+                                                                >
+                                                                    <Icons.Trash2 size={18} />
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                     </tbody>
                                 </table>
                             </div>

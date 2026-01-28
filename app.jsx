@@ -120,6 +120,7 @@ const App = () => {
     /* ---------- active session ---------- */
     const [activeSession, setActiveSession] = useState(null);
     const [timeRemaining, setTimeRemaining] = useState(0);
+    const [sessionEndQueued, setSessionEndQueued] = useState(false);
 
     /* ---------- break ---------- */
     const [isBreakRunning, setIsBreakRunning] = useState(false);
@@ -161,13 +162,39 @@ const App = () => {
         if (!activeSession && !isBreakRunning) return;
 
         const id = setInterval(() => {
-            if (activeSession) setTimeRemaining((t) => Math.max(0, t - 1));
+            if (activeSession) {
+                setTimeRemaining((t) => {
+                    const next = Math.max(0, t - 1);
+                    if (next === 0) setSessionEndQueued(true);
+                    return next;
+                });
+            }
             if (isBreakRunning && isIndefiniteBreak) setBreakElapsedTime((t) => t + 1);
             if (isBreakRunning && !isIndefiniteBreak) setBreakTimeRemaining((t) => Math.max(0, t - 1));
         }, 1000);
 
         return () => clearInterval(id);
     }, [activeSession, isBreakRunning, isIndefiniteBreak]);
+
+    /* =========================
+   END SESSION AFTER 00:00 RENDERS
+========================= */
+    useEffect(() => {
+        if (!sessionEndQueued) return;
+
+        // If session already ended/canceled, just clear the flag.
+        if (!activeSession) {
+            setSessionEndQueued(false);
+            return;
+        }
+
+        // Let React paint 00:00, then end + beep + navigate.
+        requestAnimationFrame(() => {
+            endSessionAndSave();
+            setSessionEndQueued(false);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionEndQueued, activeSession]);
 
     /* =========================
        TAB TITLE (old behavior)
@@ -445,18 +472,6 @@ const App = () => {
         setShowBreakReminder(true);
     };
 
-    /* =========================
-       AUTO-END SESSION AT 0
-    ========================= */
-    useEffect(() => {
-        if (!activeSession) return;
-        if (timeRemaining > 0) return;
-
-        setActiveSession(null);
-        endSessionAndSave();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [timeRemaining, activeSession]);
-
 
     /* =========================
        ROUTING
@@ -518,7 +533,18 @@ const App = () => {
                 return <Stru.Screens.SessionSummaryScreen sessions={sessions} />;
 
             case "/break":
-                return <Stru.Screens.BreakScreen />;
+                return (
+                    <Stru.Screens.BreakScreen
+                        isBreakRunning={isBreakRunning}
+                        setIsBreakRunning={setIsBreakRunning}
+                        breakTimeRemaining={breakTimeRemaining}
+                        setBreakTimeRemaining={setBreakTimeRemaining}
+                        breakElapsedTime={breakElapsedTime}
+                        setBreakElapsedTime={setBreakElapsedTime}
+                        isIndefiniteBreak={isIndefiniteBreak}
+                        setIsIndefiniteBreak={setIsIndefiniteBreak}
+                    />
+                );
 
             case "/break-summary":
                 return <Stru.Screens.BreakSummaryScreen />;

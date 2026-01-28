@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stru App Index Map</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #171a21;
+            --panel2: #1f2430;
+            --text: #e8eaf0;
+            --muted: #a7afc2;
+            --accent: #8ae234;
+            --warn: #f2c14e;
+            --bad: #ff6b6b;
+            --line: #2a3140;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            line-height: 1.4
+        }
+
+        header {
+            padding: 28px 22px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(180deg, #0f1115, #0d0f13)
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 22px
+        }
+
+        .sub {
+            color: var(--muted);
+            font-size: 14px
+        }
+
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 18px 22px 60px
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px
+        }
+
+        @media(min-width:980px) {
+            .grid {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px 14px 12px
+        }
+
+        .card h2 {
+            margin: 0 0 10px;
+            font-size: 15px
+        }
+
+        .card p {
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        pre {
+            margin: 10px 0 0;
+            background: var(--panel2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px;
+            overflow: auto;
+            font-family: var(--mono);
+            font-size: 12.5px;
+            color: var(--text)
+        }
+
+        code {
+            font-family: var(--mono);
+            font-size: 12.5px
+        }
+
+        .pillrow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px
+        }
+
+        .pill {
+            border: 1px solid var(--line);
+            background: var(--panel2);
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .pill strong {
+            color: var(--text);
+            font-weight: 650
+        }
+
+        .ok {
+            color: var(--accent)
+        }
+
+        .warn {
+            color: var(--warn)
+        }
+
+        .bad {
+            color: var(--bad)
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--line);
+            margin: 12px 0
+        }
+
+        .note {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        ul {
+            margin: 8px 0 0 18px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        li {
+            margin: 4px 0
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Stru App Index Map</h1>
+        <div class="sub">
+            Purpose: a single file you can upload in future chats so I immediately know the app structure, wiring, and
+            core behavior expectations.
+        </div>
+        <div class="pillrow">
+            <div class="pill"><strong>App type:</strong> Static HTML + React (UMD) + Babel</div>
+            <div class="pill"><strong>Router:</strong> hash routes (e.g. <code>#/home</code>)</div>
+            <div class="pill"><strong>Global namespace:</strong> <code>window.Stru</code></div>
+        </div>
+    </header>
+
+    <div class="wrap">
+        <div class="grid">
+
+            <section class="card">
+                <h2>1. File Tree (Project Root)</h2>
+                <p>Primary files. If any names change, update this block.</p>
+                <pre>
+/ (project root)
+  index.html
+  state.js
+  router.js
+  icons.js
+  modals.jsx
+  app.jsx
+
+  home.jsx
+  masterlist.jsx
+  plan-session.jsx
+  session.jsx
+  break.jsx
+  session-log.jsx
+  daily-report.jsx
+  history.jsx
+        </pre>
+                <div class="note">If you later move screens into <code>/screens</code>, reflect it here and in the “Load
+                    Order” section.</div>
+            </section>
+
+            <section class="card">
+                <h2>2. Load Order (Critical)</h2>
+                <p>Order matters because screens register into <code>Stru.Screens</code> before <code>app.jsx</code>
+                    renders.</p>
+                <pre>
+index.html loads (in this order):
+
+1) React + ReactDOM (UMD)
+2) Babel standalone
+3) state.js        -> Stru.state (usePersistedState, helpers)
+4) router.js       -> Stru.router (Router, useRoute, go)
+5) icons.js        -> Stru.Icons (+ priority/colors if defined there)
+
+6) Screen files (must come before app.jsx):
+   - home.jsx
+   - masterlist.jsx
+   - plan-session.jsx
+   - session.jsx
+   - break.jsx
+   - session-log.jsx
+   - daily-report.jsx
+   - history.jsx
+
+7) modals.jsx      -> Stru.Modals
+8) app.jsx         -> mounts & renders App
+        </pre>
+            </section>
+
+            <section class="card">
+                <h2>3. Global Registries</h2>
+                <p>Every screen/module attaches itself to the Stru namespace.</p>
+                <pre>
+window.Stru = window.Stru || {}
+
+Stru.state     : persisted state utilities
+Stru.router    : hash router + hooks
+Stru.Icons     : icon components
+Stru.Modals    : modal components
+Stru.Screens   : screen components (HomeScreen, PlanSessionScreen, etc.)
+Stru.constants : optional constants (priority colors, storage keys, etc.)
+        </pre>
+            </section>
+
+            <section class="card">
+                <h2>4. Routing Table</h2>
+                <p>Canonical routes and the screen that should render.</p>
+                <pre>
+#/home          -> HomeScreen
+#/master-list   -> MasterListScreen
+#/plan-session  -> PlanSessionScreen
+#/session       -> SessionScreen
+#/session-log   -> SessionLogScreen
+#/daily-report  -> DailyReportScreen
+#/history       -> HistoryScreen
+#/break         -> BreakScreen
+
+(If you add routes, update this.)
+        </pre>
+            </section>
+
+            <section class="card">
+                <h2>5. Persisted Data (localStorage keys)</h2>
+                <p>Migration goal: match OLD app storage semantics.</p>
+                <pre>
+stru-tasks       : array of tasks
+stru-sessions    : array of sessions (for log/report)
+stru-breaks      : array of breaks
+stru-workevents  : day start/end events
+stru-history     : daily snapshots / historical records
+
+Note: screens like Daily Report/Log expect these keys/shapes.
+        </pre>
+                <div class="pillrow">
+                    <div class="pill"><span class="ok">OK</span> Use OLD keys for parity</div>
+                    <div class="pill"><span class="warn">Watch</span> Want vs Nice priority naming</div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>6. Core Flows (Behavior map)</h2>
+                <p>What happens when the user does key actions.</p>
+                <pre>
+A) Add Task
+   MasterListScreen -> updates stru-tasks
+
+B) Plan Session
+   PlanSessionScreen -> sets sessionDuration + selectedTasks -> startSession()
+
+C) Start Session
+   App creates activeSession -> route to #/session
+
+D) Complete Session
+   SessionScreen -> onComplete -> App saves session:
+     - append to stru-sessions
+     - (and/or) history, depending on how parity is implemented
+   -> route to session summary / home
+
+E) Start Day
+   StartDayModal -> pushes {type:"start", timestamp} into stru-workevents
+
+F) End Day
+   EndDayModal -> pushes {type:"end", timestamp} into stru-workevents
+   -> writes daily snapshot into stru-history
+
+G) Report/Log
+   SessionLogScreen / DailyReportScreen read stru-sessions, stru-breaks, stru-workevents
+        </pre>
+            </section>
+
+            <section class="card">
+                <h2>7. “Where to look” Cheat Sheet</h2>
+                <p>Fast navigation for future debugging.</p>
+                <ul>
+                    <li><strong>Something won’t route.</strong> Check <code>router.js</code> and route strings in
+                        <code>app.jsx</code>.</li>
+                    <li><strong>A screen is blank/undefined.</strong> Check load order in <code>index.html</code> and
+                        that the screen registers into <code>Stru.Screens</code>.</li>
+                    <li><strong>Daily Report empty.</strong> Check localStorage keys and session/break saving logic in
+                        <code>app.jsx</code>, <code>session.jsx</code>, <code>break.jsx</code>.</li>
+                    <li><strong>Plan Session UI mismatch.</strong> Check <code>plan-session.jsx</code> (Duration/End
+                        Time picker).</li>
+                    <li><strong>Icons wrong/missing.</strong> Check <code>icons.js</code> and any
+                        <code>Stru.Icons</code> references.</li>
+                </ul>
+            </section>
+
+        </div>
+
+        <div class="divider"></div>
+        <div class="note">
+            Update rule: when you add/move/rename files or routes, edit this map first so future chats start with
+            correct context.
+        </div>
+    </div>
+</body>
+
+</html>

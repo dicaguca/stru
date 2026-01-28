@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stru</title>
+
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23f97316%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/><polyline points=%2212 6 12 12 16 14%22/></svg>">
+
+    <!-- Nunito (original Stru font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        * {
+            font-family: "Nunito", sans-serif !important;
+        }
+
+        body {
+            margin: 0;
+        }
+    </style>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React 18 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body class="bg-stone-50">
+    <div id="root"></div>
+
+    <!-- Global namespace -->
+    <script>
+        window.Stru = window.Stru || {};
+    </script>
+
+    <!-- Core state + router -->
+    <script type="text/babel" src="./state.js"></script>
+    <script type="text/babel" src="./router.js"></script>
+
+    <!-- Icons -->
+    <script type="text/babel" src="./icons.js"></script>
+
+    <!-- Screens (ALL of them, before app.jsx) -->
+    <script type="text/babel" src="./screens/home.jsx"></script>
+    <script type="text/babel" src="./screens/masterlist.jsx"></script>
+    <script type="text/babel" src="./screens/plan-session.jsx"></script>
+    <script type="text/babel" src="./screens/session.jsx"></script>
+    <script type="text/babel" src="./screens/history.jsx"></script>
+    <script type="text/babel" src="./screens/break.jsx"></script>
+    <script type="text/babel" src="./screens/session-log.jsx"></script>
+    <script type="text/babel" src="./screens/daily-report.jsx"></script>
+
+    <!-- Modals -->
+    <script type="text/babel" src="./modals.jsx"></script>
+
+    <!-- App (LAST) -->
+    <script type="text/babel" src="./app.jsx"></script>
+</body>
+
+</html>

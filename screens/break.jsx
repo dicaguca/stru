@@ -130,36 +130,37 @@
         const presets = ["Coffee break", "Lunch break", "Terrace break", "Dinner break"];
 
         const startBreak = (isIndefinite) => {
-            const startTime = new Date();
+            const start = Date.now(); // always a number (ms)
             const brk = {
                 id: Date.now().toString(),
-                startTime,
-                duration: isIndefinite ? 0 : breakDuration,
+                startTime: new Date(start),
+                duration: isIndefinite ? 0 : breakDuration, // minutes (UI)
                 label: breakLabel || "Break",
             };
 
             setIsBreakRunning(true);
             setIsIndefiniteBreak(!!isIndefinite);
-            breakStartTimeRef.current = startTime;
+
+            // Always keep a start baseline for duration math (ms)
+            breakStartTimeRef.current = start;
 
             if (isIndefinite) {
                 setBreakElapsedTime(0);
                 setBreakTimeRemaining(0);
 
-                // Lag-proof elapsed time baseline
-                breakStartTimeRef.current = Date.now();
+                // No countdown target for indefinite breaks
                 breakTargetTimeRef.current = null;
             } else {
-                const durSec = Math.max(1, breakDuration) * 60;
-                setBreakTimeRemaining(durSec);
+                const durSec = Math.max(1, Number(breakDuration) || 0) * 60;
 
-                // Lag-proof countdown target
-                breakTargetTimeRef.current = Date.now() + durSec * 1000;
-                breakStartTimeRef.current = null;
+                // Lag-proof countdown target (ms)
+                breakTargetTimeRef.current = start + durSec * 1000;
+
+                // Optional: keep UI immediately consistent
+                setBreakTimeRemaining(durSec);
+                setBreakElapsedTime(0);
             }
 
-            // store active break object in state-like variable
-            // (we keep it derived from refs/state when rendering)
             setCurrentBreak(brk);
             Stru.playBreakBeeps("start");
         };
@@ -171,10 +172,17 @@
             const m = Number(mins) || 0;
             if (m <= 0 || isIndefiniteBreak) return;
 
+            // Extend UI metadata (minutes)
             setCurrentBreak((prev) =>
-                prev ? { ...prev, duration: (prev.duration || 0) + m } : prev
+                prev ? { ...prev, duration: (Number(prev.duration) || 0) + m } : prev
             );
 
+            // Extend the lag-proof target (ms)
+            if (breakTargetTimeRef.current) {
+                breakTargetTimeRef.current += m * 60 * 1000;
+            }
+
+            // Optional: keep UI responsive immediately (App timer will correct anyway)
             setBreakTimeRemaining((prev) => prev + m * 60);
         };
 
@@ -185,16 +193,13 @@
                 return;
             }
 
-            const end = new Date();
-            const dur = Math.max(
-                1,
-                Math.round((end - breakStartTimeRef.current) / 60000)
-            );
+            const endMs = Date.now();
+            const durMin = Math.max(1, Math.round((endMs - breakStartTimeRef.current) / 60000));
 
             const finished = {
                 ...currentBreak,
-                endTime: end,
-                actualDuration: dur,
+                endTime: new Date(endMs),
+                actualDuration: durMin,
             };
 
             setBreaks((prev) => {

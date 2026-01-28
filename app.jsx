@@ -122,6 +122,19 @@ const App = () => {
     const [timeRemaining, setTimeRemaining] = useState(0);
     const [sessionEndQueued, setSessionEndQueued] = useState(false);
 
+    // Absolute time targets to prevent lag/drift (ms since epoch)
+    const sessionTargetTimeRef = React.useRef(null); // number | null
+    const breakTargetTimeRef = React.useRef(null);   // number | null
+    const breakStartTimeRef = React.useRef(null);    // number | null (for indefinite breaks)
+
+    useEffect(() => {
+        window.Stru.timerRefs = {
+            sessionTargetTimeRef,
+            breakTargetTimeRef,
+            breakStartTimeRef,
+        };
+    }, []);
+
     /* ---------- break ---------- */
     const [isBreakRunning, setIsBreakRunning] = useState(false);
     const [breakTimeRemaining, setBreakTimeRemaining] = useState(0);
@@ -156,21 +169,44 @@ const App = () => {
     const route = useRoute();
 
     /* =========================
-       TIMERS
-    ========================= */
+   TIMERS
+========================= */
     useEffect(() => {
         if (!activeSession && !isBreakRunning) return;
 
         const id = setInterval(() => {
-            if (activeSession) {
-                setTimeRemaining((t) => {
-                    const next = Math.max(0, t - 1);
-                    if (next === 0) setSessionEndQueued(true);
-                    return next;
-                });
+            // ---- SESSION (lag-proof via absolute target time) ----
+            if (activeSession && sessionTargetTimeRef.current) {
+                const remainingSec = Math.max(
+                    0,
+                    Math.ceil((sessionTargetTimeRef.current - Date.now()) / 1000)
+                );
+
+                setTimeRemaining(remainingSec);
+
+                if (remainingSec === 0 && activeSession) {
+                    setSessionEndQueued(true);
+                }
             }
-            if (isBreakRunning && isIndefiniteBreak) setBreakElapsedTime((t) => t + 1);
-            if (isBreakRunning && !isIndefiniteBreak) setBreakTimeRemaining((t) => Math.max(0, t - 1));
+
+            // ---- BREAKS (lag-proof via absolute times) ----
+            if (isBreakRunning) {
+                if (isIndefiniteBreak && breakStartTimeRef.current) {
+                    const elapsedSec = Math.max(
+                        0,
+                        Math.floor((Date.now() - breakStartTimeRef.current) / 1000)
+                    );
+                    setBreakElapsedTime(elapsedSec);
+                }
+
+                if (!isIndefiniteBreak && breakTargetTimeRef.current) {
+                    const remainingSec = Math.max(
+                        0,
+                        Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000)
+                    );
+                    setBreakTimeRemaining(remainingSec);
+                }
+            }
         }, 1000);
 
         return () => clearInterval(id);
@@ -440,6 +476,7 @@ const App = () => {
 
         setActiveSession(s);
         setTimeRemaining(mins * 60);
+        sessionTargetTimeRef.current = Date.now() + mins * 60 * 1000;
         playBeeps("start");
         go("/session");
     };
@@ -468,6 +505,7 @@ const App = () => {
             )
         );
         setActiveSession(null);
+        sessionTargetTimeRef.current = null;
         playBeeps("end");
 
         // IMPORTANT: go to summary FIRST
@@ -494,15 +532,18 @@ const App = () => {
                     onExtend={(mins) => {
                         const m = Number(mins) || 0;
                         if (m <= 0) return;
-                        const add = m * 60;
 
-                        setTimeRemaining((t) => t + add);
-                        setActiveSession((prev) => (prev ? { ...prev, duration: (Number(prev.duration) || 0) + add } : prev));
-                    }}
-                    onComplete={endSessionAndSave}
-                    onCancel={() => {
-                        setActiveSession(null);
-                        go("/plan-session");
+                        const addSec = m * 60;
+
+                        // Keep target timestamp accurate (this is what prevents lag/drift)
+                        if (sessionTargetTimeRef.current) {
+                            sessionTargetTimeRef.current += addSec * 1000;
+                        }
+
+                        // Keep planned duration accurate for UI (Est. Finish etc.)
+                        setActiveSession((prev) =>
+                            prev ? { ...prev, duration: (Number(prev.duration) || 0) + addSec } : prev
+                        );
                     }}
                 />
             );

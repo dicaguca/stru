@@ -348,34 +348,66 @@ const App = () => {
         const freshWorkEvents = loadArray("stru-workevents");
 
         const now = new Date();
-        const today = startOfDay(now);
 
+        // normalize sessions
         const normSessions = (freshSessions || [])
             .map((s) => {
                 const st = toDate(s.startTime ?? s.start ?? s.startedAt ?? s.started_at);
                 const et = toDate(s.endTime ?? s.end ?? s.endedAt ?? s.ended_at);
                 return { ...s, startTime: st, endTime: et };
             })
-            .filter((s) => s.startTime && today && startOfDay(s.startTime)?.getTime() === today.getTime());
+            .filter((s) => s.startTime);
 
+        // normalize breaks
         const normBreaks = (freshBreaks || [])
             .map((b) => {
                 const st = toDate(b.startTime ?? b.start ?? b.startedAt ?? b.started_at);
                 const et = toDate(b.endTime ?? b.end ?? b.endedAt ?? b.ended_at);
                 return { ...b, startTime: st, endTime: et };
             })
-            .filter((b) => b.startTime && today && startOfDay(b.startTime)?.getTime() === today.getTime());
+            .filter((b) => b.startTime);
 
+        // tasks
         const totalTasks = (freshTasks || []).length;
-        const totalCompleted = (freshTasks || []).filter((t) => !!(t?.done || t?.completed)).length;
-        const completionRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
+        const totalCompleted = (freshTasks || []).filter(
+            (t) => !!(t?.done || t?.completed)
+        ).length;
+        const completionRate =
+            totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
-        const workDuration = normSessions.reduce((acc, s) => acc + (Number(s.actualDuration) || 0), 0);
-        const breakDuration = normBreaks.reduce((acc, b) => acc + (Number(b.actualDuration) || 0), 0);
+        // determine workday start
+        const startEvent = [...(freshWorkEvents || [])]
+            .reverse()
+            .find((e) => e?.type === "start" && toDate(e.time));
 
-        const startEvent = (freshWorkEvents || []).find((e) => e?.type === "start" && toDate(e.time));
-        const startTime = toDate(startEvent?.time) || normSessions[0]?.startTime || now;
+        const workdayStart =
+            toDate(startEvent?.time) ||
+            normSessions
+                .map((s) => s.startTime)
+                .sort((a, b) => a - b)[0] ||
+            now;
 
+        // filter to workday window
+        const workdaySessions = normSessions.filter(
+            (s) => s.startTime >= workdayStart && s.startTime <= now
+        );
+
+        const workdayBreaks = normBreaks.filter(
+            (b) => b.startTime >= workdayStart && b.startTime <= now
+        );
+
+        // durations
+        const workDuration = workdaySessions.reduce(
+            (acc, s) => acc + (Number(s.actualDuration) || 0),
+            0
+        );
+
+        const breakDuration = workdayBreaks.reduce(
+            (acc, b) => acc + (Number(b.actualDuration) || 0),
+            0
+        );
+
+        // write end event
         const endEv = {
             id: uid(),
             type: "end",
@@ -383,25 +415,25 @@ const App = () => {
             text: "Workday Ended",
         };
 
-        // write end event first
         const updatedWorkEvents = [...(freshWorkEvents || []), endEv].map((e) => ({
             ...e,
             time: e?.time ? e.time : e?.timestamp ? new Date(e.timestamp) : e?.time,
         }));
+
         setWorkEvents(updatedWorkEvents);
 
-        // THIS is the only place we append to history
+        // append history summary
         const summary = {
             id: uid(),
-            date: startTime,
-            startTime,
+            date: workdayStart,
+            startTime: workdayStart,
             endTime: now,
-            sessionCount: normSessions.length,
+            sessionCount: workdaySessions.length,
+            breakCount: workdayBreaks.length,
             workDuration,
             taskCount: totalTasks,
             completedCount: totalCompleted,
             completionRate,
-            breakCount: normBreaks.length,
             breakDuration,
         };
 

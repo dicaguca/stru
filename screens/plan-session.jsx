@@ -220,6 +220,24 @@
 
         const picked = Array.isArray(selectedTasks) ? selectedTasks : [];
 
+        // Only count selections that are still actually available
+        const taskIdSet = React.useMemo(() => new Set(tasks.map((t) => t.id)), [tasks]);
+        const pickedInTasks = React.useMemo(
+            () => picked.filter((id) => taskIdSet.has(id)),
+            [picked, taskIdSet]
+        );
+
+        // Keep selectedTasks clean if tasks change elsewhere (done/deleted)
+        useEffect(() => {
+            if (typeof setSelectedTasks !== "function") return;
+
+            setSelectedTasks((prev) => {
+                const arr = Array.isArray(prev) ? prev : [];
+                const next = arr.filter((id) => taskIdSet.has(id));
+                return next.length === arr.length ? prev : next;
+            });
+        }, [taskIdSet, setSelectedTasks]);
+
         const back = () => {
             if (typeof onBack === "function") onBack();
             else Stru.router.go("/home");
@@ -290,15 +308,15 @@
                             </div>
 
                             <div className="text-stone-500 font-medium mb-6 flex space-x-6">
-                                <span className="text-green-600">Selected: {picked.length}</span>
-                                <span>Remaining Available: {Math.max(0, tasks.length - picked.length)}</span>
+                                <span className="text-green-600">Selected: {pickedInTasks.length}</span>
+                                <span>Remaining Available: {Math.max(0, tasks.length - pickedInTasks.length)}</span>
                             </div>
 
                             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                                 {tasks.map((t) => {
                                     const p = t.priority ?? "";
                                     const style = priorityColors[p] || priorityColors[""];
-                                    const isSelected = picked.includes(t.id);
+                                    const isSelected = pickedInTasks.includes(t.id);
 
                                     return (
                                         <div

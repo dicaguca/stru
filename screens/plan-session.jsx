@@ -312,7 +312,7 @@
                                 <span>Remaining Available: {Math.max(0, tasks.length - pickedInTasks.length)}</span>
                             </div>
 
-                            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                            <div className="space-y-3">
                                 {tasks.map((t) => {
                                     const p = t.priority ?? "";
                                     const style = priorityColors[p] || priorityColors[""];
@@ -376,3 +376,4 @@
     Stru.Screens = Stru.Screens || {};
     Stru.Screens.PlanSessionScreen = PlanSessionScreen;
 })();
+

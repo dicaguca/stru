@@ -91,6 +91,9 @@
 
         const [showAddModal, setShowAddModal] = useState(false);
         const [showExtendModal, setShowExtendModal] = useState(false);
+        const [showCongratsModal, setShowCongratsModal] = useState(false);
+        const [congratsMessage, setCongratsMessage] = useState("");
+        const [congratsArmed, setCongratsArmed] = useState(true);
 
         const orderedTasks = React.useMemo(() => {
             const incomplete = tasks.filter((t) => !completedIds.includes(t.id));
@@ -102,6 +105,36 @@
             return orderedTasks.filter((t) => !completedIds.includes(t.id)).map((t) => t.id);
         }, [orderedTasks, completedIds]);
 
+        const CONGRATS_MESSAGES = React.useMemo(
+            () => [
+                "You finished every task you picked. That’s real momentum.",
+                "Clean sweep. You followed through and closed it out.",
+                "Nice. You cleared the whole list for this session.",
+                "That was focused work. You did what you said you’d do.",
+                "All planned tasks done. You earned a small victory lap.",
+                "You just completed everything you set out to do. Strong.",
+                "Session plan complete. Keep this streak going.",
+                "You delivered. Every task checked off.",
+            ],
+            []
+        );
+
+        useEffect(() => {
+            if (!tasks.length) return;
+
+            const anyIncomplete = tasks.some((t) => !completedIds.includes(t.id));
+            if (anyIncomplete) {
+                if (!congratsArmed) setCongratsArmed(true);
+                return;
+            }
+
+            if (!congratsArmed) return;
+
+            const msg = CONGRATS_MESSAGES[Math.floor(Math.random() * CONGRATS_MESSAGES.length)];
+            setCongratsMessage(msg);
+            setShowCongratsModal(true);
+            setCongratsArmed(false);
+        }, [tasks, completedIds, congratsArmed, CONGRATS_MESSAGES]);
 
         // Keep the session object in sync (so app.jsx saves the right info)
         useEffect(() => {
@@ -312,6 +345,22 @@
                     tasks={modalTasks}
                     onAdd={addSessionTask}
                 />
+
+                {Stru.Modals && Stru.Modals.CongratsModal && (
+                    <Stru.Modals.CongratsModal
+                        isOpen={showCongratsModal}
+                        message={congratsMessage}
+                        onEndSession={() => {
+                            setShowCongratsModal(false);
+                            endSession();
+                        }}
+                        onAddMoreTasks={() => {
+                            setShowCongratsModal(false);
+                            setShowAddModal(true);
+                        }}
+                        onClose={() => setShowCongratsModal(false)}
+                    />
+                )}
 
                 {Stru.Modals && Stru.Modals.ExtensionModal && (
                     <Stru.Modals.ExtensionModal

@@ -588,6 +588,65 @@
     };
 
     /* =========================
+       CONGRATS MODAL (all session tasks completed)
+       Props:
+         - isOpen
+         - message
+         - onEndSession
+         - onAddMoreTasks
+         - onClose (optional)
+    ========================= */
+    const CongratsModal = ({
+        isOpen,
+        message,
+        onEndSession,
+        onAddMoreTasks,
+        onClose,
+    }) => {
+        if (!isOpen) return null;
+
+        const fallback =
+            "You finished everything you planned for this session. Solid work.";
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-2xl p-8 w-full max-w-md text-center">
+                    <h3 className="text-3xl font-bold text-stone-800 mb-3">
+                        Session complete
+                    </h3>
+
+                    <p className="text-stone-600 text-lg mb-8">
+                        {message || fallback}
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={() => onEndSession?.()}
+                            className="w-full bg-gradient-to-r from-lime-400 to-green-500 text-white p-4 rounded-xl font-bold text-lg"
+                        >
+                            End Session
+                        </button>
+
+                        <button
+                            onClick={() => onAddMoreTasks?.()}
+                            className="w-full bg-white border-2 border-stone-200 text-stone-700 p-4 rounded-xl font-bold text-lg"
+                        >
+                            Add More Tasks
+                        </button>
+
+                        <button
+                            onClick={() => onClose?.()}
+                            className="w-full text-stone-400 font-semibold pt-1"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    /* =========================
        EXPORT TO GLOBAL NAMESPACE
     ========================= */
     Stru.Modals = {
@@ -600,6 +659,7 @@
         EndDayModal,
         BreakSwitchModal,
         ExtensionModal,
+        CongratsModal,
     };
 })();
 

@@ -155,7 +155,7 @@ const App = () => {
     ]);
 
     const [showAddTask, setShowAddTask] = useState(false);
-    const [showCreateList, setShowCreateList] = useState(false);
+    const [showListsManager, setShowListsManager] = useState(false);
     const [taskForSubtasks, setTaskForSubtasks] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showStartDay, setShowStartDay] = useState(false);
@@ -309,6 +309,39 @@ const App = () => {
         const nextList = normalizeList({ id: uid(), name });
         setLists((prev) => [...(prev || []), nextList]);
         setActiveListId(nextList.id);
+    };
+
+    const renameList = (listId, name) => {
+        const trimmed = (name || "").trim();
+        if (!trimmed) return;
+        setLists((prev) =>
+            (prev || []).map((list) =>
+                list.id === listId
+                    ? normalizeList({ ...list, name: trimmed })
+                    : list
+            )
+        );
+    };
+
+    const deleteList = (listId) => {
+        if (!listId || listId === Stru.constants.DEFAULT_LIST_ID) return;
+
+        setTasks((prev) =>
+            (prev || []).map((task) => {
+                const normalized = normalizeTask(task);
+                if (normalized.listId !== listId) return normalized;
+                return normalizeTask({
+                    ...normalized,
+                    listId: Stru.constants.DEFAULT_LIST_ID,
+                    updatedAt: Date.now(),
+                });
+            })
+        );
+
+        setLists((prev) => (prev || []).filter((list) => list.id !== listId));
+        if (activeListId === listId) {
+            setActiveListId(Stru.constants.DEFAULT_LIST_ID);
+        }
     };
 
     const addTask = (task) => {
@@ -732,7 +765,7 @@ const App = () => {
                         setActiveListId={setActiveListId}
                         selectedTaskIds={selectedTasks}
                         onAdd={() => setShowAddTask(true)}
-                        onCreateList={() => setShowCreateList(true)}
+                        onOpenListsManager={() => setShowListsManager(true)}
                         onOpenSubtasks={(task) => setTaskForSubtasks(task)}
                         onUpdate={updateTask}
                         onUpdateSubtask={updateSubtask}
@@ -822,10 +855,14 @@ const App = () => {
                 listName={currentList.name}
             />
 
-            <Stru.Modals.CreateListModal
-                isOpen={showCreateList}
-                onClose={() => setShowCreateList(false)}
+            <Stru.Modals.ListsManagerModal
+                isOpen={showListsManager}
+                onClose={() => setShowListsManager(false)}
+                lists={normalizedLists}
+                defaultListId={Stru.constants.DEFAULT_LIST_ID}
                 onCreate={addList}
+                onRename={renameList}
+                onDelete={deleteList}
             />
 
             <Stru.Modals.AddSubtasksModal

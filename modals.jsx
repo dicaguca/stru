@@ -148,6 +148,148 @@
         );
     };
 
+    const ListsManagerModal = ({
+        isOpen,
+        onClose,
+        lists = [],
+        defaultListId,
+        onCreate,
+        onRename,
+        onDelete,
+    }) => {
+        const [newListName, setNewListName] = useState("");
+        const [editingId, setEditingId] = useState(null);
+        const [editingName, setEditingName] = useState("");
+
+        useEffect(() => {
+            if (!isOpen) {
+                setNewListName("");
+                setEditingId(null);
+                setEditingName("");
+            }
+        }, [isOpen]);
+
+        if (!isOpen) return null;
+
+        return (
+            <ModalShell isOpen={isOpen} maxWidth="max-w-2xl">
+                <h3 className="text-2xl font-bold text-stone-800 mb-3">Lists</h3>
+                <p className="text-stone-500 mb-6">Create, rename, or delete task lists. Tasks from deleted lists move to Main List.</p>
+
+                <div className="mb-8">
+                    <label className="block text-lg font-semibold mb-3 text-stone-700">Create New List</label>
+                    <div className="flex gap-3">
+                        <input
+                            type="text"
+                            value={newListName}
+                            onChange={(e) => setNewListName(e.target.value)}
+                            className="flex-1 p-4 border-2 border-stone-200 rounded-xl outline-none text-base"
+                            placeholder="e.g. Writing"
+                        />
+                        <button
+                            onClick={() => {
+                                const trimmed = newListName.trim();
+                                if (!trimmed) return;
+                                onCreate?.(trimmed);
+                                setNewListName("");
+                            }}
+                            className="bg-gradient-to-r from-rose-400 to-orange-400 text-white px-5 rounded-xl font-semibold"
+                        >
+                            Add List
+                        </button>
+                    </div>
+                </div>
+
+                <div className="space-y-3 mb-8">
+                    {(lists || []).map((list) => {
+                        const isDefault = list.id === defaultListId;
+                        const isEditing = editingId === list.id;
+
+                        return (
+                            <div key={list.id} className="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        {isEditing ? (
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={editingName}
+                                                onChange={(e) => setEditingName(e.target.value)}
+                                                className="w-full p-3 border-2 border-stone-200 rounded-xl outline-none text-base"
+                                            />
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-lg font-semibold text-stone-800">{list.name}</span>
+                                                {isDefault && (
+                                                    <span className="px-2.5 py-1 rounded-full bg-stone-200 text-stone-600 text-xs font-bold">
+                                                        Default
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {isEditing ? (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    const trimmed = editingName.trim();
+                                                    if (!trimmed) return;
+                                                    onRename?.(list.id, trimmed);
+                                                    setEditingId(null);
+                                                    setEditingName("");
+                                                }}
+                                                className="bg-lime-500 text-white px-4 py-2 rounded-xl font-semibold"
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setEditingId(null);
+                                                    setEditingName("");
+                                                }}
+                                                className="bg-stone-200 text-stone-700 px-4 py-2 rounded-xl font-semibold"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingId(list.id);
+                                                    setEditingName(list.name);
+                                                }}
+                                                className="bg-white border border-stone-200 text-stone-700 px-4 py-2 rounded-xl font-semibold"
+                                            >
+                                                Rename
+                                            </button>
+                                            {!isDefault && (
+                                                <button
+                                                    onClick={() => onDelete?.(list.id)}
+                                                    className="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-xl font-semibold"
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <button
+                    onClick={onClose}
+                    className="w-full bg-stone-700 text-white px-6 py-4 rounded-xl hover:bg-stone-800 transition-colors font-semibold text-lg"
+                >
+                    Done
+                </button>
+            </ModalShell>
+        );
+    };
+
     const AddSubtasksModal = ({ isOpen, onClose, onAdd, task }) => {
         const [bulkSubtaskText, setBulkSubtaskText] = useState("");
 
@@ -661,6 +803,7 @@
         ModalShell,
         AddTaskModal,
         CreateListModal,
+        ListsManagerModal,
         AddSubtasksModal,
         EditTaskModal,
         SettingsModal,

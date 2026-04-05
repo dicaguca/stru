@@ -93,7 +93,7 @@
                         >
                             <Icons.ArrowLeft className="text-stone-600" size={28} />
                         </button>
-                        <h2 className="text-4xl font-bold text-stone-800">History Log</h2>
+                        <h2 className="text-4xl font-semibold text-stone-800">History Log</h2>
                     </div>
 
                     {days.length === 0 ? (

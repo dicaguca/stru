@@ -3,8 +3,6 @@
     const Stru = window.Stru;
     const { Icons } = Stru;
 
-    // We implement the original screen's priority palette locally so the UI matches the original,
-    // while still supporting your current priority values (must/should/could/nice/"").
     const PRIORITY_UI = {
         must: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Priority" },
         should: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
@@ -14,12 +12,10 @@
     };
 
     const PRIORITY_ORDER = ["must", "should", "could", "nice", ""];
-
     const normalizePriority = (p) => (p === "want" ? "nice" : (p || ""));
-    const isDoneTask = (t) => !!(t.done || t.completed);
+    const isDoneTask = (task) => !!(task.done || task.completed);
 
-    // Original-style PrioritySelector (dot button with dropdown)
-    const PrioritySelector = ({ currentPriority, onSelect, size = "normal" }) => {
+    const PrioritySelector = ({ currentPriority, onSelect }) => {
         const { useState, useEffect, useRef } = React;
         const [isOpen, setIsOpen] = useState(false);
         const ref = useRef(null);
@@ -33,7 +29,6 @@
         }, [isOpen]);
 
         const pri = normalizePriority(currentPriority);
-        const dotSize = size === "large" ? "w-5 h-5" : "w-4 h-4";
 
         return (
             <div className="relative" ref={ref}>
@@ -42,7 +37,7 @@
                         e.stopPropagation();
                         setIsOpen(!isOpen);
                     }}
-                    className={`${PRIORITY_UI[pri].dot} ${dotSize} rounded-full hover:ring-2 hover:ring-offset-2 hover:ring-stone-300 transition-all cursor-pointer flex-shrink-0`}
+                    className={`${PRIORITY_UI[pri].dot} block w-5 h-5 rounded-full shrink-0 hover:ring-2 hover:ring-offset-2 hover:ring-stone-300 transition-all`}
                     title={PRIORITY_UI[pri].label}
                 />
                 {isOpen && (
@@ -55,9 +50,9 @@
                                     onSelect(p);
                                     setIsOpen(false);
                                 }}
-                                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors text-left"
+                                className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-stone-50 text-left"
                             >
-                                <div className={`${PRIORITY_UI[p].dot} w-4 h-4 rounded-full flex-shrink-0`} />
+                                <div className={`${PRIORITY_UI[p].dot} w-4 h-4 rounded-full`} />
                                 <span className="text-base font-medium text-stone-700">{PRIORITY_UI[p].label}</span>
                             </button>
                         ))}
@@ -67,56 +62,25 @@
         );
     };
 
-    // Minimal edit modal to match original "edit" behavior and styling
-    const EditTaskModal = ({ isOpen, onClose, initialText, onSave }) => {
-        const { useState, useEffect } = React;
-        const [text, setText] = useState(initialText || "");
-
-        useEffect(() => {
-            setText(initialText || "");
-        }, [initialText]);
-
-        if (!isOpen) return null;
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
-                    <h3 className="text-2xl font-bold text-stone-800 mb-6">Edit Task</h3>
-
-                    <label className="block text-lg font-semibold mb-3 text-stone-700">Task</label>
-                    <input
-                        autoFocus
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base mb-8"
-                        placeholder="Task name"
-                    />
-
-                    <div className="flex space-x-4">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={() => {
-                                const trimmed = (text || "").trim();
-                                if (!trimmed) return;
-                                onSave(trimmed);
-                            }}
-                            className="flex-1 bg-stone-800 text-white p-4 rounded-xl font-semibold text-lg"
-                        >
-                            Save
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const MasterListScreen = ({ tasks, onAdd, onUpdate, onDelete }) => {
+    const MasterListScreen = ({
+        tasks,
+        lists,
+        activeListId,
+        setActiveListId,
+        selectedTaskIds,
+        onAdd,
+        onCreateList,
+        onOpenSubtasks,
+        onUpdate,
+        onUpdateSubtask,
+        onDelete,
+        getSubtaskStats,
+    }) => {
         const { useState, useMemo } = React;
+        const [isBatchMode, setIsBatchMode] = useState(false);
+        const [selectedIds, setSelectedIds] = useState([]);
+        const [editingId, setEditingId] = useState(null);
+        const [expandedTaskIds, setExpandedTaskIds] = useState([]);
 
         const sortByPriority = (a, b) => {
             const pa = PRIORITY_ORDER.indexOf(normalizePriority(a.priority));
@@ -124,217 +88,298 @@
             return pa - pb;
         };
 
-        const [isBatchMode, setIsBatchMode] = useState(false);
-        const [selectedIds, setSelectedIds] = useState([]);
+        const currentTasks = useMemo(
+            () => (tasks || []).filter((task) => task.listId === activeListId),
+            [tasks, activeListId]
+        );
 
-        const [editingId, setEditingId] = useState(null);
-        const editingTask = useMemo(
-            () => tasks.find((t) => t.id === editingId) || null,
-            [tasks, editingId]
+        const totalPending = useMemo(
+            () => (tasks || []).filter((task) => !isDoneTask(task)).length,
+            [tasks]
+        );
+
+        const totalCompleted = useMemo(
+            () => (tasks || []).filter((task) => isDoneTask(task)).length,
+            [tasks]
         );
 
         const pending = useMemo(
-            () => tasks.filter((t) => !isDoneTask(t)).slice().sort(sortByPriority),
-            [tasks]
+            () => currentTasks.filter((task) => !isDoneTask(task)).slice().sort(sortByPriority),
+            [currentTasks]
         );
 
         const completed = useMemo(
-            () => tasks.filter((t) => isDoneTask(t)).slice().sort(sortByPriority),
-            [tasks]
+            () => currentTasks.filter((task) => isDoneTask(task)).slice().sort(sortByPriority),
+            [currentTasks]
         );
 
-        const pendingCount = pending.length;
-        const completedCount = completed.length;
+        const currentPendingCount = pending.length;
+        const currentCompletedCount = completed.length;
+
+        const editingTask = useMemo(
+            () => currentTasks.find((task) => task.id === editingId) || null,
+            [currentTasks, editingId]
+        );
 
         const toggleSelection = (id) => {
-            setSelectedIds((prev) =>
-                prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-            );
+            setSelectedIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
         };
 
-        const applyBatchPriority = (pri) => {
-            selectedIds.forEach((id) => onUpdate(id, { priority: pri }));
+        const applyBatchPriority = (priority) => {
+            selectedIds.forEach((id) => onUpdate(id, { priority }));
             setIsBatchMode(false);
             setSelectedIds([]);
         };
 
         const toggleDone = (id) => {
-            const t = tasks.find((x) => x.id === id);
-            if (!t) return;
-            const nextDone = !isDoneTask(t);
+            const task = currentTasks.find((item) => item.id === id);
+            if (!task) return;
+            const nextDone = !isDoneTask(task);
             onUpdate(id, { done: nextDone, completed: nextDone });
         };
 
-        const changePriority = (id, pri) => {
-            onUpdate(id, { priority: pri });
+        const toggleExpanded = (id) => {
+            setExpandedTaskIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
         };
 
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8 pb-32">
-                <div className="max-w-4xl mx-auto">
-                    <div className="flex items-center mb-8">
-                        <button
-                            onClick={() => Stru.router.go("/home")}
-                            className="mr-4 p-3 hover:bg-white rounded-xl"
-                            title="Back"
-                        >
-                            <Icons.ArrowLeft className="text-stone-600" size={28} />
-                        </button>
+        const renderTaskRow = (task, isCompleted) => {
+            const priority = normalizePriority(task.priority);
+            const styles = PRIORITY_UI[priority];
+            const stats = getSubtaskStats(task);
+            const isExpanded = expandedTaskIds.includes(task.id);
+            const rowBaseClass = isCompleted
+                ? "bg-stone-100 border-stone-200 opacity-60"
+                : `${styles.bg} ${styles.border}`;
+            const textClass = [
+                "flex-1 text-lg select-none",
+                isCompleted ? "line-through text-stone-600" : "text-stone-800",
+                priority === "must" ? "font-semibold" : "font-medium",
+            ].join(" ");
 
-                        <div>
-                            <h2 className="text-4xl font-bold text-stone-800">Master Task List</h2>
-                            <p className="text-stone-600 mt-1 font-medium">
-                                Pending: {pendingCount} • Completed: {completedCount}
-                            </p>
-                        </div>
+            return (
+                <div key={task.id} className={`rounded-2xl border-2 transition-all ${rowBaseClass}`}>
+                    <div
+                        onClick={() => isBatchMode && toggleSelection(task.id)}
+                        className={`py-2.5 px-5 flex items-center gap-4 ${isBatchMode && selectedIds.includes(task.id) ? "ring-2 ring-stone-800 border-stone-800" : ""}`}
+                    >
+                        {isBatchMode ? (
+                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${selectedIds.includes(task.id) ? "bg-stone-800 border-stone-800" : "border-stone-400 bg-white"}`}>
+                                {selectedIds.includes(task.id) && <Icons.Check size={18} className="text-white" />}
+                            </div>
+                        ) : (
+                            <div className="flex items-center self-center shrink-0">
+                                <PrioritySelector currentPriority={priority} onSelect={(next) => onUpdate(task.id, { priority: next })} />
+                            </div>
+                        )}
 
-                        <div className="ml-auto flex space-x-2">
-                            <button
-                                onClick={() => {
-                                    setIsBatchMode(!isBatchMode);
-                                    setSelectedIds([]);
-                                }}
-                                className={`px-5 py-3 rounded-xl font-semibold text-lg transition-all ${isBatchMode ? "bg-stone-800 text-white" : "bg-white text-stone-600 hover:bg-stone-50"
-                                    }`}
-                            >
-                                {isBatchMode ? "Cancel" : "Select"}
-                            </button>
-
-                            {!isBatchMode && (
-                                <button
-                                    onClick={onAdd}
-                                    className="bg-gradient-to-r from-rose-400 to-orange-400 text-white px-6 py-3 rounded-xl hover:from-rose-500 hover:to-orange-500 flex items-center space-x-2 font-semibold text-lg shadow-lg"
-                                >
-                                    <Icons.Plus size={24} />
-                                    <span>Add</span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        {pending.map((t) => {
-                            const pri = normalizePriority(t.priority);
-                            const c = PRIORITY_UI[pri];
-
-                            const isSelected = selectedIds.includes(t.id);
-
-                            return (
-                                <div
-                                    key={t.id}
-                                    onClick={() => isBatchMode && toggleSelection(t.id)}
-                                    className={`${c.bg} py-3 px-5 rounded-2xl border-2 ${isBatchMode && isSelected ? "border-stone-800 ring-2 ring-stone-800" : c.border
-                                        } flex items-center space-x-4 transition-all cursor-pointer`}
-                                >
-                                    {isBatchMode ? (
-                                        <div
-                                            className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${isSelected ? "bg-stone-800 border-stone-800" : "border-stone-400 bg-white"
-                                                }`}
-                                        >
-                                            {isSelected && <Icons.Check size={18} className="text-white" />}
-                                        </div>
-                                    ) : (
-                                        <PrioritySelector
-                                            currentPriority={pri}
-                                            onSelect={(p) => changePriority(t.id, p)}
-                                            size="large"
-                                        />
-                                    )}
-
-                                    <span className="flex-1 text-lg text-stone-800 font-medium select-none">{t.text}</span>
-
-                                    {!isBatchMode && (
-                                        <>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingId(t.id);
-                                                }}
-                                                className="p-2 hover:bg-white/50 rounded-lg"
-                                                title="Edit"
-                                            >
-                                                <Icons.Edit3 size={20} className="text-stone-600" />
-                                            </button>
-
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleDone(t.id);
-                                                }}
-                                                className="p-2 hover:bg-white/50 rounded-lg"
-                                                title="Mark done"
-                                            >
-                                                <Icons.Check size={20} className="text-green-500" />
-                                            </button>
-
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onDelete(t.id);
-                                                }}
-                                                className="p-2 hover:bg-white/50 rounded-lg"
-                                                title="Delete"
-                                            >
-                                                <Icons.Trash2 size={20} className="text-red-500" />
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            );
-                        })}
-
-                        {/* Completed Tasks (Original style: visual-only block) */}
-                        {!isBatchMode &&
-                            completed.map((t) => {
-                                const pri = normalizePriority(t.priority);
-                                const c = PRIORITY_UI[pri];
-
-                                return (
-                                    <div
-                                        key={t.id}
-                                        className="bg-stone-100 py-3 px-5 rounded-2xl border-2 border-stone-200 flex items-center space-x-4 opacity-60"
+                        <div className="flex-1 min-w-0 flex items-center">
+                            <div className="flex items-center gap-3 min-w-0 w-full">
+                                <span className={`${textClass} leading-tight`}>{task.text}</span>
+                                {stats.total > 0 && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleExpanded(task.id);
+                                        }}
+                                        className="px-3 py-1 rounded-full bg-white/70 text-stone-600 text-xs font-bold border border-stone-200"
                                     >
-                                        <div className={`${c.dot} w-5 h-5 rounded-full`} title={c.label} />
-                                        <span className="flex-1 text-lg text-stone-600 line-through font-medium">{t.text}</span>
+                                        {stats.completed}/{stats.total} subtasks
+                                    </button>
+                                )}
+                            </div>
+                        </div>
 
-                                        <button
-                                            onClick={() => toggleDone(t.id)}
-                                            className="p-2 hover:bg-white/50 rounded-lg"
-                                            title="Mark not done"
-                                        >
-                                            <Icons.X size={20} className="text-stone-500" />
-                                        </button>
+                        {!isBatchMode && (
+                            <div className="flex items-center gap-1 self-center">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingId(task.id);
+                                    }}
+                                    className="p-2 hover:bg-white/60 rounded-lg"
+                                    title="Edit"
+                                >
+                                    <Icons.Edit3 size={20} className="text-stone-600" />
+                                </button>
 
-                                        <button
-                                            onClick={() => onDelete(t.id)}
-                                            className="p-2 hover:bg-white/50 rounded-lg"
-                                            title="Delete"
-                                        >
-                                            <Icons.Trash2 size={20} className="text-red-500" />
-                                        </button>
-                                    </div>
-                                );
-                            })}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onOpenSubtasks?.(task);
+                                    }}
+                                    className="p-2 hover:bg-white/60 rounded-lg"
+                                    title="Add subtasks"
+                                >
+                                    <Icons.Plus size={18} className="text-lime-700" />
+                                </button>
 
-                        {tasks.length === 0 && (
-                            <div className="text-center py-10 text-stone-400">
-                                <p>No tasks yet. Add tasks to your master list.</p>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleDone(task.id);
+                                    }}
+                                    className="p-2 hover:bg-white/60 rounded-lg"
+                                    title={isCompleted ? "Mark not done" : "Mark done"}
+                                >
+                                    {isCompleted
+                                        ? <Icons.X size={20} className="text-stone-500" />
+                                        : <Icons.Check size={20} className="text-green-500" />}
+                                </button>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete(task.id);
+                                    }}
+                                    className="p-2 hover:bg-white/60 rounded-lg"
+                                    title="Delete"
+                                >
+                                    <Icons.Trash2 size={20} className="text-red-500" />
+                                </button>
                             </div>
                         )}
                     </div>
 
-                    {/* BATCH ACTION BAR (floating, original style) */}
+                    {isExpanded && (
+                        <div className="px-5 pb-4">
+                            <div className="bg-white/70 rounded-2xl border border-stone-200 p-4 space-y-2">
+                                {(task.subtasks || []).map((subtask) => (
+                                    <label key={subtask.id} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-stone-50">
+                                        <input
+                                            type="checkbox"
+                                            checked={!!(subtask.done || subtask.completed)}
+                                            onChange={(e) => {
+                                                onUpdateSubtask(task.id, subtask.id, {
+                                                    done: e.target.checked,
+                                                    completed: e.target.checked,
+                                                });
+                                            }}
+                                            className="w-4 h-4 rounded border-stone-300"
+                                        />
+                                        <span className={`text-sm ${subtask.done || subtask.completed ? "line-through text-stone-400" : "text-stone-700"}`}>
+                                            {subtask.text}
+                                        </span>
+                                    </label>
+                                ))}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onOpenSubtasks?.(task);
+                                    }}
+                                    className="mt-2 text-sm font-bold text-lime-700 bg-lime-50 px-3 py-2 rounded-xl border border-lime-200"
+                                >
+                                    + Add Subtasks
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8 pb-32">
+                <div className="max-w-[56rem] mx-auto">
+                    <div className="flex flex-col gap-4 mb-6">
+                        <div className="flex items-center">
+                            <button
+                                onClick={() => Stru.router.go("/home")}
+                                className="mr-4 p-3 hover:bg-white rounded-xl"
+                                title="Back"
+                            >
+                                <Icons.ArrowLeft className="text-stone-600" size={28} />
+                            </button>
+
+                            <div>
+                                <h2 className="text-4xl font-semibold text-stone-800">Master Task List</h2>
+                                <p className="text-stone-600 mt-1 text-lg font-medium">
+                                    Pending: {totalPending} &bull; Completed: {totalCompleted}
+                                </p>
+                            </div>
+
+                            <div className="ml-auto flex space-x-2">
+                                <button
+                                    onClick={() => {
+                                        setIsBatchMode(!isBatchMode);
+                                        setSelectedIds([]);
+                                    }}
+                                    className={`px-5 py-3 rounded-xl border-2 border-stone-200 font-semibold text-lg transition-all ${isBatchMode ? "bg-stone-800 border-stone-800 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
+                                >
+                                    {isBatchMode ? "Cancel" : "Select"}
+                                </button>
+                                <button
+                                    onClick={onCreateList}
+                                    className="bg-white text-stone-700 px-5 py-3 rounded-xl border-2 border-stone-200 font-semibold text-lg"
+                                >
+                                    + List
+                                </button>
+                                {!isBatchMode && (
+                                    <button
+                                        onClick={onAdd}
+                                        className="bg-gradient-to-r from-rose-400 to-orange-400 text-white px-6 py-3 rounded-xl flex items-center space-x-2 font-semibold text-lg shadow-lg"
+                                    >
+                                        <Icons.Plus size={24} />
+                                        <span>Add</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-white/65 border border-white/70 rounded-[1.35rem] px-6 py-5 shadow-sm mt-2">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                                    {(lists || []).map((list) => {
+                                        const hasSelected = (tasks || []).some((task) => task.listId === list.id && (selectedTaskIds || []).includes(task.id));
+                                        const isActive = list.id === activeListId;
+                                        return (
+                                            <button
+                                                key={list.id}
+                                                onClick={() => setActiveListId(list.id)}
+                                                className={`px-4 py-2 rounded-lg whitespace-nowrap font-bold text-sm transition-all ${isActive
+                                                        ? "bg-stone-800 text-white shadow-md"
+                                                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                                                    }`}
+                                            >
+                                                <span>{list.name}</span>
+                                                {hasSelected && <span className={`ml-2 inline-block w-2.5 h-2.5 rounded-full ${isActive ? "bg-lime-300" : "bg-lime-500"}`} />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="md:text-right">
+                                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">Current List</div>
+                                    <div className="text-base font-semibold text-stone-700 mt-1">
+                                        Pending: {currentPendingCount} &bull; Completed: {currentCompletedCount}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {pending.map((task) => renderTaskRow(task, false))}
+                        {completed.map((task) => renderTaskRow(task, true))}
+
+                        {currentTasks.length === 0 && (
+                            <div className="text-center py-16 text-stone-400 bg-white rounded-3xl border-2 border-stone-200">
+                                <p className="text-lg">No tasks in this list yet.</p>
+                                <p className="mt-2">Add tasks or create another list to get started.</p>
+                            </div>
+                        )}
+                    </div>
+
                     {isBatchMode && selectedIds.length > 0 && (
                         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white px-8 py-4 rounded-full shadow-2xl border-2 border-stone-200 z-50 flex items-center space-x-6">
                             <span className="font-bold text-stone-700">{selectedIds.length} selected</span>
                             <div className="h-8 w-0.5 bg-stone-200" />
                             <div className="flex space-x-2">
-                                {PRIORITY_ORDER.map((p) => (
+                                {PRIORITY_ORDER.map((priority) => (
                                     <button
-                                        key={p}
-                                        onClick={() => applyBatchPriority(p)}
-                                        className={`w-10 h-10 rounded-full border-2 ${PRIORITY_UI[p].dot} ${PRIORITY_UI[p].border} hover:scale-110 transition-transform`}
-                                        title={PRIORITY_UI[p].label}
+                                        key={priority}
+                                        onClick={() => applyBatchPriority(priority)}
+                                        className={`w-10 h-10 rounded-full border-2 ${PRIORITY_UI[priority].dot} ${PRIORITY_UI[priority].border} hover:scale-110 transition-transform`}
+                                        title={PRIORITY_UI[priority].label}
                                     />
                                 ))}
                             </div>
@@ -342,13 +387,13 @@
                     )}
                 </div>
 
-                <EditTaskModal
+                <Stru.Modals.EditTaskModal
                     isOpen={!!editingTask}
-                    initialText={editingTask ? editingTask.text : ""}
+                    task={editingTask}
                     onClose={() => setEditingId(null)}
-                    onSave={(newText) => {
+                    onSave={(updates) => {
                         if (!editingTask) return;
-                        onUpdate(editingTask.id, { text: newText });
+                        onUpdate(editingTask.id, updates);
                         setEditingId(null);
                     }}
                 />

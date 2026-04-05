@@ -15,6 +15,22 @@
         return dt ? dt.toLocaleTimeString() : "";
     };
 
+    const getIncompleteCount = (item) => {
+        const tasks = Array.isArray(item?.tasks) ? item.tasks : [];
+        const completedTasks = Array.isArray(item?.completedTasks) ? item.completedTasks : [];
+        const explicitIncomplete = Array.isArray(item?.incompleteTasks) ? item.incompleteTasks.length : null;
+
+        if (explicitIncomplete !== null) return explicitIncomplete;
+
+        const completedIds = new Set(
+            completedTasks
+                .map((task) => task?.id)
+                .filter(Boolean)
+        );
+
+        return tasks.filter((task) => !completedIds.has(task?.id)).length;
+    };
+
     const SessionLogScreen = ({ sessions = [], breaks = [], workEvents = [] }) => {
         const { useState } = React;
         const [tab, setTab] = useState("timeline");
@@ -41,7 +57,7 @@
             });
 
             const eventItems = (workEvents || []).map((e) => {
-                const t = toDate(e.time);
+                const t = toDate(e.time ?? e.timestamp);
                 return {
                     ...e,
                     type: "event",
@@ -67,7 +83,7 @@
                         >
                             <Icons.ArrowLeft className="text-stone-600" size={28} />
                         </button>
-                        <h2 className="text-4xl font-bold text-stone-800">Activity Log</h2>
+                        <h2 className="text-4xl font-semibold text-stone-800">Activity Log</h2>
                     </div>
 
                     <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">
@@ -123,15 +139,10 @@
                                             <>
                                                 <div className="flex justify-between mb-1">
                                                     <h3 className="font-bold text-lg">Work Session</h3>
-                                                    <span className="text-sm text-stone-500">
-                                                        {timeStr(item.startTime)}
-                                                    </span>
+                                                    <span className="text-sm text-stone-500">{timeStr(item.startTime)}</span>
                                                 </div>
                                                 <div className="text-stone-600">
-                                                    {item.actualDuration} min •{" "}
-                                                    {(item.completedTasks || []).length} done •{" "}
-                                                    {((item.tasks || []).length - (item.completedTasks || []).length)}{" "}
-                                                    not done
+                                                    {item.actualDuration} min / {(item.completedTasks || []).length} done / {getIncompleteCount(item)} not done
                                                 </div>
                                             </>
                                         )}
@@ -139,16 +150,10 @@
                                         {item.type === "break" && (
                                             <>
                                                 <div className="flex justify-between mb-1">
-                                                    <h3 className="font-bold text-lg text-orange-600">
-                                                        Break: {item.label}
-                                                    </h3>
-                                                    <span className="text-sm text-stone-500">
-                                                        {timeStr(item.startTime)}
-                                                    </span>
+                                                    <h3 className="font-bold text-lg text-orange-600">Break: {item.label}</h3>
+                                                    <span className="text-sm text-stone-500">{timeStr(item.startTime)}</span>
                                                 </div>
-                                                <div className="text-stone-600">
-                                                    {item.actualDuration} minutes
-                                                </div>
+                                                <div className="text-stone-600">{item.actualDuration} minutes</div>
                                             </>
                                         )}
 
@@ -163,9 +168,7 @@
                                                     >
                                                         {item.text}
                                                     </h3>
-                                                    <span className="text-sm text-stone-500">
-                                                        {timeStr(item.time)}
-                                                    </span>
+                                                    <span className="text-sm text-stone-500">{timeStr(item.time)}</span>
                                                 </div>
                                             </>
                                         )}
@@ -193,16 +196,13 @@
                                             className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200"
                                         >
                                             <div className="flex justify-between mb-2">
-                                                <h3 className="font-bold text-xl">
-                                                    Session #{(sessions || []).length - i}
-                                                </h3>
+                                                <h3 className="font-bold text-xl">Session #{(sessions || []).length - i}</h3>
                                                 <div className="text-sm text-stone-500 bg-stone-100 px-3 py-1 rounded-full">
                                                     {timeStr(start)} - {timeStr(end)}
                                                 </div>
                                             </div>
                                             <div className="text-stone-600">
-                                                {s.actualDuration} min • {(s.completedTasks || []).length} done •{" "}
-                                                {((s.tasks || []).length - (s.completedTasks || []).length)} not done
+                                                {s.actualDuration} min / {(s.completedTasks || []).length} done / {getIncompleteCount(s)} not done
                                             </div>
                                         </div>
                                     );

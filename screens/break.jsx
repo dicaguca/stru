@@ -6,7 +6,6 @@
 
     const { useState } = React;
 
-    // Match original helper
     const formatTime = (sec) => {
         const s = Math.max(0, Math.floor(sec));
         const m = Math.floor(s / 60);
@@ -14,10 +13,6 @@
         return `${m}:${r.toString().padStart(2, "0")}`;
     };
 
-
-    /* =========================
-       BREAK SUMMARY (original)
-    ========================= */
     const BreakSummaryScreen = ({ breaks = [] }) => {
         const last = (breaks || [])[breaks.length - 1];
         if (!last) return null;
@@ -25,23 +20,17 @@
         return (
             <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">
                 <div className="max-w-3xl mx-auto text-center">
-                    <div className="text-6xl mb-4">☕</div>
-                    <h2 className="text-5xl font-bold text-stone-800 mb-4">
-                        Break Ended
-                    </h2>
-                    <p className="text-xl text-stone-600 mb-8">
-                        Hope you are recharged!
-                    </p>
+                    <div className="flex justify-center mb-4">
+                        <Icons.Coffee size={56} className="text-orange-400" />
+                    </div>
+                    <h2 className="text-5xl font-semibold text-stone-800 mb-4">Break Ended</h2>
+                    <p className="text-xl text-stone-600 mb-8">Hope you are recharged!</p>
 
                     <div className="bg-white p-10 rounded-3xl shadow-lg border-2 border-stone-200 mb-8">
-                        <div className="text-5xl font-bold text-orange-500 mb-2">
-                            {last.actualDuration} min
-                        </div>
+                        <div className="text-5xl font-bold text-orange-500 mb-2">{last.actualDuration} min</div>
                         <div className="text-lg text-stone-500">Total Break Time</div>
                         <div className="mt-6 pt-6 border-t-2 border-stone-100 text-stone-500">
-                            Time:{" "}
-                            {last.startTime ? new Date(last.startTime).toLocaleTimeString() : ""}{" "}
-                            - {last.endTime ? new Date(last.endTime).toLocaleTimeString() : ""}
+                            Time: {last.startTime ? new Date(last.startTime).toLocaleTimeString() : ""} - {last.endTime ? new Date(last.endTime).toLocaleTimeString() : ""}
                         </div>
                     </div>
 
@@ -64,9 +53,6 @@
         );
     };
 
-    /* =========================
-       BREAK SCREEN (centralized)
-    ========================= */
     const BreakScreen = ({
         isBreakRunning,
         breakTimeRemaining,
@@ -77,10 +63,8 @@
         onExtendBreak,
         onEndBreak,
     }) => {
-        // UI state (matches original defaults)
         const [breakDuration, setBreakDuration] = useState(5);
         const [breakLabel, setBreakLabel] = useState("");
-
         const [isIndefiniteSelection, setIsIndefiniteSelection] = useState(true);
         const [showExtendModal, setShowExtendModal] = useState(false);
 
@@ -102,9 +86,6 @@
             onEndBreak?.();
         };
 
-        // Auto-end is handled in app.jsx now, so this effect is NOT needed here.
-        // (Leaving no auto-end logic in this file avoids double-ending.)
-
         return (
             <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-8">
                 <div className="max-w-6xl mx-auto">
@@ -115,17 +96,14 @@
                         >
                             <Icons.ArrowLeft className="text-stone-600" size={28} />
                         </button>
-                        <h2 className="text-4xl font-bold text-stone-800">Take a Break</h2>
+                        <h2 className="text-4xl font-semibold text-stone-800">Take a Break</h2>
                     </div>
 
                     <div className="bg-white p-10 rounded-3xl shadow-lg border-2 border-stone-200 text-center min-h-[500px] flex flex-col justify-center">
                         {!isBreakRunning ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                                {/* Presets */}
                                 <div className="space-y-4">
-                                    <h3 className="text-2xl font-bold text-stone-700 mb-6">
-                                        Quick Select
-                                    </h3>
+                                    <h3 className="text-2xl font-bold text-stone-700 mb-6">Quick Select</h3>
                                     <div className="grid grid-cols-1 gap-4">
                                         {presets.map((type) => (
                                             <button
@@ -134,8 +112,8 @@
                                                     setBreakLabel(type);
                                                 }}
                                                 className={`p-6 rounded-2xl border-2 text-xl font-bold transition-all ${breakLabel === type
-                                                    ? "bg-orange-100 border-orange-400 text-orange-700 ring-2 ring-orange-200"
-                                                    : "bg-stone-50 border-stone-200 text-stone-600 hover:bg-white hover:shadow-md"
+                                                        ? "bg-orange-100 border-orange-400 text-orange-700 ring-2 ring-orange-200"
+                                                        : "bg-stone-50 border-stone-200 text-stone-600 hover:bg-white hover:shadow-md"
                                                     }`}
                                             >
                                                 {type}
@@ -144,17 +122,12 @@
                                     </div>
                                 </div>
 
-                                {/* Custom Controls */}
                                 <div className="flex flex-col items-center justify-center h-full border-l-2 border-stone-100 pl-12">
                                     <Icons.Coffee size={64} className="mb-6 text-orange-400" />
-                                    <h3 className="text-3xl font-bold text-stone-800 mb-8">
-                                        Customize
-                                    </h3>
+                                    <h3 className="text-3xl font-bold text-stone-800 mb-8">Customize</h3>
 
                                     <div className="mb-8 w-full max-w-xs">
-                                        <label className="block font-semibold mb-3 text-stone-600">
-                                            Break Type
-                                        </label>
+                                        <label className="block font-semibold mb-3 text-stone-600">Break Type</label>
                                         <input
                                             type="text"
                                             value={breakLabel}
@@ -170,9 +143,7 @@
                                                 type="checkbox"
                                                 id="indefinite"
                                                 checked={isIndefiniteSelection}
-                                                onChange={(e) =>
-                                                    setIsIndefiniteSelection(e.target.checked)
-                                                }
+                                                onChange={(e) => setIsIndefiniteSelection(e.target.checked)}
                                                 className="w-6 h-6 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
                                             />
                                             <label
@@ -185,15 +156,11 @@
 
                                         {!isIndefiniteSelection && (
                                             <div className="mt-4">
-                                                <label className="block font-semibold mb-2 text-stone-500">
-                                                    Minutes
-                                                </label>
+                                                <label className="block font-semibold mb-2 text-stone-500">Minutes</label>
                                                 <input
                                                     type="text"
                                                     value={breakDuration}
-                                                    onChange={(e) =>
-                                                        setBreakDuration(parseInt(e.target.value) || 5)
-                                                    }
+                                                    onChange={(e) => setBreakDuration(parseInt(e.target.value, 10) || 5)}
                                                     className="w-full p-3 border-2 rounded-xl text-center text-2xl font-bold text-stone-700"
                                                 />
                                             </div>
@@ -210,17 +177,12 @@
                                 </div>
                             </div>
                         ) : (
-                            // RUNNING STATE (original)
                             <div>
                                 <Icons.Coffee size={80} className="mx-auto mb-6 text-orange-400" />
-                                <h3 className="text-3xl font-bold text-stone-800 mb-3">
-                                    {activeBreak?.label || "Break Time"}
-                                </h3>
+                                <h3 className="text-3xl font-bold text-stone-800 mb-3">{activeBreak?.label || "Break Time"}</h3>
 
                                 <div className="text-8xl font-bold text-orange-400 mb-8 tracking-tight">
-                                    {isIndefiniteBreak
-                                        ? formatTime(breakElapsedTime)
-                                        : formatTime(breakTimeRemaining)}
+                                    {isIndefiniteBreak ? formatTime(breakElapsedTime) : formatTime(breakTimeRemaining)}
                                 </div>
 
                                 {isIndefiniteBreak && (

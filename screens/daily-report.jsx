@@ -11,22 +11,6 @@
         return rem ? `${h}h ${rem}m` : `${h}h`;
     };
 
-    const startOfDay = (d) => {
-        const dt = d instanceof Date ? d : new Date(d);
-        if (Number.isNaN(dt.getTime())) return null;
-        const out = new Date(dt);
-        out.setHours(0, 0, 0, 0);
-        return out;
-    };
-
-    const isSameDay = (a, b) => {
-        const da = startOfDay(a);
-        const db = startOfDay(b);
-        if (!da || !db) return false;
-        return da.getTime() === db.getTime();
-    };
-
-    // Reads from the same localStorage keys as the original app
     const loadArray = (key) => {
         try {
             const raw = localStorage.getItem(key);
@@ -37,16 +21,40 @@
         }
     };
 
-    const normalizeTaskDone = (t) => !!(t?.done || t?.completed);
-
     const normalizeDate = (x) => {
         const d = x instanceof Date ? x : new Date(x);
         return Number.isNaN(d.getTime()) ? null : d;
     };
 
-    const getDailyReport = () => {
-        const today = startOfDay(new Date());
+    const formatDateTime = (date) => {
+        const d = normalizeDate(date);
+        if (!d) return "";
+        return d.toLocaleString([], {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    };
 
+    const getIncompleteTasks = (session) => {
+        const tasks = Array.isArray(session?.tasks) ? session.tasks : [];
+        const completedTasks = Array.isArray(session?.completedTasks) ? session.completedTasks : [];
+        const explicitIncomplete = Array.isArray(session?.incompleteTasks) ? session.incompleteTasks : null;
+
+        if (explicitIncomplete) return explicitIncomplete;
+
+        const completedIds = new Set(
+            completedTasks
+                .map((task) => task?.id)
+                .filter(Boolean)
+        );
+
+        return tasks.filter((task) => !completedIds.has(task?.id));
+    };
+
+    const getSessionReport = () => {
         const tasksKey = Stru?.constants?.STORAGE_KEYS?.tasks || "stru-tasks";
         const sessionsKey = Stru?.constants?.STORAGE_KEYS?.sessions || "stru-sessions";
         const breaksKey = Stru?.constants?.STORAGE_KEYS?.breaks || "stru-breaks";
@@ -55,78 +63,112 @@
         const tasks = loadArray(tasksKey);
         const sessions = loadArray(sessionsKey);
         const breaks = loadArray(breaksKey);
-        const workEvents = loadArray(workEventsKey);
+        const workEvents = loadArray(workEventsKey)
+            .map((e) => ({
+                ...e,
+                time: normalizeDate(e.time ?? e.timestamp),
+            }))
+            .filter((e) => e.time)
+            .sort((a, b) => a.time - b.time);
 
-        const ts = sessions
+        const latestStartIndex = [...workEvents]
+            .map((event, index) => ({ event, index }))
+            .reverse()
+            .find(({ event }) => event.type === "start")?.index ?? -1;
+
+        const latestStart = latestStartIndex >= 0 ? workEvents[latestStartIndex] : null;
+        const matchingEnd = latestStartIndex >= 0
+            ? workEvents.slice(latestStartIndex + 1).find((event) => event.type === "end")
+            : null;
+
+        const reportStart = latestStart?.time
+            || sessions
+                .map((s) => normalizeDate(s.startTime ?? s.start ?? s.startedAt ?? s.started_at))
+                .filter(Boolean)
+                .sort((a, b) => a - b)
+                .slice(-1)[0]
+            || new Date();
+        const reportEnd = matchingEnd?.time || new Date();
+
+        const isWithinWindow = (date) => {
+            const d = normalizeDate(date);
+            if (!d) return false;
+            return d >= reportStart && d <= reportEnd;
+        };
+
+        const filteredSessions = sessions
             .map((s) => {
                 const st = normalizeDate(s.startTime ?? s.start ?? s.startedAt ?? s.started_at);
                 const et = normalizeDate(s.endTime ?? s.end ?? s.endedAt ?? s.ended_at);
                 return { ...s, startTime: st, endTime: et };
             })
-            .filter((s) => s.startTime && today && isSameDay(s.startTime, today));
+            .filter((s) => isWithinWindow(s.startTime))
+            .map((s, i) => ({ ...s, number: i + 1 }));
 
-        const tb = breaks
+        const filteredBreaks = breaks
             .map((b) => {
-                const st = normalizeDate(b.startTime ?? b.start);
-                const et = normalizeDate(b.endTime ?? b.end);
+                const st = normalizeDate(b.startTime ?? b.start ?? b.startedAt ?? b.started_at);
+                const et = normalizeDate(b.endTime ?? b.end ?? b.endedAt ?? b.ended_at);
                 return { ...b, startTime: st, endTime: et };
             })
-            .filter((b) => b.startTime && today && isSameDay(b.startTime, today));
+            .filter((b) => isWithinWindow(b.startTime));
 
-        const te = workEvents
-            .map((e) => {
-                const tm = normalizeDate(e.time);
-                return { ...e, time: tm };
-            })
-            .filter((e) => e.time && today && isSameDay(e.time, today));
+        const filteredEvents = workEvents.filter((e) => isWithinWindow(e.time));
 
-        // --- SAME SIMPLIFIED LOGIC AS ORIGINAL ---
-        // Global completion is based on the current master list.
-        const totalMasterListTasks = tasks.length;
-        const totalTasksCompleted = tasks.filter((t) => normalizeTaskDone(t)).length;
-        const globalCompletionRate =
-            totalMasterListTasks > 0
-                ? Math.round((totalTasksCompleted / totalMasterListTasks) * 100)
-                : 0;
+        const attemptedTasks = filteredSessions.flatMap((session) => Array.isArray(session.tasks) ? session.tasks : []);
+        const completedTasks = filteredSessions.flatMap((session) => Array.isArray(session.completedTasks) ? session.completedTasks : []);
 
-        // Session-specific stats
-        const totalSessionTasksAttempted = ts.reduce((sum, s) => {
-            const arr = Array.isArray(s.tasks) ? s.tasks : [];
-            return sum + arr.length;
-        }, 0);
+        const attemptedIds = new Set(attemptedTasks.map((task) => task?.id).filter(Boolean));
+        const completedIds = new Set(completedTasks.map((task) => task?.id).filter(Boolean));
 
-        const totalWorkTime = ts.reduce((acc, s) => acc + (Number(s.actualDuration) || 0), 0);
+        const sessionTasksAttempted = attemptedIds.size || attemptedTasks.length;
+        const sessionTasksCompleted = completedIds.size || completedTasks.length;
+        const sessionCompletionRate = sessionTasksAttempted > 0
+            ? Math.round((sessionTasksCompleted / sessionTasksAttempted) * 100)
+            : 0;
 
-        const totalBreakTime = tb.reduce((sum, b) => sum + (Number(b.actualDuration) || 0), 0);
+        const totalWorkTime = filteredSessions.reduce((acc, s) => acc + (Number(s.actualDuration) || 0), 0);
+        const totalBreakTime = filteredBreaks.reduce((acc, b) => acc + (Number(b.actualDuration) || 0), 0);
+        const currentTaskTotal = tasks.length;
+        const currentTaskCompleted = tasks.filter((task) => !!(task?.done || task?.completed)).length;
+        const overallCompletionRate = currentTaskTotal > 0
+            ? Math.round((currentTaskCompleted / currentTaskTotal) * 100)
+            : 0;
 
         return {
-            date: today || new Date(),
-            sessions: ts.map((s, i) => ({ ...s, number: i + 1 })),
-            breaks: tb,
-            workEvents: te,
-            totalTasksAttempted: totalSessionTasksAttempted,
-            totalTasksCompleted,
-            totalBreakTime,
+            startTime: reportStart,
+            endTime: reportEnd,
+            sessions: filteredSessions,
+            breaks: filteredBreaks,
+            workEvents: filteredEvents,
+            sessionTasksAttempted,
+            sessionTasksCompleted,
+            sessionCompletionRate,
             totalWorkTime,
-            totalMasterListTasks,
-            globalCompletionRate,
+            totalBreakTime,
+            currentTaskTotal,
+            currentTaskCompleted,
+            overallCompletionRate,
         };
     };
 
     const downloadMarkdownReport = (r) => {
-        const report = r || getDailyReport();
+        const report = r || getSessionReport();
 
-        let md = `# Daily Productivity Report\n\n**Date:** ${new Date(report.date).toLocaleDateString()}\n\n`;
-        md += `## Global Stats\n- Total Tasks in Master List: ${report.totalMasterListTasks}\n- Global Completion: ${report.globalCompletionRate}%\n\n`;
+        let md = `# Session Report\n\n`;
+        md += `**Start:** ${formatDateTime(report.startTime)}\n`;
+        md += `**End:** ${formatDateTime(report.endTime)}\n\n`;
+        md += `## Session Stats\n`;
+        md += `- Focus Sessions: ${report.sessions.length}\n`;
+        md += `- Work Time: ${formatDur(report.totalWorkTime)}\n`;
+        md += `- Break Time: ${formatDur(report.totalBreakTime)}\n`;
+        md += `- Tasks Completed: ${report.sessionTasksCompleted}/${report.sessionTasksAttempted}\n\n`;
 
-        // UPDATED MARKDOWN SECTION (matches original)
-        md += `## Session Summary\n- Sessions: ${report.sessions.length} (${report.totalWorkTime} min)\n- Breaks: ${report.breaks.length} (${report.totalBreakTime} min)\n- Session Tasks: ${report.totalTasksCompleted} Completed\n\n`;
-
-        md += `## Daily Timeline\n\n`;
+        md += `## Timeline\n\n`;
         const timeline = [
             ...(report.sessions || []).map((s) => ({
                 time: normalizeDate(s.startTime) || new Date(),
-                text: `Work Session (${s.actualDuration || 0}m)`,
+                text: `Focus Session (${s.actualDuration || 0}m)`,
             })),
             ...(report.breaks || []).map((b) => ({
                 time: normalizeDate(b.startTime) || new Date(),
@@ -140,38 +182,39 @@
 
         if (timeline.length === 0) md += `No activity recorded.\n\n`;
         timeline.forEach((t) => {
-            md += `- **${t.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}**: ${t.text}\n`;
+            md += `- **${formatDateTime(t.time)}**: ${t.text}\n`;
         });
         md += `\n`;
 
         if ((report.sessions || []).length > 0) {
-            md += `## Session Details\n\n`;
+            md += `## Focus Sessions\n\n`;
             report.sessions.forEach((s) => {
                 md += `### Session #${s.number} (${s.actualDuration || 0}m)\n`;
-                const completedTasks = Array.isArray(s.completedTasks) ? s.completedTasks : [];
-                const incompleteTasks = Array.isArray(s.incompleteTasks) ? s.incompleteTasks : [];
+                const completed = Array.isArray(s.completedTasks) ? s.completedTasks : [];
+                const incomplete = getIncompleteTasks(s);
 
-                if (completedTasks.length) {
-                    md += `**Completed:**\n` + completedTasks.map((t) => `- [x] ${t.text || t.title || ""}`).join("\n") + "\n";
+                if (completed.length) {
+                    md += `**Completed:**\n${completed.map((t) => `- [x] ${t.text || t.title || ""}`).join("\n")}\n`;
                 }
-                if (incompleteTasks.length) {
-                    md += `**Incomplete:**\n` + incompleteTasks.map((t) => `- [ ] ${t.text || t.title || ""}`).join("\n") + "\n";
+                if (incomplete.length) {
+                    md += `**Incomplete:**\n${incomplete.map((t) => `- [ ] ${t.text || t.title || ""}`).join("\n")}\n`;
                 }
                 md += `\n`;
             });
         }
 
+        const dateSlug = normalizeDate(report.startTime)?.toISOString().split("T")[0] || "session";
         const blob = new Blob([md], { type: "text/markdown" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `stru-report-${new Date(report.date).toISOString().split("T")[0]}.md`;
+        a.download = `stru-session-report-${dateSlug}.md`;
         a.click();
         URL.revokeObjectURL(url);
     };
 
     const DailyReportScreen = () => {
-        const report = React.useMemo(() => getDailyReport(), []);
+        const report = React.useMemo(() => getSessionReport(), []);
 
         return (
             <div className="min-h-screen bg-gradient-to-br from-lime-50 to-lime-100 p-8">
@@ -184,7 +227,12 @@
                             <Icons.ArrowLeft className="text-stone-600" size={28} />
                         </button>
 
-                        <h2 className="text-4xl font-bold text-stone-800">Daily Report</h2>
+                        <div>
+                            <h2 className="text-4xl font-semibold text-stone-800">Session Report</h2>
+                            <p className="text-stone-500 mt-1">
+                                {formatDateTime(report.startTime)} to {formatDateTime(report.endTime)}
+                            </p>
+                        </div>
 
                         <button
                             onClick={() => downloadMarkdownReport(report)}
@@ -196,9 +244,8 @@
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        {/* Global Stats */}
                         <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-stone-200">
-                            <h3 className="text-xl font-bold text-stone-800 mb-4">Task Completion</h3>
+                            <h3 className="text-xl font-bold text-stone-800 mb-4">Session Completion</h3>
 
                             <div className="flex items-center justify-center py-4">
                                 <div className="relative w-40 h-40">
@@ -212,7 +259,7 @@
                                         />
                                         <path
                                             className="text-lime-500"
-                                            strokeDasharray={`${report.globalCompletionRate}, 100`}
+                                            strokeDasharray={`${report.overallCompletionRate}, 100`}
                                             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                             fill="none"
                                             stroke="currentColor"
@@ -221,58 +268,58 @@
                                     </svg>
 
                                     <div className="absolute inset-0 flex flex-col items-center justify-center text-stone-800">
-                                        <span className="text-3xl font-bold">{report.globalCompletionRate}%</span>
-                                        <span className="text-xs text-stone-500 font-bold uppercase">Done</span>
+                                        <span className="text-3xl font-bold">{report.overallCompletionRate}%</span>
+                                        <span className="text-xs text-stone-500 font-bold uppercase">Complete</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex justify-between mt-4 text-center">
+                            <div className="grid grid-cols-4 gap-4 mt-4 text-center">
                                 <div>
-                                    <div className="text-2xl font-bold text-stone-800">{report.totalMasterListTasks}</div>
-                                    <div className="text-xs font-bold text-stone-400 uppercase">Total</div>
+                                    <div className="text-2xl font-bold text-stone-800">{report.sessionTasksAttempted}</div>
+                                    <div className="text-xs font-bold text-stone-400 uppercase">Attempted</div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-lime-600">{report.totalTasksCompleted}</div>
+                                    <div className="text-2xl font-bold text-lime-600">{report.sessionTasksCompleted}</div>
                                     <div className="text-xs font-bold text-stone-400 uppercase">Done</div>
                                 </div>
                                 <div>
                                     <div className="text-2xl font-bold text-orange-400">
-                                        {report.totalMasterListTasks - report.totalTasksCompleted}
+                                        {Math.max(0, report.sessionTasksAttempted - report.sessionTasksCompleted)}
                                     </div>
-                                    <div className="text-xs font-bold text-stone-400 uppercase">Left</div>
+                                    <div className="text-xs font-bold text-stone-400 uppercase">Not Done</div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-rose-500">{report.sessionCompletionRate}%</div>
+                                    <div className="text-xs font-bold text-stone-400 uppercase">Effectiveness</div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Session Stats */}
                         <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-stone-200">
-                            <h3 className="text-xl font-bold text-stone-800 mb-4">Today's Activity</h3>
+                            <h3 className="text-xl font-bold text-stone-800 mb-4">Session Activity</h3>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-100">
-                                    <div className="text-sm font-bold text-orange-600 mb-1">Sessions</div>
+                                    <div className="text-sm font-bold text-orange-600 mb-1">Focus Sessions</div>
                                     <div className="text-2xl font-bold text-stone-800">{report.sessions.length}</div>
                                 </div>
 
-                                {/* Work Time */}
                                 <div className="bg-rose-50 p-4 rounded-2xl border-2 border-rose-100">
                                     <div className="text-sm font-bold text-rose-600 mb-1">Work Time</div>
-                                    <div className="text-2xl font-bold text-stone-800">
-                                        {formatDur(report.totalWorkTime || 0)}
-                                    </div>
+                                    <div className="text-2xl font-bold text-stone-800">{formatDur(report.totalWorkTime)}</div>
                                 </div>
 
                                 <div className="bg-green-50 p-4 rounded-2xl border-2 border-green-100">
-                                    <div className="text-sm font-bold text-green-600 mb-1">Tasks Done</div>
-                                    <div className="text-2xl font-bold text-stone-800">{report.totalTasksCompleted}</div>
+                                    <div className="text-sm font-bold text-green-600 mb-1">Current Tasks Done</div>
+                                    <div className="text-2xl font-bold text-stone-800">
+                                        {report.currentTaskCompleted}/{report.currentTaskTotal}
+                                    </div>
                                 </div>
 
                                 <div className="bg-blue-50 p-4 rounded-2xl border-2 border-blue-100">
                                     <div className="text-sm font-bold text-blue-600 mb-1">Break Time</div>
-                                    <div className="text-2xl font-bold text-stone-800">
-                                        {formatDur(report.totalBreakTime || 0)}
-                                    </div>
+                                    <div className="text-2xl font-bold text-stone-800">{formatDur(report.totalBreakTime)}</div>
                                 </div>
                             </div>
                         </div>
@@ -310,21 +357,19 @@
                                 .map((item, i) => (
                                     <div key={i} className="relative pl-8">
                                         <div
-                                            className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 ${item.type === "work"
+                                            className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 ${
+                                                item.type === "work"
                                                     ? "bg-rose-400 border-rose-200"
                                                     : item.type === "break"
                                                         ? "bg-blue-400 border-blue-200"
                                                         : "bg-stone-400 border-stone-200"
-                                                }`}
-                                        ></div>
+                                            }`}
+                                        />
 
-                                        <div className="flex justify-between items-start">
+                                        <div className="flex justify-between items-start gap-4">
                                             <div>
                                                 <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-                                                    {item.time.toLocaleTimeString([], {
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                    })}
+                                                    {formatDateTime(item.time)}
                                                 </span>
                                                 <h4 className="text-lg font-bold text-stone-800">{item.title}</h4>
                                                 {item.detail && <p className="text-stone-500 text-sm">{item.detail}</p>}
@@ -337,7 +382,7 @@
                             {(report.sessions || []).length === 0 &&
                                 (report.breaks || []).length === 0 &&
                                 (report.workEvents || []).length === 0 && (
-                                    <p className="text-stone-500 italic">No activity recorded today yet.</p>
+                                    <p className="text-stone-500 italic">No activity recorded in this session yet.</p>
                                 )}
                         </div>
                     </div>

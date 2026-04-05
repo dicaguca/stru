@@ -69,7 +69,7 @@
         setActiveListId,
         selectedTaskIds,
         onAdd,
-        onCreateList,
+        onOpenListsManager,
         onOpenSubtasks,
         onUpdate,
         onUpdateSubtask,
@@ -308,10 +308,10 @@
                                     {isBatchMode ? "Cancel" : "Select"}
                                 </button>
                                 <button
-                                    onClick={onCreateList}
+                                    onClick={onOpenListsManager}
                                     className="bg-white text-stone-700 px-5 py-3 rounded-xl border-2 border-stone-200 font-semibold text-lg"
                                 >
-                                    + List
+                                    Lists
                                 </button>
                                 {!isBatchMode && (
                                     <button

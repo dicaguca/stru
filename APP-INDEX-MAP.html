@@ -182,17 +182,17 @@
   modals.jsx
   app.jsx
 
-  home.jsx
-  masterlist.jsx
-  plan-session.jsx
-  session.jsx
-  break.jsx
-  session-log.jsx
-  daily-report.jsx
-  history.jsx
+  screens/
+    home.jsx
+    masterlist.jsx
+    plan-session.jsx
+    session.jsx
+    break.jsx
+    session-log.jsx
+    daily-report.jsx
+    history.jsx
         </pre>
-                <div class="note">If you later move screens into <code>/screens</code>, reflect it here and in the “Load
-                    Order” section.</div>
+                <div class="note">The screen files now live in <code>/screens</code>, so keep this map in sync with that structure.</div>
             </section>
 
             <section class="card">
@@ -206,26 +206,26 @@ index.html loads (in this order):
 2) Babel standalone
 3) state.js        -> Stru.state (usePersistedState, helpers)
 4) router.js       -> Stru.router (Router, useRoute, go)
-5) icons.js        -> Stru.Icons (+ priority/colors if defined there)
+5) icons.js        -> Stru.Icons
 
 6) Screen files (must come before app.jsx):
-   - home.jsx
-   - masterlist.jsx
-   - plan-session.jsx
-   - session.jsx
-   - break.jsx
-   - session-log.jsx
-   - daily-report.jsx
-   - history.jsx
+   - screens/home.jsx
+   - screens/masterlist.jsx
+   - screens/plan-session.jsx
+   - screens/session.jsx
+   - screens/break.jsx
+   - screens/session-log.jsx
+   - screens/daily-report.jsx
+   - screens/history.jsx
 
 7) modals.jsx      -> Stru.Modals
-8) app.jsx         -> mounts & renders App
+8) app.jsx         -> mounts and renders App
         </pre>
             </section>
 
             <section class="card">
                 <h2>3. Global Registries</h2>
-                <p>Every screen/module attaches itself to the Stru namespace.</p>
+                <p>Every screen or module attaches itself to the Stru namespace.</p>
                 <pre>
 window.Stru = window.Stru || {}
 
@@ -242,43 +242,41 @@ Stru.constants : optional constants (priority colors, storage keys, etc.)
                 <h2>4. Routing Table</h2>
                 <p>Canonical routes and the screen that should render.</p>
                 <pre>
-#/home          -> HomeScreen
-#/master-list   -> MasterListScreen
-#/plan-session  -> PlanSessionScreen
-#/session       -> SessionScreen
-#/session-log   -> SessionLogScreen
-#/daily-report  -> DailyReportScreen
-#/history       -> HistoryScreen
-#/break         -> BreakScreen
-
-(If you add routes, update this.)
+#/home            -> HomeScreen
+#/master-list     -> MasterListScreen
+#/plan-session    -> PlanSessionScreen
+#/session         -> SessionScreen
+#/session-summary -> SessionSummaryScreen
+#/break           -> BreakScreen
+#/break-summary   -> BreakSummaryScreen
+#/session-log     -> SessionLogScreen
+#/daily-report    -> DailyReportScreen
+#/history         -> HistoryScreen
         </pre>
             </section>
 
             <section class="card">
                 <h2>5. Persisted Data (localStorage keys)</h2>
-                <p>Migration goal: match OLD app storage semantics.</p>
+                <p>Current keys used by the app.</p>
                 <pre>
 stru-tasks       : array of tasks
-stru-sessions    : array of sessions (for log/report)
+stru-sessions    : array of sessions
 stru-breaks      : array of breaks
-stru-workevents  : day start/end events
-stru-history     : daily snapshots / historical records
-
-Note: screens like Daily Report/Log expect these keys/shapes.
+stru-workevents  : workday start/end events
+stru-history     : end-of-day summary snapshots
         </pre>
                 <div class="pillrow">
-                    <div class="pill"><span class="ok">OK</span> Use OLD keys for parity</div>
-                    <div class="pill"><span class="warn">Watch</span> Want vs Nice priority naming</div>
+                    <div class="pill"><span class="ok">OK</span> Compatibility supports legacy priority aliases</div>
+                    <div class="pill"><span class="warn">Watch</span> Keep reports aligned with stored session shapes</div>
                 </div>
             </section>
 
             <section class="card">
-                <h2>6. Core Flows (Behavior map)</h2>
-                <p>What happens when the user does key actions.</p>
+                <h2>6. Core Flows</h2>
+                <p>What happens during the main user actions.</p>
                 <pre>
 A) Add Task
-   MasterListScreen -> updates stru-tasks
+   AddTaskModal or MasterListScreen -> updates stru-tasks
 
 B) Plan Session
    PlanSessionScreen -> sets sessionDuration + selectedTasks -> startSession()
@@ -287,37 +285,30 @@ C) Start Session
    App creates activeSession -> route to #/session
 
 D) Complete Session
-   SessionScreen -> onComplete -> App saves session:
-     - append to stru-sessions
-     - (and/or) history, depending on how parity is implemented
-   -> route to session summary / home
+   SessionScreen -> onComplete -> App saves to stru-sessions
+   -> route to #/session-summary
 
 E) Start Day
-   StartDayModal -> pushes {type:"start", timestamp} into stru-workevents
+   StartDayModal -> clears day data and writes {type:"start"} to stru-workevents
 
 F) End Day
-   EndDayModal -> pushes {type:"end", timestamp} into stru-workevents
-   -> writes daily snapshot into stru-history
+   EndDayModal -> writes {type:"end"} to stru-workevents
+   -> app appends a daily summary to stru-history
 
-G) Report/Log
-   SessionLogScreen / DailyReportScreen read stru-sessions, stru-breaks, stru-workevents
+G) Report and Log
+   SessionLogScreen / DailyReportScreen read stru-sessions, stru-breaks, and stru-workevents
         </pre>
             </section>
 
             <section class="card">
-                <h2>7. “Where to look” Cheat Sheet</h2>
+                <h2>7. Where To Look</h2>
                 <p>Fast navigation for future debugging.</p>
                 <ul>
-                    <li><strong>Something won’t route.</strong> Check <code>router.js</code> and route strings in
-                        <code>app.jsx</code>.</li>
-                    <li><strong>A screen is blank/undefined.</strong> Check load order in <code>index.html</code> and
-                        that the screen registers into <code>Stru.Screens</code>.</li>
-                    <li><strong>Daily Report empty.</strong> Check localStorage keys and session/break saving logic in
-                        <code>app.jsx</code>, <code>session.jsx</code>, <code>break.jsx</code>.</li>
-                    <li><strong>Plan Session UI mismatch.</strong> Check <code>plan-session.jsx</code> (Duration/End
-                        Time picker).</li>
-                    <li><strong>Icons wrong/missing.</strong> Check <code>icons.js</code> and any
-                        <code>Stru.Icons</code> references.</li>
+                    <li><strong>Something will not route.</strong> Check <code>router.js</code> and route strings in <code>app.jsx</code>.</li>
+                    <li><strong>A screen is blank or undefined.</strong> Check load order in <code>index.html</code> and that the screen registers into <code>Stru.Screens</code>.</li>
+                    <li><strong>Daily Report is empty.</strong> Check the session, break, and work-event save logic in <code>app.jsx</code>.</li>
+                    <li><strong>Task priorities look wrong.</strong> Check normalization in <code>state.js</code>, <code>screens/home.jsx</code>, and <code>screens/masterlist.jsx</code>.</li>
+                    <li><strong>Break or session summaries are off.</strong> Check <code>screens/session.jsx</code>, <code>screens/break.jsx</code>, and the report readers.</li>
                 </ul>
             </section>
 
@@ -325,8 +316,7 @@ G) Report/Log
 
         <div class="divider"></div>
         <div class="note">
-            Update rule: when you add/move/rename files or routes, edit this map first so future chats start with
-            correct context.
+            Update rule: when you add, move, or rename files or routes, update this map first so future chats start with the right context.
         </div>
     </div>
 </body>

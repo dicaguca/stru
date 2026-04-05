@@ -5,9 +5,6 @@
     const { useState, useEffect, useRef } = React;
     const { Icons } = Stru;
 
-    /* =========================
-       BASE MODAL SHELL
-    ========================= */
     const ModalShell = ({ isOpen, children, maxWidth = "max-w-xl" }) => {
         if (!isOpen) return null;
 
@@ -18,14 +15,7 @@
         );
     };
 
-    /* =========================
-       ADD TASKS MODAL (Bulk, original style)
-       Props used by app.jsx:
-         - isOpen
-         - onClose
-         - onAdd(taskObj)
-    ========================= */
-    const AddTaskModal = ({ isOpen, onClose, onAdd }) => {
+    const AddTaskModal = ({ isOpen, onClose, onAdd, listName }) => {
         const [newTaskPriority, setNewTaskPriority] = useState("");
         const [bulkTaskText, setBulkTaskText] = useState("");
 
@@ -39,17 +29,12 @@
         const addBulkTasks = () => {
             const lines = (bulkTaskText || "")
                 .split("\n")
-                .map((l) => l.trim())
+                .map((line) => line.trim())
                 .filter(Boolean);
 
             if (lines.length === 0) return;
 
-            lines.forEach((text) => {
-                // Store canonical priority values that match your updated state.js
-                // must / should / could / nice / ""
-                onAdd({ text, priority: newTaskPriority });
-            });
-
+            lines.forEach((text) => onAdd({ text, priority: newTaskPriority }));
             setBulkTaskText("");
             setNewTaskPriority("");
             onClose();
@@ -60,7 +45,8 @@
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
-                    <h3 className="text-2xl font-bold text-stone-800 mb-6">Add Tasks</h3>
+                    <h3 className="text-2xl font-bold text-stone-800 mb-2">Add Tasks</h3>
+                    <p className="text-stone-500 mb-6">New tasks will be added to {listName || "this list"}.</p>
 
                     <div className="mb-6">
                         <label className="block text-lg font-semibold mb-3 text-stone-700">Priority Level</label>
@@ -78,9 +64,7 @@
                     </div>
 
                     <div className="mb-8">
-                        <label className="block text-lg font-semibold mb-3 text-stone-700">
-                            Enter Tasks (one per line)
-                        </label>
+                        <label className="block text-lg font-semibold mb-3 text-stone-700">Enter Tasks (one per line)</label>
                         <textarea
                             autoFocus
                             value={bulkTaskText}
@@ -93,9 +77,7 @@
 
                     <div className="flex space-x-4">
                         <button
-                            onClick={() => {
-                                if (bulkTaskText.trim()) addBulkTasks();
-                            }}
+                            onClick={addBulkTasks}
                             disabled={!bulkTaskText.trim()}
                             className="flex-1 bg-gradient-to-r from-rose-400 to-orange-400 text-white p-4 rounded-xl font-semibold text-lg disabled:bg-stone-300 disabled:from-stone-300 disabled:to-stone-300"
                         >
@@ -117,10 +99,100 @@
         );
     };
 
-    /* =========================
-       EDIT TASK MODAL (kept for parity with original app)
-       Optional usage from screens.
-    ========================= */
+    const CreateListModal = ({ isOpen, onClose, onCreate }) => {
+        const [name, setName] = useState("");
+
+        useEffect(() => {
+            if (!isOpen) setName("");
+        }, [isOpen]);
+
+        if (!isOpen) return null;
+
+        return (
+            <ModalShell isOpen={isOpen} maxWidth="max-w-md">
+                <h3 className="text-2xl font-bold text-stone-800 mb-3">Create New List</h3>
+                <p className="text-stone-500 mb-6">Add another task list and switch between it with tabs.</p>
+
+                <div className="mb-8">
+                    <label className="block text-lg font-semibold mb-3 text-stone-700">List Name</label>
+                    <input
+                        autoFocus
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base"
+                        placeholder="e.g. Writing"
+                    />
+                </div>
+
+                <div className="flex space-x-4">
+                    <button
+                        onClick={() => {
+                            const trimmed = name.trim();
+                            if (!trimmed) return;
+                            onCreate?.(trimmed);
+                            onClose?.();
+                        }}
+                        className="flex-1 bg-gradient-to-r from-rose-400 to-orange-400 text-white p-4 rounded-xl font-semibold text-lg"
+                    >
+                        Create List
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </ModalShell>
+        );
+    };
+
+    const AddSubtasksModal = ({ isOpen, onClose, onAdd, task }) => {
+        const [bulkSubtaskText, setBulkSubtaskText] = useState("");
+
+        useEffect(() => {
+            if (!isOpen) setBulkSubtaskText("");
+        }, [isOpen]);
+
+        if (!isOpen) return null;
+
+        return (
+            <ModalShell isOpen={isOpen}>
+                <h3 className="text-2xl font-bold text-stone-800 mb-2">Add Subtasks</h3>
+                <p className="text-stone-500 mb-6">Adding subtasks to “{task?.text || "task"}”. Enter one subtask per line.</p>
+
+                <textarea
+                    autoFocus
+                    value={bulkSubtaskText}
+                    onChange={(e) => setBulkSubtaskText(e.target.value)}
+                    placeholder={"Step 1\nStep 2\nStep 3"}
+                    rows={10}
+                    className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none resize-none text-base mb-8"
+                />
+
+                <div className="flex space-x-4">
+                    <button
+                        onClick={() => {
+                            const lines = bulkSubtaskText.split("\n");
+                            onAdd?.(lines);
+                        }}
+                        disabled={!bulkSubtaskText.trim()}
+                        className="flex-1 bg-gradient-to-r from-lime-400 to-green-500 text-white p-4 rounded-xl font-semibold text-lg disabled:bg-stone-300 disabled:from-stone-300 disabled:to-stone-300"
+                    >
+                        Add Subtasks
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </ModalShell>
+        );
+    };
+
     const EditTaskModal = ({ isOpen, onClose, task, onSave }) => {
         const [text, setText] = useState(task?.text || "");
         const [priority, setPriority] = useState(task?.priority || "");
@@ -185,16 +257,6 @@
         );
     };
 
-    /* =========================
-       SETTINGS MODAL (original behavior)
-       App currently calls:
-         <SettingsModal isOpen onClose />
-       This version works standalone using localStorage,
-       but also supports optional callbacks:
-         - onResetDay(clearType)
-         - onExport()
-         - onImport(file)
-    ========================= */
     const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport }) => {
         const [showResetConfirm, setShowResetConfirm] = useState(false);
         const fileInputRef = useRef(null);
@@ -202,7 +264,6 @@
         if (!isOpen) return null;
 
         const defaultExport = () => {
-            // Export a snapshot of all localStorage, including "tasks", "history", "dayStarted", and any "stru-*" keys.
             const data = {};
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
@@ -229,17 +290,14 @@
                 const storage = parsed?.storage;
                 if (!storage || typeof storage !== "object") return;
 
-                // Replace existing keys with imported keys
                 Object.keys(storage).forEach((k) => {
                     const v = storage[k];
                     if (v === null || v === undefined) localStorage.removeItem(k);
                     else localStorage.setItem(k, v);
                 });
 
-                // Reload so app state rehydrates cleanly
                 window.location.reload();
             } catch {
-                // silently ignore bad file
             }
         };
 
@@ -252,12 +310,16 @@
 
         const defaultResetDay = (clearType) => {
             if (clearType === "tasks") {
-                localStorage.setItem("tasks", JSON.stringify([]));
-                localStorage.setItem("dayStarted", JSON.stringify(false));
+                localStorage.setItem("stru-tasks", JSON.stringify([]));
             } else if (clearType === "everything") {
-                localStorage.setItem("tasks", JSON.stringify([]));
-                localStorage.setItem("history", JSON.stringify([]));
-                localStorage.setItem("dayStarted", JSON.stringify(false));
+                [
+                    "stru-tasks",
+                    "stru-sessions",
+                    "stru-breaks",
+                    "stru-workevents",
+                    "stru-history",
+                    "stru-lists",
+                ].forEach((key) => localStorage.removeItem(key));
             }
             window.location.reload();
         };
@@ -273,9 +335,8 @@
                 <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
                     <h3 className="text-2xl font-bold text-stone-800 mb-6">Settings</h3>
 
-                    {/* Backup & Restore */}
                     <div className="mb-8 border-b-2 border-stone-100 pb-8">
-                        <h4 className="text-xl font-bold text-stone-800 mb-4">💾 Data Backup</h4>
+                        <h4 className="text-xl font-bold text-stone-800 mb-4">Backup Data</h4>
 
                         <div className="flex space-x-4">
                             <button
@@ -302,11 +363,8 @@
                         </div>
                     </div>
 
-                    {/* Daily Reset */}
                     <div className="mb-8">
-                        <h4 className="text-xl font-bold text-stone-800 mb-4 flex items-center">
-                            <span className="mr-2">🗓️</span> Daily Reset
-                        </h4>
+                        <h4 className="text-xl font-bold text-stone-800 mb-4">Daily Reset</h4>
 
                         {!showResetConfirm ? (
                             <button
@@ -322,7 +380,7 @@
                                     className="w-full bg-white border-2 border-stone-300 text-stone-800 px-5 py-3 rounded-xl font-medium text-left"
                                 >
                                     <div>Clear Tasks Only</div>
-                                    <div className="text-sm text-stone-600">Removes tasks, keeps history</div>
+                                    <div className="text-sm text-stone-600">Removes tasks, keeps history and lists</div>
                                 </button>
 
                                 <button
@@ -330,7 +388,7 @@
                                     className="w-full bg-white border-2 border-red-300 text-red-700 px-5 py-3 rounded-xl font-medium text-left"
                                 >
                                     <div>Clear Everything</div>
-                                    <div className="text-sm text-red-600">Removes tasks and history</div>
+                                    <div className="text-sm text-red-600">Removes tasks, history, and custom lists</div>
                                 </button>
 
                                 <button
@@ -354,9 +412,6 @@
         );
     };
 
-    /* =========================
-       BREAK REMINDER MODAL (original)
-    ========================= */
     const BreakReminderModal = ({ isOpen, onTakeBreak, onSkip }) => {
         if (!isOpen) return null;
 
@@ -365,9 +420,7 @@
                 <div className="bg-white rounded-2xl p-8 w-full max-w-lg text-center">
                     <Icons.Coffee size={64} className="mx-auto mb-4 text-orange-400" />
                     <h3 className="text-2xl font-bold text-stone-800 mb-2">Time for a Break?</h3>
-                    <p className="text-lg text-stone-600 mb-6">
-                        You&apos;ve completed a session. Taking breaks helps maintain focus.
-                    </p>
+                    <p className="text-lg text-stone-600 mb-6">You&apos;ve completed a session. Taking breaks helps maintain focus.</p>
 
                     <div className="flex space-x-4">
                         <button
@@ -388,12 +441,6 @@
         );
     };
 
-    /* =========================
-       START DAY MODAL (original look)
-       App calls:
-         <StartDayModal isOpen onStart />
-       We keep onStart and also accept onClose as alias.
-    ========================= */
     const StartDayModal = ({ isOpen, onStart, onClose }) => {
         if (!isOpen) return null;
 
@@ -423,12 +470,6 @@
         );
     };
 
-    /* =========================
-       END DAY MODAL (original look)
-       App calls:
-         <EndDayModal isOpen onEnd />
-       We keep onEnd and also accept onClose as alias.
-    ========================= */
     const EndDayModal = ({ isOpen, onEnd, onClose }) => {
         if (!isOpen) return null;
 
@@ -458,21 +499,17 @@
         );
     };
 
-
-    /* =========================
-       BREAK SWITCH MODAL (original)
-    ========================= */
     const BreakSwitchModal = ({ isOpen, onClose, onConfirm, onEndDay }) => {
         if (!isOpen) return null;
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-3xl p-8 w-full max-w-lg border-4 border-indigo-900 shadow-2xl text-center">
-                    <div className="text-6xl mb-4">🌙</div>
+                    <div className="flex justify-center mb-4">
+                        <Icons.Moon size={56} className="text-indigo-900" />
+                    </div>
                     <h3 className="text-3xl font-bold text-indigo-900 mb-4">Past Break Switch</h3>
-                    <p className="text-lg text-stone-600 mb-8">
-                        It is past 10 PM. To maintain your rhythm, it is recommended to stop for today.
-                    </p>
+                    <p className="text-lg text-stone-600 mb-8">It is past 10 PM. To maintain your rhythm, it is recommended to stop for today.</p>
 
                     <div className="flex flex-col space-y-3">
                         <button
@@ -500,10 +537,6 @@
         );
     };
 
-    /* =========================
-       EXTENSION MODAL (original idea)
-       Used for "extend break" / "extend work" style prompts.
-    ========================= */
     const ExtensionModal = ({ isOpen, onClose, onConfirm, title, themeColor = "orange" }) => {
         const [customAmount, setCustomAmount] = useState("");
 
@@ -547,7 +580,6 @@
                         ))}
                     </div>
 
-                    {/* Custom Input */}
                     <div className="flex items-center space-x-2 mb-6">
                         <input
                             type="number"
@@ -587,37 +619,16 @@
         );
     };
 
-    /* =========================
-       CONGRATS MODAL (all session tasks completed)
-       Props:
-         - isOpen
-         - message
-         - onEndSession
-         - onAddMoreTasks
-         - onClose (optional)
-    ========================= */
-    const CongratsModal = ({
-        isOpen,
-        message,
-        onEndSession,
-        onAddMoreTasks,
-        onClose,
-    }) => {
+    const CongratsModal = ({ isOpen, message, onEndSession, onAddMoreTasks, onClose }) => {
         if (!isOpen) return null;
 
-        const fallback =
-            "You finished everything you planned for this session. Solid work.";
+        const fallback = "You finished everything you planned for this session. Solid work.";
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-2xl p-8 w-full max-w-md text-center">
-                    <h3 className="text-3xl font-bold text-stone-800 mb-3">
-                        Session complete
-                    </h3>
-
-                    <p className="text-stone-600 text-lg mb-8">
-                        {message || fallback}
-                    </p>
+                    <h3 className="text-3xl font-bold text-stone-800 mb-3">Session complete</h3>
+                    <p className="text-stone-600 text-lg mb-8">{message || fallback}</p>
 
                     <div className="flex flex-col gap-3">
                         <button
@@ -646,12 +657,11 @@
         );
     };
 
-    /* =========================
-       EXPORT TO GLOBAL NAMESPACE
-    ========================= */
     Stru.Modals = {
         ModalShell,
         AddTaskModal,
+        CreateListModal,
+        AddSubtasksModal,
         EditTaskModal,
         SettingsModal,
         BreakReminderModal,
@@ -662,4 +672,3 @@
         CongratsModal,
     };
 })();
-

@@ -2,7 +2,6 @@
     window.Stru = window.Stru || {};
     const Stru = window.Stru;
 
-    // ---------- React hooks shortcut ----------
     Stru.hooks = {
         useState: React.useState,
         useEffect: React.useEffect,
@@ -10,7 +9,6 @@
         useRef: React.useRef,
     };
 
-    // ---------- Storage helpers ----------
     Stru.storage = {
         load(key, fallback) {
             try {
@@ -24,21 +22,16 @@
             try {
                 localStorage.setItem(key, JSON.stringify(value));
             } catch {
-                // ignore quota / privacy mode errors
             }
         },
         remove(key) {
             try {
                 localStorage.removeItem(key);
             } catch {
-                // ignore
             }
         },
     };
 
-    // ---------- Constants ----------
-    // IMPORTANT: These labels/colors are chosen to match the ORIGINAL Stru UI:
-    // Priority (red), High (orange), Medium (yellow), Optional (green), No Priority (gray)
     Stru.constants = {
         STORAGE_KEYS: {
             tasks: "stru-tasks",
@@ -46,12 +39,11 @@
             breaks: "stru-breaks",
             workEvents: "stru-workevents",
             history: "stru-history",
+            lists: "stru-lists",
         },
-
-        // Order used in dropdowns / reports / UI
+        DEFAULT_LIST_ID: "default-list",
+        DEFAULT_LIST_NAME: "Main List",
         PRIORITY_ORDER: ["must", "should", "could", "nice", ""],
-
-        // Map legacy synonyms to the canonical values used everywhere
         PRIORITY_ALIASES: {
             priority: "must",
             high: "should",
@@ -60,10 +52,8 @@
             none: "",
             nopriority: "",
             no_priority: "",
-            want: "nice", // older experiments used "want"
+            want: "nice",
         },
-
-        // UI palette for the priority dot + cards
         priorityColors: {
             must: {
                 label: "Priority",
@@ -103,17 +93,14 @@
         },
     };
 
-    // ---------- Utils ----------
     Stru.utils = {
         uid() {
             return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
         },
-
         toDate(x) {
             const d = x instanceof Date ? x : new Date(x);
             return Number.isNaN(d.getTime()) ? null : d;
         },
-
         startOfDay(d) {
             const dt = Stru.utils.toDate(d);
             if (!dt) return null;
@@ -121,22 +108,19 @@
             out.setHours(0, 0, 0, 0);
             return out;
         },
-
         isSameDay(a, b) {
             const da = Stru.utils.startOfDay(a);
             const db = Stru.utils.startOfDay(b);
             if (!da || !db) return false;
             return da.getTime() === db.getTime();
         },
-
         todayKey(d = new Date()) {
             const dt = Stru.utils.startOfDay(d);
             if (!dt) return "";
-            return dt.toISOString().slice(0, 10); // YYYY-MM-DD
+            return dt.toISOString().slice(0, 10);
         },
     };
 
-    // ---------- Normalizers (compat + migration) ----------
     const normalizePriority = (p) => {
         const raw = (p ?? "").toString().trim().toLowerCase();
         const aliased = Stru.constants.PRIORITY_ALIASES[raw];
@@ -144,22 +128,38 @@
         return Stru.constants.priorityColors[canonical] ? canonical : "";
     };
 
+    const normalizeSubtask = (subtask) => ({
+        id: subtask?.id || Stru.utils.uid(),
+        text: (subtask?.text ?? subtask?.title ?? "").toString(),
+        done: !!(subtask?.done || subtask?.completed),
+        completed: !!(subtask?.done || subtask?.completed),
+    });
+
+    const normalizeList = (list) => ({
+        id: list?.id || Stru.utils.uid(),
+        name: (list?.name ?? "").toString().trim() || "Untitled List",
+        createdAt: list?.createdAt ?? list?.created_at ?? Date.now(),
+    });
+
     const normalizeTask = (t) => {
         const id = t?.id || Stru.utils.uid();
         const text = (t?.text ?? t?.title ?? "").toString();
         const priority = normalizePriority(t?.priority ?? "");
-        const done = !!(t?.done || t?.completed); // support both names
+        const done = !!(t?.done || t?.completed);
         const createdAt = t?.createdAt ?? t?.created_at ?? Date.now();
         const updatedAt = t?.updatedAt ?? t?.updated_at ?? createdAt;
+        const subtasks = Array.isArray(t?.subtasks) ? t.subtasks.map(normalizeSubtask) : [];
 
         return {
             id,
             text,
             priority,
             done,
-            completed: done, // keep both for older screens
+            completed: done,
             createdAt,
             updatedAt,
+            listId: t?.listId || t?.list_id || Stru.constants.DEFAULT_LIST_ID,
+            subtasks,
         };
     };
 
@@ -172,15 +172,12 @@
             id,
             start,
             end,
-            // keep any extra fields the UI may store (plan, tasks, notes, etc.)
             ...s,
         };
     };
 
-    // ---------- Persisted state hook ----------
     const usePersistedState = (key, initialValue) => {
         const { useState, useEffect } = React;
-
         const [state, setState] = useState(() => Stru.storage.load(key, initialValue));
 
         useEffect(() => {
@@ -190,11 +187,6 @@
         return [state, setState];
     };
 
-    // ---------- High-level app state helpers ----------
-    // These are optional to use, but they give you one consistent place for:
-    // - migrations
-    // - counts
-    // - consistent task/session shapes
     const loadTasks = () => {
         const raw = Stru.storage.load(Stru.constants.STORAGE_KEYS.tasks, []);
         if (!Array.isArray(raw)) return [];
@@ -203,6 +195,18 @@
 
     const saveTasks = (tasks) => {
         Stru.storage.save(Stru.constants.STORAGE_KEYS.tasks, (tasks || []).map(normalizeTask));
+    };
+
+    const loadLists = () => {
+        const raw = Stru.storage.load(Stru.constants.STORAGE_KEYS.lists, []);
+        if (!Array.isArray(raw) || raw.length === 0) {
+            return [normalizeList({ id: Stru.constants.DEFAULT_LIST_ID, name: Stru.constants.DEFAULT_LIST_NAME })];
+        }
+        return raw.map(normalizeList);
+    };
+
+    const saveLists = (lists) => {
+        Stru.storage.save(Stru.constants.STORAGE_KEYS.lists, (lists || []).map(normalizeList));
     };
 
     const loadSessions = () => {
@@ -226,19 +230,19 @@
         }).length;
     };
 
-    // Expose everything
     Stru.state = {
         usePersistedState,
-
         normalizePriority,
+        normalizeSubtask,
+        normalizeList,
         normalizeTask,
         normalizeSession,
-
         loadTasks,
         saveTasks,
+        loadLists,
+        saveLists,
         loadSessions,
         saveSessions,
-
         countActiveTasks,
         countTodaysSessions,
     };

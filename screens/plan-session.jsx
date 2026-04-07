@@ -127,6 +127,7 @@
         activeListId,
         setActiveListId,
         onOpenAddTask,
+        onOpenSubtasks,
         onDeleteTask,
         getSubtaskStats,
     }) => {
@@ -328,6 +329,18 @@
                                             </div>
 
                                             {isSelected && <Icons.Check size={24} className="text-lime-600 shrink-0" />}
+
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onOpenSubtasks?.(task);
+                                                }}
+                                                title="Add subtasks"
+                                                aria-label="Add subtasks"
+                                                className="p-2 rounded-lg hover:bg-lime-50 text-lime-700 shrink-0"
+                                            >
+                                                <Icons.Plus size={18} />
+                                            </button>
 
                                             <button
                                                 onClick={(e) => {

@@ -56,7 +56,7 @@
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
+                <div className="bg-white rounded-2xl p-6 w-full max-w-2xl h-[80vh] flex flex-col">
                     <h3 className="text-xl font-bold text-stone-800 mb-4">Add Task to Session</h3>
 
                     <div className="overflow-y-auto flex-1 space-y-2 mb-4">
@@ -81,7 +81,7 @@
         );
     };
 
-    const SessionScreen = ({ session, timeRemainingSec, onExtend, onComplete }) => {
+    const SessionScreen = ({ session, timeRemainingSec, onExtend, onComplete, onAddSubtasksToTask }) => {
         const base = session || { duration: 25 * 60, startTime: new Date(), tasks: [], completedTasks: [] };
         const timeRemaining = Number(timeRemainingSec) || 0;
         const totalPlanned = Number(base.duration) || 0;
@@ -95,6 +95,7 @@
         const [showAddModal, setShowAddModal] = useState(false);
         const [showExtendModal, setShowExtendModal] = useState(false);
         const [showCongratsModal, setShowCongratsModal] = useState(false);
+        const [taskForSubtasks, setTaskForSubtasks] = useState(null);
         const [congratsMessage, setCongratsMessage] = useState("");
         const [congratsArmed, setCongratsArmed] = useState(true);
 
@@ -231,6 +232,24 @@
             setShowAddModal(false);
         };
 
+        const addSessionSubtasks = (lines) => {
+            if (!taskForSubtasks?.id) return;
+
+            const subtasks = onAddSubtasksToTask?.(taskForSubtasks.id, lines) || [];
+            if (subtasks.length === 0) return;
+
+            setTasks((prev) =>
+                prev.map((task) => {
+                    if (task.id !== taskForSubtasks.id) return task;
+                    return {
+                        ...task,
+                        subtasks: [...(task.subtasks || []), ...subtasks],
+                    };
+                })
+            );
+            setTaskForSubtasks(null);
+        };
+
         const modalTasks = loadAvailableTasksForSession(tasks.map((task) => task.id));
 
         const removeTaskFromSession = (id) => {
@@ -355,9 +374,11 @@
                                                     <button
                                                         onClick={() => completeTask(task.id)}
                                                         disabled={!canComplete}
-                                                        className="bg-gradient-to-r from-lime-400 to-green-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap shadow-sm hover:shadow-md disabled:opacity-50"
+                                                        className="bg-gradient-to-r from-lime-400 to-green-500 text-white w-11 h-11 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md disabled:opacity-50 shrink-0"
+                                                        title="Complete task"
+                                                        aria-label="Complete task"
                                                     >
-                                                        Complete
+                                                        <Icons.Check size={22} />
                                                     </button>
                                                 ) : (
                                                     <Icons.Check size={28} className="text-green-600 mr-2 flex-shrink-0" />
@@ -365,8 +386,19 @@
 
                                                 {!isCompleted && (
                                                     <button
-                                                        onClick={() => removeTaskFromSession(task.id)}
+                                                        onClick={() => setTaskForSubtasks(task)}
                                                         className="ml-2 p-2 rounded-lg hover:bg-white/60"
+                                                        title="Add subtasks"
+                                                        aria-label="Add subtasks"
+                                                    >
+                                                        <Icons.Plus size={18} className="text-lime-700" />
+                                                    </button>
+                                                )}
+
+                                                {!isCompleted && (
+                                                    <button
+                                                        onClick={() => removeTaskFromSession(task.id)}
+                                                        className="p-2 rounded-lg hover:bg-white/60"
                                                         title="Remove from session"
                                                     >
                                                         <Icons.X size={18} className="text-stone-500" />
@@ -405,6 +437,13 @@
                     onClose={() => setShowAddModal(false)}
                     tasks={modalTasks}
                     onAdd={addSessionTask}
+                />
+
+                <Stru.Modals.AddSubtasksModal
+                    isOpen={!!taskForSubtasks}
+                    onClose={() => setTaskForSubtasks(null)}
+                    task={taskForSubtasks}
+                    onAdd={addSessionSubtasks}
                 />
 
                 {Stru.Modals && Stru.Modals.CongratsModal && (

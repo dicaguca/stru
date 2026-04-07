@@ -369,13 +369,16 @@ const App = () => {
         );
     };
 
-    const addSubtasks = (taskId, lines) => {
-        const subtasks = (lines || [])
+    const createSubtasks = (lines) => (
+        (lines || [])
             .map((text) => (text || "").trim())
             .filter(Boolean)
-            .map((text) => ({ id: uid(), text, done: false, completed: false }));
+            .map((text) => ({ id: uid(), text, done: false, completed: false }))
+    );
 
-        if (subtasks.length === 0) return;
+    const appendSubtasksToTask = (taskId, subtasks) => {
+        const nextSubtasks = (subtasks || []).filter((subtask) => subtask?.text);
+        if (nextSubtasks.length === 0) return;
 
         setTasks((prev) =>
             (prev || []).map((task) => {
@@ -383,11 +386,17 @@ const App = () => {
                 const existing = Array.isArray(task.subtasks) ? task.subtasks : [];
                 return normalizeTask({
                     ...task,
-                    subtasks: [...existing, ...subtasks],
+                    subtasks: [...existing, ...nextSubtasks],
                     updatedAt: Date.now(),
                 });
             })
         );
+    };
+
+    const addSubtasks = (taskId, lines) => {
+        const subtasks = createSubtasks(lines);
+        appendSubtasksToTask(taskId, subtasks);
+        return subtasks;
     };
 
     const updateSubtask = (taskId, subtaskId, updates) => {
@@ -751,6 +760,7 @@ const App = () => {
                             prev ? { ...prev, duration: (Number(prev.duration) || 0) + addSec } : prev
                         );
                     }}
+                    onAddSubtasksToTask={addSubtasks}
                 />
             );
         }
@@ -788,6 +798,7 @@ const App = () => {
                         activeListId={currentList.id}
                         setActiveListId={setActiveListId}
                         onOpenAddTask={() => setShowAddTask(true)}
+                        onOpenSubtasks={(task) => setTaskForSubtasks(task)}
                         onDeleteTask={deleteTask}
                         getSubtaskStats={getSubtaskStats}
                     />

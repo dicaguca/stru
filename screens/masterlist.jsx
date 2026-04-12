@@ -76,11 +76,14 @@
         onDelete,
         getSubtaskStats,
     }) => {
-        const { useState, useMemo } = React;
+        const { useState, useMemo, useEffect, useRef } = React;
         const [isBatchMode, setIsBatchMode] = useState(false);
         const [selectedIds, setSelectedIds] = useState([]);
         const [editingId, setEditingId] = useState(null);
         const [expandedTaskIds, setExpandedTaskIds] = useState([]);
+        const [editingSubtask, setEditingSubtask] = useState(null);
+        const [editingSubtaskText, setEditingSubtaskText] = useState("");
+        const editingSubtaskInputRef = useRef(null);
 
         const sortByPriority = (a, b) => {
             const pa = PRIORITY_ORDER.indexOf(normalizePriority(a.priority));
@@ -121,6 +124,12 @@
             [currentTasks, editingId]
         );
 
+        useEffect(() => {
+            if (!editingSubtaskInputRef.current) return;
+            editingSubtaskInputRef.current.focus();
+            editingSubtaskInputRef.current.select();
+        }, [editingSubtask]);
+
         const toggleSelection = (id) => {
             setSelectedIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
         };
@@ -140,6 +149,31 @@
 
         const toggleExpanded = (id) => {
             setExpandedTaskIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
+        };
+
+        const startEditingSubtask = (taskId, subtask) => {
+            setEditingSubtask({ taskId, subtaskId: subtask.id });
+            setEditingSubtaskText(subtask.text || "");
+        };
+
+        const cancelEditingSubtask = () => {
+            setEditingSubtask(null);
+            setEditingSubtaskText("");
+        };
+
+        const saveEditingSubtask = () => {
+            if (!editingSubtask) return;
+
+            const trimmed = editingSubtaskText.trim();
+            if (!trimmed) {
+                cancelEditingSubtask();
+                return;
+            }
+
+            onUpdateSubtask(editingSubtask.taskId, editingSubtask.subtaskId, {
+                text: trimmed,
+            });
+            cancelEditingSubtask();
         };
 
         const renderTaskRow = (task, isCompleted) => {
@@ -244,7 +278,7 @@
                         <div className="px-5 pb-4">
                             <div className="bg-white/70 rounded-2xl border border-stone-200 p-4 space-y-2">
                                 {(task.subtasks || []).map((subtask) => (
-                                    <label key={subtask.id} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-stone-50">
+                                    <div key={subtask.id} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-stone-50">
                                         <input
                                             type="checkbox"
                                             checked={!!(subtask.done || subtask.completed)}
@@ -256,10 +290,38 @@
                                             }}
                                             className="w-4 h-4 rounded border-stone-300"
                                         />
-                                        <span className={`text-sm ${subtask.done || subtask.completed ? "line-through text-stone-400" : "text-stone-700"}`}>
-                                            {subtask.text}
-                                        </span>
-                                    </label>
+                                        {editingSubtask?.taskId === task.id && editingSubtask?.subtaskId === subtask.id ? (
+                                            <input
+                                                ref={editingSubtaskInputRef}
+                                                type="text"
+                                                value={editingSubtaskText}
+                                                onChange={(e) => setEditingSubtaskText(e.target.value)}
+                                                onBlur={saveEditingSubtask}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        saveEditingSubtask();
+                                                    }
+                                                    if (e.key === "Escape") {
+                                                        e.preventDefault();
+                                                        cancelEditingSubtask();
+                                                    }
+                                                }}
+                                                className="flex-1 min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 outline-none ring-0 focus:border-stone-400"
+                                            />
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    startEditingSubtask(task.id, subtask);
+                                                }}
+                                                className={`flex-1 min-w-0 text-left text-sm rounded-lg px-2 py-1 -mx-2 ${subtask.done || subtask.completed ? "line-through text-stone-400" : "text-stone-700"}`}
+                                            >
+                                                {subtask.text}
+                                            </button>
+                                        )}
+                                    </div>
                                 ))}
                                 <button
                                     onClick={(e) => {

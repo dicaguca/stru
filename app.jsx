@@ -405,7 +405,17 @@ const App = () => {
                 if (task.id !== taskId) return task;
                 const nextSubtasks = (task.subtasks || []).map((subtask) =>
                     subtask.id === subtaskId
-                        ? { ...subtask, ...updates, completed: !!(updates?.done ?? updates?.completed) }
+                        ? (() => {
+                            const nextDone = updates?.done !== undefined
+                                ? !!updates.done
+                                : !!(updates?.completed !== undefined ? updates.completed : (subtask.done || subtask.completed));
+                            return {
+                                ...subtask,
+                                ...updates,
+                                done: nextDone,
+                                completed: nextDone,
+                            };
+                        })()
                         : subtask
                 );
                 return normalizeTask({
@@ -648,12 +658,30 @@ const App = () => {
             endTime: end,
             actualDuration,
         };
+        const sessionTaskMap = new Map(
+            (finished.tasks || []).map((task) => [task.id, task])
+        );
+        const completedTaskIds = new Set(
+            (finished.completedTasks || []).map((task) => task?.id).filter(Boolean)
+        );
 
         setSessions((prev) => [...(prev || []), finished]);
         setTasks((prev) =>
             (prev || []).map((task) => {
-                const completed = activeSession.completedTasks.some((completedTask) => completedTask.id === task.id);
-                return completed ? normalizeTask({ ...task, done: true, completed: true }) : task;
+                const sessionTask = sessionTaskMap.get(task.id);
+                const completed = completedTaskIds.has(task.id);
+
+                if (!sessionTask) {
+                    return completed ? normalizeTask({ ...task, done: true, completed: true }) : task;
+                }
+
+                return normalizeTask({
+                    ...task,
+                    subtasks: Array.isArray(sessionTask.subtasks) ? sessionTask.subtasks : task.subtasks,
+                    done: completed ? true : task.done,
+                    completed: completed ? true : task.completed,
+                    updatedAt: Date.now(),
+                });
             })
         );
         setActiveSession(null);

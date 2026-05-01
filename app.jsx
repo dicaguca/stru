@@ -91,6 +91,26 @@ const playBreakBeeps = (type) => {
 
 Stru.playBreakBeeps = playBreakBeeps;
 
+const wakeDAC = () => {
+    try {
+        resumeCtx().then(() => {
+            const ctx = getCtx();
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.connect(g);
+            g.connect(ctx.destination);
+            osc.frequency.value = 18000;
+            osc.type = "sine";
+            const t = ctx.currentTime;
+            g.gain.setValueAtTime(0.05, t);
+            g.gain.linearRampToValueAtTime(0, t + 0.2);
+            osc.start(t);
+            osc.stop(t + 0.2);
+        });
+    } catch {
+    }
+};
+
 const formatTime = (sec) => {
     const s = Math.max(0, Math.floor(sec));
     const m = Math.floor(s / 60);
@@ -250,6 +270,7 @@ const App = () => {
                     Math.ceil((sessionTargetTimeRef.current - Date.now()) / 1000)
                 );
                 setTimeRemaining(remainingSec);
+                if (remainingSec === 3) wakeDAC();
                 if (remainingSec === 0 && activeSession) {
                     setSessionEndQueued(true);
                 }
@@ -269,6 +290,7 @@ const App = () => {
                         0,
                         Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000)
                     );
+                    if (remainingSec === 3) wakeDAC();
                     setBreakTimeRemaining(remainingSec);
                 }
             }
@@ -685,7 +707,8 @@ const App = () => {
         setActiveSession(s);
         setTimeRemaining(mins * 60);
         sessionTargetTimeRef.current = Date.now() + mins * 60 * 1000;
-        playBeeps("start");
+        wakeDAC();
+        setTimeout(() => playBeeps("start"), 250);
         go("/session");
     };
 

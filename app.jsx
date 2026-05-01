@@ -752,7 +752,8 @@ const App = () => {
         );
         setActiveSession(null);
         sessionTargetTimeRef.current = null;
-        playBeeps("end");
+        wakeDAC();
+        setTimeout(() => playBeeps("end"), 500);
         go("/session-summary");
         setShowBreakReminder(true);
     };
@@ -831,7 +832,8 @@ const App = () => {
         breakTargetTimeRef.current = null;
         setActiveBreak(null);
 
-        Stru.playBreakBeeps("end");
+        wakeDAC();
+        setTimeout(() => Stru.playBreakBeeps("end"), 500);
         go("/break-summary");
     };
 

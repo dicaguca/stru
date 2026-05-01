@@ -291,42 +291,42 @@
     };
 
     const AddSubtasksModal = ({ isOpen, onClose, onAdd, task }) => {
-        const [bulkSubtaskText, setBulkSubtaskText] = useState(“”);
+        const [bulkSubtaskText, setBulkSubtaskText] = useState("");
 
         useEffect(() => {
-            if (!isOpen) setBulkSubtaskText(“”);
+            if (!isOpen) setBulkSubtaskText("");
         }, [isOpen]);
 
         if (!isOpen) return null;
 
         return (
             <ModalShell isOpen={isOpen}>
-                <h3 className=”text-2xl font-bold text-stone-800 mb-2”>Add Subtasks</h3>
-                <p className=”text-stone-500 mb-6”>Adding subtasks to “{task?.text || “task”}”. Enter one subtask per line.</p>
+                <h3 className="text-2xl font-bold text-stone-800 mb-2">Add Subtasks</h3>
+                <p className="text-stone-500 mb-6">Adding subtasks to "{task?.text || "task"}". Enter one subtask per line.</p>
 
                 <textarea
                     autoFocus
                     value={bulkSubtaskText}
                     onChange={(e) => setBulkSubtaskText(e.target.value)}
-                    placeholder={“Step 1\nStep 2\nStep 3”}
+                    placeholder={"Step 1\nStep 2\nStep 3"}
                     rows={10}
-                    className=”w-full p-4 border-2 border-stone-200 rounded-xl outline-none resize-none text-base mb-8”
+                    className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none resize-none text-base mb-8"
                 />
 
-                <div className=”flex space-x-4”>
+                <div className="flex space-x-4">
                     <button
                         onClick={() => {
-                            const lines = bulkSubtaskText.split(“\n”);
+                            const lines = bulkSubtaskText.split("\n");
                             onAdd?.(lines);
                         }}
                         disabled={!bulkSubtaskText.trim()}
-                        className=”flex-1 bg-gradient-to-r from-lime-400 to-green-500 text-white p-4 rounded-xl font-semibold text-lg disabled:bg-stone-300 disabled:from-stone-300 disabled:to-stone-300”
+                        className="flex-1 bg-gradient-to-r from-lime-400 to-green-500 text-white p-4 rounded-xl font-semibold text-lg disabled:bg-stone-300 disabled:from-stone-300 disabled:to-stone-300"
                     >
                         Add Subtasks
                     </button>
                     <button
                         onClick={onClose}
-                        className=”flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg”
+                        className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg"
                     >
                         Cancel
                     </button>

@@ -103,9 +103,9 @@ const wakeDAC = () => {
             osc.type = "sine";
             const t = ctx.currentTime;
             g.gain.setValueAtTime(0.05, t);
-            g.gain.linearRampToValueAtTime(0, t + 0.2);
+            g.gain.linearRampToValueAtTime(0, t + 0.4);
             osc.start(t);
-            osc.stop(t + 0.2);
+            osc.stop(t + 0.4);
         });
     } catch {
     }
@@ -270,7 +270,7 @@ const App = () => {
                     Math.ceil((sessionTargetTimeRef.current - Date.now()) / 1000)
                 );
                 setTimeRemaining(remainingSec);
-                if (remainingSec === 3) wakeDAC();
+                if (remainingSec === 5) wakeDAC();
                 if (remainingSec === 0 && activeSession) {
                     setSessionEndQueued(true);
                 }
@@ -290,7 +290,7 @@ const App = () => {
                         0,
                         Math.ceil((breakTargetTimeRef.current - Date.now()) / 1000)
                     );
-                    if (remainingSec === 3) wakeDAC();
+                    if (remainingSec === 5) wakeDAC();
                     setBreakTimeRemaining(remainingSec);
                 }
             }
@@ -708,7 +708,7 @@ const App = () => {
         setTimeRemaining(mins * 60);
         sessionTargetTimeRef.current = Date.now() + mins * 60 * 1000;
         wakeDAC();
-        setTimeout(() => playBeeps("start"), 250);
+        setTimeout(() => playBeeps("start"), 500);
         go("/session");
     };
 

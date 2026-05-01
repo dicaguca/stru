@@ -275,7 +275,7 @@
                         )}
                     </div>
 
-                    {isExpanded && (
+                    {isExpanded && stats.total > 0 && (
                         <div className="px-5 pb-4">
                             <div className="bg-white/70 rounded-2xl border border-stone-200 p-4 space-y-2">
                                 {(task.subtasks || []).map((subtask) => (

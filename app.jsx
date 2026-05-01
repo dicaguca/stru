@@ -149,34 +149,6 @@ const App = () => {
     }, []);
 
     useEffect(() => {
-        let intervalId = null;
-
-        const sendSilence = () => {
-            if (!sharedCtx || sharedCtx.state !== "running") return;
-            const buf = sharedCtx.createBuffer(1, 1, sharedCtx.sampleRate);
-            const src = sharedCtx.createBufferSource();
-            src.buffer = buf;
-            src.connect(sharedCtx.destination);
-            src.start();
-        };
-
-        const warmUp = () => {
-            resumeCtx().then(() => {
-                sendSilence();
-                intervalId = setInterval(sendSilence, 30000);
-            });
-            document.removeEventListener("click", warmUp, true);
-        };
-
-        document.addEventListener("click", warmUp, true);
-
-        return () => {
-            document.removeEventListener("click", warmUp, true);
-            if (intervalId) clearInterval(intervalId);
-        };
-    }, []);
-
-    useEffect(() => {
         if (!activeSession) return;
         const targetTime = new Date(activeSession.startTime).getTime() + activeSession.duration * 1000;
         if (targetTime <= Date.now()) {

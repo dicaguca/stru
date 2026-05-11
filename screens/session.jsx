@@ -451,11 +451,11 @@
                                     ? "bg-lime-50 border-lime-300 opacity-60"
                                     : `${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).border}`;
                                 const focusClass = isFocused
-                                    ? "ring-2 ring-lime-300 shadow-md scale-[1.01]"
+                                    ? "z-20 ring-2 ring-lime-300 shadow-md scale-[1.01]"
                                     : hasFocusedTask && !isCompleted
                                         ? "opacity-75"
                                         : "";
-                                const dragTargetClass = isDragTarget ? "ring-2 ring-orange-200 border-orange-300" : "";
+                                const dragTargetClass = isDragTarget ? "z-10 ring-2 ring-orange-200 border-orange-300" : "";
                                 const minimizedClass = isMinimizedByFocusMode
                                     ? "bg-stone-50 border-stone-200 opacity-55 saturate-50 scale-[0.985]"
                                     : "";

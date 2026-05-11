@@ -417,12 +417,12 @@
                                     type="button"
                                     disabled={!hasFocusedTask}
                                     onClick={() => setIsFocusMode((prev) => !prev)}
-                                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition-colors ${isFocusMode ? "border-lime-300 bg-lime-50 text-lime-700" : "border-stone-200 bg-stone-50 text-stone-600"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 text-sm font-bold transition-all ${isFocusMode ? "border-lime-300 bg-lime-50 text-lime-700 shadow-sm" : "border-stone-200 bg-white text-stone-500"} disabled:opacity-50 disabled:cursor-not-allowed`}
                                     title={hasFocusedTask ? "Toggle focus mode" : "Focus a task first"}
                                 >
                                     <span>Focus Mode</span>
-                                    <span className={`relative h-5 w-9 rounded-full transition-colors ${isFocusMode ? "bg-lime-400" : "bg-stone-300"}`}>
-                                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${isFocusMode ? "translate-x-4" : "translate-x-0.5"}`} />
+                                    <span className={`relative h-6 w-10 rounded-full transition-colors ${isFocusMode ? "bg-lime-400" : "bg-stone-200"}`}>
+                                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isFocusMode ? "translate-x-4.5" : "translate-x-0.5"}`} />
                                     </span>
                                 </button>
                                 <button
@@ -453,6 +453,9 @@
                                         ? "opacity-75"
                                         : "";
                                 const dragTargetClass = isDragTarget ? "ring-2 ring-orange-200 border-orange-300" : "";
+                                const minimizedClass = isMinimizedByFocusMode
+                                    ? "bg-stone-50 border-stone-200 opacity-55 saturate-50 scale-[0.985]"
+                                    : "";
 
                                 return (
                                     <div
@@ -478,10 +481,10 @@
                                             setDraggedTaskId(null);
                                             setDragOverTaskId(null);
                                         }}
-                                        className={`p-0 rounded-2xl border-2 flex items-stretch overflow-visible relative group transition-all ${rowBaseClass} ${focusClass} ${dragTargetClass}`}
+                                        className={`p-0 rounded-2xl border-2 flex items-stretch overflow-visible relative group transition-all duration-200 ${rowBaseClass} ${focusClass} ${dragTargetClass} ${minimizedClass}`}
                                     >
                                         {!isCompleted && (
-                                            <div className="flex flex-col items-center justify-center border-r-2 border-black/5 bg-white/35 w-14 flex-shrink-0 text-stone-400">
+                                            <div className={`flex flex-col items-center justify-center border-r-2 w-14 flex-shrink-0 transition-colors ${isMinimizedByFocusMode ? "border-stone-200 bg-stone-100/80 text-stone-300" : "border-black/5 bg-white/35 text-stone-400"}`}>
                                                 <Icons.GripVertical size={20} className="mb-1" />
                                                 <span className="text-[10px] font-bold uppercase tracking-wide">Drag</span>
                                             </div>
@@ -501,9 +504,9 @@
                                                         type="button"
                                                         disabled={isCompleted}
                                                         onClick={() => toggleFocusedTask(task.id)}
-                                                        className={`block w-full text-left rounded-xl px-2 py-1 -mx-2 transition-colors ${isCompleted ? "cursor-default" : "hover:bg-white/50"}`}
+                                                        className={`block w-full text-left rounded-xl px-2 py-1 -mx-2 transition-colors ${isCompleted ? "cursor-default" : isMinimizedByFocusMode ? "hover:bg-stone-100/80" : "hover:bg-white/50"}`}
                                                     >
-                                                        <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : priority === "must" ? "text-stone-800 font-semibold" : "text-stone-800 font-medium"}`}>
+                                                        <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : isMinimizedByFocusMode ? "text-stone-400 font-medium" : priority === "must" ? "text-stone-800 font-semibold" : "text-stone-800 font-medium"}`}>
                                                             {task.text}
                                                         </div>
                                                         {isFocused && (
@@ -525,7 +528,7 @@
                                                         </div>
                                                     )}
                                                     {isMinimizedByFocusMode && (
-                                                        <div className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-stone-500">
+                                                        <div className="mt-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">
                                                             {stats.total > 0 ? <span>{stats.completed}/{stats.total} subtasks</span> : <span>Queued</span>}
                                                         </div>
                                                     )}
@@ -549,7 +552,7 @@
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleFocusedTask(task.id)}
-                                                        className="rounded-lg border border-stone-200 bg-white/70 px-3 py-2 text-xs font-bold uppercase tracking-wide text-stone-600 hover:bg-white"
+                                                        className="rounded-full border border-stone-200 bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500 hover:border-stone-300 hover:text-stone-700"
                                                         title="Bring into focus"
                                                     >
                                                         Focus

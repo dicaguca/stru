@@ -17,16 +17,15 @@
         return Number.isNaN(d.getTime()) ? null : d;
     };
 
-    // If the passed "history" is NOT already daily summaries,
-    // we convert session-like entries into daily summaries so the UI still works.
-    const coerceToDailySummaries = (history) => {
+    // If the passed "history" is not already work-session summaries,
+    // convert session-like entries into summary rows so the UI still works.
+    const coerceToSessionSummaries = (history) => {
         const arr = Array.isArray(history) ? history : [];
         if (arr.length === 0) return [];
 
-        // If it already looks like the original day summary objects, return as-is.
-        // Original summary has: date/startTime/endTime/sessionCount/workDuration/taskCount/completedCount/completionRate/breakCount/breakDuration
-        const looksLikeDaily = arr.some((x) => x && typeof x === "object" && ("sessionCount" in x || "workDuration" in x));
-        if (looksLikeDaily) return arr;
+        // If it already looks like the stored summary objects, return as-is.
+        const looksLikeSummary = arr.some((x) => x && typeof x === "object" && ("sessionCount" in x || "workDuration" in x));
+        if (looksLikeSummary) return arr;
 
         // Otherwise assume "history" is session log items: {startTime, endTime, actualDuration?}
         // Group by startTime day
@@ -80,7 +79,7 @@
     };
 
     const HistoryScreen = ({ history, onDeleteHistory }) => {
-        const days = coerceToDailySummaries(history);
+        const days = coerceToSessionSummaries(history);
 
         return (
             <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200 p-8">
@@ -98,7 +97,7 @@
 
                     {days.length === 0 ? (
                         <div className="text-center py-20 text-stone-500 text-xl">
-                            No history recorded yet. Complete a workday to see stats here!
+                            No history recorded yet. Close a work session to see stats here!
                         </div>
                     ) : (
                         <div className="bg-white rounded-3xl shadow-lg border-2 border-stone-200 overflow-hidden">

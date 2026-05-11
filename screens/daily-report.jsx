@@ -59,61 +59,39 @@
         const sessionsKey = Stru?.constants?.STORAGE_KEYS?.sessions || "stru-sessions";
         const breaksKey = Stru?.constants?.STORAGE_KEYS?.breaks || "stru-breaks";
         const workEventsKey = Stru?.constants?.STORAGE_KEYS?.workEvents || "stru-workevents";
+        const {
+            getWorkSessionWindow,
+            filterSessionsToWorkSession,
+            filterBreaksToWorkSession,
+            filterWorkEventsToWorkSession,
+        } = Stru.state;
 
         const tasks = loadArray(tasksKey);
         const sessions = loadArray(sessionsKey);
         const breaks = loadArray(breaksKey);
-        const workEvents = loadArray(workEventsKey)
-            .map((e) => ({
-                ...e,
-                time: normalizeDate(e.time ?? e.timestamp),
-            }))
-            .filter((e) => e.time)
-            .sort((a, b) => a.time - b.time);
-
-        const latestStartIndex = [...workEvents]
-            .map((event, index) => ({ event, index }))
-            .reverse()
-            .find(({ event }) => event.type === "start")?.index ?? -1;
-
-        const latestStart = latestStartIndex >= 0 ? workEvents[latestStartIndex] : null;
-        const matchingEnd = latestStartIndex >= 0
-            ? workEvents.slice(latestStartIndex + 1).find((event) => event.type === "end")
-            : null;
-
-        const reportStart = latestStart?.time
-            || sessions
-                .map((s) => normalizeDate(s.startTime ?? s.start ?? s.startedAt ?? s.started_at))
-                .filter(Boolean)
-                .sort((a, b) => a - b)
-                .slice(-1)[0]
-            || new Date();
-        const reportEnd = matchingEnd?.time || new Date();
-
-        const isWithinWindow = (date) => {
-            const d = normalizeDate(date);
-            if (!d) return false;
-            return d >= reportStart && d <= reportEnd;
+        const workEvents = loadArray(workEventsKey);
+        const sessionWindow = getWorkSessionWindow(workEvents, sessions) || {
+            startTime: new Date(),
+            endTime: new Date(),
+            isOpen: true,
         };
 
-        const filteredSessions = sessions
+        const filteredSessions = filterSessionsToWorkSession(sessions, workEvents)
             .map((s) => {
                 const st = normalizeDate(s.startTime ?? s.start ?? s.startedAt ?? s.started_at);
                 const et = normalizeDate(s.endTime ?? s.end ?? s.endedAt ?? s.ended_at);
                 return { ...s, startTime: st, endTime: et };
             })
-            .filter((s) => isWithinWindow(s.startTime))
             .map((s, i) => ({ ...s, number: i + 1 }));
 
-        const filteredBreaks = breaks
+        const filteredBreaks = filterBreaksToWorkSession(breaks, workEvents, sessions)
             .map((b) => {
                 const st = normalizeDate(b.startTime ?? b.start ?? b.startedAt ?? b.started_at);
                 const et = normalizeDate(b.endTime ?? b.end ?? b.endedAt ?? b.ended_at);
                 return { ...b, startTime: st, endTime: et };
-            })
-            .filter((b) => isWithinWindow(b.startTime));
+            });
 
-        const filteredEvents = workEvents.filter((e) => isWithinWindow(e.time));
+        const filteredEvents = filterWorkEventsToWorkSession(workEvents, sessions);
 
         const attemptedTasks = filteredSessions.flatMap((session) => Array.isArray(session.tasks) ? session.tasks : []);
         const completedTasks = filteredSessions.flatMap((session) => Array.isArray(session.completedTasks) ? session.completedTasks : []);
@@ -136,8 +114,9 @@
             : 0;
 
         return {
-            startTime: reportStart,
-            endTime: reportEnd,
+            startTime: sessionWindow.startTime,
+            endTime: sessionWindow.endTime,
+            isOpen: sessionWindow.isOpen,
             sessions: filteredSessions,
             breaks: filteredBreaks,
             workEvents: filteredEvents,
@@ -155,7 +134,7 @@
     const downloadMarkdownReport = (r) => {
         const report = r || getSessionReport();
 
-        let md = `# Session Report\n\n`;
+        let md = `# Work Session Report\n\n`;
         md += `**Start:** ${formatDateTime(report.startTime)}\n`;
         md += `**End:** ${formatDateTime(report.endTime)}\n\n`;
         md += `## Session Stats\n`;
@@ -213,7 +192,7 @@
         URL.revokeObjectURL(url);
     };
 
-    const DailyReportScreen = () => {
+    const WorkSessionReportScreen = () => {
         const report = React.useMemo(() => getSessionReport(), []);
 
         return (
@@ -228,7 +207,7 @@
                         </button>
 
                         <div>
-                            <h2 className="text-4xl font-semibold text-stone-800">Session Report</h2>
+                            <h2 className="text-4xl font-semibold text-stone-800">Work Session Report</h2>
                             <p className="text-stone-500 mt-1">
                                 {formatDateTime(report.startTime)} to {formatDateTime(report.endTime)}
                             </p>
@@ -392,5 +371,5 @@
     };
 
     Stru.Screens = Stru.Screens || {};
-    Stru.Screens.DailyReportScreen = DailyReportScreen;
+    Stru.Screens.WorkSessionReportScreen = WorkSessionReportScreen;
 })();

@@ -7,7 +7,10 @@ const {
     usePersistedState,
     normalizeTask,
     normalizeList,
-    countTodaysSessions,
+    countSessionsInWorkSession,
+    filterSessionsToWorkSession,
+    filterBreaksToWorkSession,
+    filterWorkEventsToWorkSession,
 } = Stru.state;
 const { Router, useRoute, go } = Stru.router;
 
@@ -255,6 +258,9 @@ const App = () => {
 
     const normalizedLists = (lists || []).map((list) => normalizeList(list));
     const normalizedTasks = (tasks || []).map((task) => normalizeTask(task));
+    const workSessionSessions = filterSessionsToWorkSession(sessions, workEvents);
+    const workSessionBreaks = filterBreaksToWorkSession(breaks, workEvents, sessions);
+    const workSessionEvents = filterWorkEventsToWorkSession(workEvents, sessions);
 
     const listMap = Object.fromEntries(normalizedLists.map((list) => [list.id, list]));
     const currentList = listMap[activeListId] || normalizedLists[0] || getDefaultList();
@@ -513,7 +519,7 @@ const App = () => {
         }
     };
 
-    const startDay = () => {
+    const startWorkSession = () => {
         setTasks([]);
         setSessions([]);
         setBreaks([]);
@@ -535,7 +541,7 @@ const App = () => {
         setWorkEvents([ev]);
     };
 
-    const endDay = () => {
+    const endWorkSession = () => {
         const freshTasks = loadArray("stru-tasks");
         const freshSessions = loadArray("stru-sessions");
         const freshBreaks = loadArray("stru-breaks");
@@ -567,16 +573,16 @@ const App = () => {
             .reverse()
             .find((e) => e?.type === "start" && toDate(e.time));
 
-        const workdayStart =
+        const workSessionStart =
             toDate(startEvent?.time) ||
             normSessions.map((s) => s.startTime).sort((a, b) => a - b)[0] ||
             now;
 
-        const workdaySessions = normSessions.filter((s) => s.startTime >= workdayStart && s.startTime <= now);
-        const workdayBreaks = normBreaks.filter((b) => b.startTime >= workdayStart && b.startTime <= now);
+        const workSessionSessions = normSessions.filter((s) => s.startTime >= workSessionStart && s.startTime <= now);
+        const workSessionBreaks = normBreaks.filter((b) => b.startTime >= workSessionStart && b.startTime <= now);
 
-        const workDuration = workdaySessions.reduce((acc, s) => acc + (Number(s.actualDuration) || 0), 0);
-        const breakDuration = workdayBreaks.reduce((acc, b) => acc + (Number(b.actualDuration) || 0), 0);
+        const workDuration = workSessionSessions.reduce((acc, s) => acc + (Number(s.actualDuration) || 0), 0);
+        const breakDuration = workSessionBreaks.reduce((acc, b) => acc + (Number(b.actualDuration) || 0), 0);
 
         const endEv = {
             id: uid(),
@@ -594,11 +600,11 @@ const App = () => {
 
         const summary = {
             id: uid(),
-            date: workdayStart,
-            startTime: workdayStart,
+            date: workSessionStart,
+            startTime: workSessionStart,
             endTime: now,
-            sessionCount: workdaySessions.length,
-            breakCount: workdayBreaks.length,
+            sessionCount: workSessionSessions.length,
+            breakCount: workSessionBreaks.length,
             workDuration,
             taskCount: totalTasks,
             completedCount: totalCompleted,
@@ -786,7 +792,8 @@ const App = () => {
             setBreakElapsedTime(0);
         }
 
-        Stru.playBreakBeeps("start");
+        wakeDAC();
+        setTimeout(() => Stru.playBreakBeeps("start"), 500);
     };
 
     const extendBreakInApp = (mins) => {
@@ -925,10 +932,10 @@ const App = () => {
                 return <Stru.Screens.BreakSummaryScreen breaks={breaks} />;
 
             case "/session-log":
-                return <Stru.Screens.SessionLogScreen sessions={sessions} breaks={breaks} workEvents={workEvents} />;
+                return <Stru.Screens.SessionLogScreen sessions={workSessionSessions} breaks={workSessionBreaks} workEvents={workSessionEvents} />;
 
-            case "/daily-report":
-                return <Stru.Screens.DailyReportScreen />;
+            case "/work-session-report":
+                return <Stru.Screens.WorkSessionReportScreen />;
 
             case "/history":
                 return (
@@ -943,7 +950,7 @@ const App = () => {
                 return (
                     <Stru.Screens.HomeScreen
                         tasks={normalizedTasks}
-                        todaysSessionsCount={countTodaysSessions(sessions)}
+                        workSessionCount={countSessionsInWorkSession(sessions, workEvents)}
                         onOpenSettings={() => setShowSettings(true)}
                         onStartDay={() => setShowStartDay(true)}
                         onEndDay={() => setShowEndDay(true)}
@@ -998,7 +1005,7 @@ const App = () => {
             <Stru.Modals.StartDayModal
                 isOpen={showStartDay}
                 onStart={() => {
-                    startDay();
+                    startWorkSession();
                     setShowStartDay(false);
                 }}
             />
@@ -1006,9 +1013,9 @@ const App = () => {
             <Stru.Modals.EndDayModal
                 isOpen={showEndDay}
                 onEnd={() => {
-                    endDay();
+                    endWorkSession();
                     setShowEndDay(false);
-                    go("/daily-report");
+                    go("/work-session-report");
                 }}
             />
 
@@ -1029,9 +1036,9 @@ const App = () => {
                     startSession();
                 }}
                 onEndDay={() => {
-                    endDay();
+                    endWorkSession();
                     setShowLateSessionWarning(false);
-                    go("/daily-report");
+                    go("/work-session-report");
                 }}
             />
         </>

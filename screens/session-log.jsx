@@ -34,6 +34,7 @@
     const SessionLogScreen = ({ sessions = [], breaks = [], workEvents = [] }) => {
         const { useState } = React;
         const [tab, setTab] = useState("timeline");
+        const sessionWindow = Stru.state.getWorkSessionWindow(workEvents, sessions);
 
         const getTimeline = () => {
             const sessionItems = (sessions || []).map((s) => {
@@ -83,7 +84,15 @@
                         >
                             <Icons.ArrowLeft className="text-stone-600" size={28} />
                         </button>
-                        <h2 className="text-4xl font-semibold text-stone-800">Activity Log</h2>
+                        <div>
+                            <h2 className="text-4xl font-semibold text-stone-800">Activity Log</h2>
+                            {sessionWindow?.startTime && (
+                                <p className="text-stone-500 mt-1">
+                                    {sessionWindow.isOpen ? "Open work session since " : "Work session: "}
+                                    {timeStr(sessionWindow.startTime)}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">

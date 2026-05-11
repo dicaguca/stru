@@ -219,16 +219,91 @@
         Stru.storage.save(Stru.constants.STORAGE_KEYS.sessions, (sessions || []).map(normalizeSession));
     };
 
+    const normalizeWorkEvent = (event) => {
+        const time = event?.time ?? event?.timestamp ?? null;
+        return {
+            ...event,
+            time: Stru.utils.toDate(time),
+        };
+    };
+
+    const getLatestSessionStart = (sessions) => (
+        (sessions || [])
+            .map((session) => normalizeSession(session))
+            .map((session) => Stru.utils.toDate(session.start))
+            .filter(Boolean)
+            .sort((a, b) => b - a)[0] || null
+    );
+
+    const getWorkSessionWindow = (workEvents, sessions = [], now = new Date()) => {
+        const normalizedEvents = (workEvents || [])
+            .map((event) => normalizeWorkEvent(event))
+            .filter((event) => event.time)
+            .sort((a, b) => a.time - b.time);
+
+        const latestStartIndex = [...normalizedEvents]
+            .map((event, index) => ({ event, index }))
+            .reverse()
+            .find(({ event }) => event.type === "start")?.index ?? -1;
+
+        const latestStart = latestStartIndex >= 0 ? normalizedEvents[latestStartIndex] : null;
+        const matchingEnd = latestStartIndex >= 0
+            ? normalizedEvents.slice(latestStartIndex + 1).find((event) => event.type === "end")
+            : null;
+
+        const startTime = latestStart?.time || getLatestSessionStart(sessions);
+        if (!startTime) return null;
+
+        const endTime = matchingEnd?.time || Stru.utils.toDate(now) || new Date();
+
+        return {
+            startTime,
+            endTime,
+            isOpen: !matchingEnd,
+        };
+    };
+
+    const isWithinWindow = (date, window) => {
+        const d = Stru.utils.toDate(date);
+        if (!d || !window?.startTime || !window?.endTime) return false;
+        return d >= window.startTime && d <= window.endTime;
+    };
+
+    const filterSessionsToWorkSession = (sessions, workEvents, now = new Date()) => {
+        const window = getWorkSessionWindow(workEvents, sessions, now);
+        if (!window) return (sessions || []).map((session) => normalizeSession(session));
+
+        return (sessions || [])
+            .map((session) => normalizeSession(session))
+            .filter((session) => isWithinWindow(session.start, window));
+    };
+
+    const filterBreaksToWorkSession = (breaks, workEvents, sessions = [], now = new Date()) => {
+        const window = getWorkSessionWindow(workEvents, sessions, now);
+        if (!window) return breaks || [];
+
+        return (breaks || []).filter((brk) => {
+            const start = Stru.utils.toDate(brk?.startTime ?? brk?.start ?? brk?.startedAt ?? brk?.started_at);
+            return isWithinWindow(start, window);
+        });
+    };
+
+    const filterWorkEventsToWorkSession = (workEvents, sessions = [], now = new Date()) => {
+        const window = getWorkSessionWindow(workEvents, sessions, now);
+        const normalizedEvents = (workEvents || [])
+            .map((event) => normalizeWorkEvent(event))
+            .filter((event) => event.time);
+
+        if (!window) return normalizedEvents;
+
+        return normalizedEvents.filter((event) => isWithinWindow(event.time, window));
+    };
+
     const countActiveTasks = (tasks) => (tasks || []).filter((t) => !normalizeTask(t).done).length;
 
-    const countTodaysSessions = (sessions) => {
-        const today = Stru.utils.startOfDay(new Date());
-        return (sessions || []).filter((s) => {
-            const ss = normalizeSession(s);
-            const d = Stru.utils.toDate(ss.start);
-            return d && today && Stru.utils.isSameDay(d, today);
-        }).length;
-    };
+    const countSessionsInWorkSession = (sessions, workEvents, now = new Date()) => (
+        filterSessionsToWorkSession(sessions, workEvents, now).length
+    );
 
     Stru.state = {
         usePersistedState,
@@ -237,6 +312,11 @@
         normalizeList,
         normalizeTask,
         normalizeSession,
+        normalizeWorkEvent,
+        getWorkSessionWindow,
+        filterSessionsToWorkSession,
+        filterBreaksToWorkSession,
+        filterWorkEventsToWorkSession,
         loadTasks,
         saveTasks,
         loadLists,
@@ -244,6 +324,6 @@
         loadSessions,
         saveSessions,
         countActiveTasks,
-        countTodaysSessions,
+        countSessionsInWorkSession,
     };
 })();

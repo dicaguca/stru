@@ -506,7 +506,7 @@
                     </div>
 
                     <div className="mb-8">
-                        <h4 className="text-xl font-bold text-stone-800 mb-4">Daily Reset</h4>
+                        <h4 className="text-xl font-bold text-stone-800 mb-4">Work Session Reset</h4>
 
                         {!showResetConfirm ? (
                             <button
@@ -599,7 +599,7 @@
                     <p className="text-2xl font-medium text-orange-500 mb-4">
                         {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
-                    <p className="text-lg text-stone-600 mb-8">Let&apos;s make today productive. You got this!</p>
+                    <p className="text-lg text-stone-600 mb-8">Let&apos;s make this work session productive. You got this!</p>
 
                     <button
                         onClick={handle}
@@ -628,7 +628,7 @@
                     <p className="text-2xl font-medium text-indigo-900 mb-4">
                         {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
-                    <p className="text-lg text-stone-600 mb-8">Great job today. Time to disconnect and recharge.</p>
+                    <p className="text-lg text-stone-600 mb-8">Great job. Time to close this work session and recharge.</p>
 
                     <button
                         onClick={handle}
@@ -651,7 +651,7 @@
                         <Icons.Moon size={56} className="text-indigo-900" />
                     </div>
                     <h3 className="text-3xl font-bold text-indigo-900 mb-4">Past Break Switch</h3>
-                    <p className="text-lg text-stone-600 mb-8">It is past 10 PM. To maintain your rhythm, it is recommended to stop for today.</p>
+                    <p className="text-lg text-stone-600 mb-8">It is past 10 PM. To maintain your rhythm, it is recommended to close this work session.</p>
 
                     <div className="flex flex-col space-y-3">
                         <button

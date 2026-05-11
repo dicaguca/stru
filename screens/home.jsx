@@ -102,7 +102,7 @@
             iconClass: "text-lime-400",
             borderClass: "border-lime-200",
             hoverClass: "hover:bg-lime-50",
-            onClick: () => Stru.router.go("/daily-report"),
+            onClick: () => Stru.router.go("/work-session-report"),
         },
         {
             key: "history",
@@ -121,7 +121,7 @@
         onEndDay,
         tasks = [],
         activeTasksCount,
-        todaysSessionsCount = 0,
+        workSessionCount = 0,
         priorities,
     }) => {
         const activeCount =
@@ -269,8 +269,8 @@
                                     <p className="text-lime-50 text-base">Plan and begin focused work</p>
 
                                     <div className="mt-4 bg-white/20 rounded-xl p-2 px-3 flex justify-between items-center text-white">
-                                        <span className="font-medium text-sm">Today&apos;s Sessions</span>
-                                        <span className="text-xl font-bold">{todaysSessionsCount}</span>
+                                        <span className="font-medium text-sm">Workday Sessions</span>
+                                        <span className="text-xl font-bold">{workSessionCount}</span>
                                     </div>
                                 </button>
                             </div>

@@ -130,7 +130,11 @@
         const [completedIds, setCompletedIds] = useState(
             Array.isArray(base.completedTasks) ? base.completedTasks.map((task) => task?.id).filter(Boolean) : []
         );
+        const [focusedTaskId, setFocusedTaskId] = useState(base.focusedTaskId || null);
+        const [isFocusMode, setIsFocusMode] = useState(!!base.isFocusMode);
         const [expandedTaskIds, setExpandedTaskIds] = useState([]);
+        const [draggedTaskId, setDraggedTaskId] = useState(null);
+        const [dragOverTaskId, setDragOverTaskId] = useState(null);
 
         const [showAddModal, setShowAddModal] = useState(false);
         const [showExtendModal, setShowExtendModal] = useState(false);
@@ -151,14 +155,20 @@
 
         const orderedTasks = React.useMemo(() => {
             const incomplete = tasks.filter((task) => !completedIds.includes(task.id));
+            const focusedIndex = incomplete.findIndex((task) => task.id === focusedTaskId);
+            if (focusedIndex > 0) {
+                const [focusedTask] = incomplete.splice(focusedIndex, 1);
+                incomplete.unshift(focusedTask);
+            }
             const complete = tasks.filter((task) => completedIds.includes(task.id));
             return [...incomplete, ...complete];
-        }, [tasks, completedIds]);
+        }, [tasks, completedIds, focusedTaskId]);
 
         const incompleteIds = React.useMemo(
             () => orderedTasks.filter((task) => !completedIds.includes(task.id)).map((task) => task.id),
             [orderedTasks, completedIds]
         );
+        const hasFocusedTask = !!focusedTaskId && incompleteIds.includes(focusedTaskId);
 
         const CONGRATS_MESSAGES = React.useMemo(
             () => [
@@ -194,10 +204,22 @@
         useEffect(() => {
             if (!session) return;
             session.tasks = tasks;
+            session.focusedTaskId = focusedTaskId;
+            session.isFocusMode = isFocusMode;
 
             const completed = tasks.filter((task) => completedIds.includes(task.id));
             session.completedTasks = completed.map((task) => ({ id: task.id, text: task.text, priority: task.priority || "" }));
-        }, [session, tasks, completedIds]);
+        }, [session, tasks, completedIds, focusedTaskId, isFocusMode]);
+
+        useEffect(() => {
+            if (!focusedTaskId) return;
+
+            const focusedTaskStillActive = tasks.some((task) => task.id === focusedTaskId && !completedIds.includes(task.id));
+            if (focusedTaskStillActive) return;
+
+            const nextFocusedTask = tasks.find((task) => !completedIds.includes(task.id));
+            setFocusedTaskId(nextFocusedTask?.id || null);
+        }, [tasks, completedIds, focusedTaskId]);
 
         const startTime = base.startTime instanceof Date ? base.startTime : new Date(base.startTime || Date.now());
         const estFinish = new Date(startTime.getTime() + totalPlanned * 1000);
@@ -220,23 +242,23 @@
             setShowExtendModal(false);
         };
 
-        const reorderTaskById = (id, delta) => {
-            const idx = incompleteIds.indexOf(id);
-            if (idx === -1) return;
-
-            const nextIdx = idx + delta;
-            if (nextIdx < 0 || nextIdx >= incompleteIds.length) return;
-
-            const a = incompleteIds[idx];
-            const b = incompleteIds[nextIdx];
+        const moveTaskBefore = (draggedId, targetId) => {
+            if (!draggedId || !targetId || draggedId === targetId) return;
 
             setTasks((prev) => {
-                const copy = prev.slice();
-                const ia = copy.findIndex((task) => task.id === a);
-                const ib = copy.findIndex((task) => task.id === b);
-                if (ia === -1 || ib === -1) return prev;
-                [copy[ia], copy[ib]] = [copy[ib], copy[ia]];
-                return copy;
+                const incomplete = prev.filter((task) => !completedIds.includes(task.id));
+                const complete = prev.filter((task) => completedIds.includes(task.id));
+                const draggedIndex = incomplete.findIndex((task) => task.id === draggedId);
+                const targetIndex = incomplete.findIndex((task) => task.id === targetId);
+                if (draggedIndex === -1 || targetIndex === -1) return prev;
+
+                const nextIncomplete = incomplete.slice();
+                const [draggedTask] = nextIncomplete.splice(draggedIndex, 1);
+                const insertIndex = nextIncomplete.findIndex((task) => task.id === targetId);
+                if (!draggedTask || insertIndex === -1) return prev;
+                nextIncomplete.splice(insertIndex, 0, draggedTask);
+
+                return [...nextIncomplete, ...complete];
             });
         };
 
@@ -264,6 +286,11 @@
             if (stats.total > 0 && stats.completed < stats.total) return;
 
             setCompletedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+        };
+
+        const toggleFocusedTask = (id) => {
+            if (!id) return;
+            setFocusedTaskId((prev) => prev === id ? null : id);
         };
 
         const saveEditingSubtask = (taskId) => {
@@ -328,6 +355,7 @@
         const removeTaskFromSession = (id) => {
             setTasks((prev) => prev.filter((task) => task.id !== id));
             setCompletedIds((prev) => prev.filter((taskId) => taskId !== id));
+            if (focusedTaskId === id) setFocusedTaskId(null);
         };
 
         return (
@@ -377,14 +405,33 @@
                         </div>
 
                         <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-stone-200 w-full text-left relative">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-stone-800">Tasks</h3>
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100"
-                            >
-                                + Add Task
-                            </button>
+                        <div className="flex justify-between items-start gap-4 mb-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-stone-800">Tasks</h3>
+                                <p className="text-sm text-stone-500 mt-1">
+                                    Drag to reorder. Click a task title to put it in focus.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    disabled={!hasFocusedTask}
+                                    onClick={() => setIsFocusMode((prev) => !prev)}
+                                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition-colors ${isFocusMode ? "border-lime-300 bg-lime-50 text-lime-700" : "border-stone-200 bg-stone-50 text-stone-600"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    title={hasFocusedTask ? "Toggle focus mode" : "Focus a task first"}
+                                >
+                                    <span>Focus Mode</span>
+                                    <span className={`relative h-5 w-9 rounded-full transition-colors ${isFocusMode ? "bg-lime-400" : "bg-stone-300"}`}>
+                                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${isFocusMode ? "translate-x-4" : "translate-x-0.5"}`} />
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100"
+                                >
+                                    + Add Task
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-4">
@@ -394,31 +441,49 @@
                                 const stats = getSubtaskStats(task);
                                 const isExpanded = expandedTaskIds.includes(task.id);
                                 const canComplete = stats.total === 0 || stats.completed === stats.total;
+                                const isFocused = focusedTaskId === task.id && !isCompleted;
+                                const isDragTarget = dragOverTaskId === task.id && draggedTaskId !== task.id;
+                                const isMinimizedByFocusMode = isFocusMode && hasFocusedTask && !isFocused && !isCompleted;
+                                const rowBaseClass = isCompleted
+                                    ? "bg-lime-50 border-lime-300 opacity-60"
+                                    : `${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).border}`;
+                                const focusClass = isFocused
+                                    ? "ring-2 ring-lime-300 shadow-md scale-[1.01]"
+                                    : hasFocusedTask && !isCompleted
+                                        ? "opacity-75"
+                                        : "";
+                                const dragTargetClass = isDragTarget ? "ring-2 ring-orange-200 border-orange-300" : "";
 
                                 return (
                                     <div
                                         key={task.id}
-                                        className={`p-0 rounded-2xl border-2 flex items-stretch overflow-hidden group transition-all ${isCompleted ? "bg-lime-50 border-lime-300 opacity-60" : `${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).border}`}`}
+                                        draggable={!isCompleted}
+                                        onDragStart={() => {
+                                            if (isCompleted) return;
+                                            setDraggedTaskId(task.id);
+                                            setDragOverTaskId(task.id);
+                                        }}
+                                        onDragOver={(e) => {
+                                            if (isCompleted || !draggedTaskId || draggedTaskId === task.id) return;
+                                            e.preventDefault();
+                                            setDragOverTaskId(task.id);
+                                        }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            moveTaskBefore(draggedTaskId, task.id);
+                                            setDraggedTaskId(null);
+                                            setDragOverTaskId(null);
+                                        }}
+                                        onDragEnd={() => {
+                                            setDraggedTaskId(null);
+                                            setDragOverTaskId(null);
+                                        }}
+                                        className={`p-0 rounded-2xl border-2 flex items-stretch overflow-visible relative group transition-all ${rowBaseClass} ${focusClass} ${dragTargetClass}`}
                                     >
                                         {!isCompleted && (
-                                            <div className="flex flex-col border-r-2 border-black/5 bg-white/30 w-14 flex-shrink-0">
-                                                <button
-                                                    onClick={() => reorderTaskById(task.id, -1)}
-                                                    disabled={incompleteIds.indexOf(task.id) === 0}
-                                                    className="flex-1 flex items-center justify-center hover:bg-black/10 disabled:opacity-30 text-stone-700 transition-colors"
-                                                >
-                                                    <Icons.ChevronUp size={28} />
-                                                </button>
-
-                                                <div className="h-0.5 bg-black/5 w-full" />
-
-                                                <button
-                                                    onClick={() => reorderTaskById(task.id, 1)}
-                                                    disabled={incompleteIds.indexOf(task.id) === incompleteIds.length - 1}
-                                                    className="flex-1 flex items-center justify-center hover:bg-black/10 disabled:opacity-30 text-stone-700 transition-colors"
-                                                >
-                                                    <Icons.ChevronDown size={28} />
-                                                </button>
+                                            <div className="flex flex-col items-center justify-center border-r-2 border-black/5 bg-white/35 w-14 flex-shrink-0 text-stone-400">
+                                                <Icons.GripVertical size={20} className="mb-1" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wide">Drag</span>
                                             </div>
                                         )}
 
@@ -432,10 +497,22 @@
                                                     }}
                                                 />
                                                 <div className="flex-1 min-w-0">
-                                                    <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : priority === "must" ? "text-stone-800 font-semibold" : "text-stone-800 font-medium"}`}>
-                                                        {task.text}
-                                                    </div>
-                                                    {stats.total > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={isCompleted}
+                                                        onClick={() => toggleFocusedTask(task.id)}
+                                                        className={`block w-full text-left rounded-xl px-2 py-1 -mx-2 transition-colors ${isCompleted ? "cursor-default" : "hover:bg-white/50"}`}
+                                                    >
+                                                        <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : priority === "must" ? "text-stone-800 font-semibold" : "text-stone-800 font-medium"}`}>
+                                                            {task.text}
+                                                        </div>
+                                                        {isFocused && (
+                                                            <div className="mt-2 inline-flex items-center rounded-full bg-lime-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-lime-700">
+                                                                In Focus
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                    {!isMinimizedByFocusMode && stats.total > 0 && (
                                                         <div className="flex flex-wrap gap-2 mt-2">
                                                             {stats.total > 0 && (
                                                                 <button
@@ -447,9 +524,14 @@
                                                             )}
                                                         </div>
                                                     )}
+                                                    {isMinimizedByFocusMode && (
+                                                        <div className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-stone-500">
+                                                            {stats.total > 0 ? <span>{stats.completed}/{stats.total} subtasks</span> : <span>Queued</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {!isCompleted ? (
+                                                {!isCompleted && !isMinimizedByFocusMode ? (
                                                     <button
                                                         onClick={() => completeTask(task.id)}
                                                         disabled={!canComplete}
@@ -459,11 +541,22 @@
                                                     >
                                                         <Icons.Check size={22} />
                                                     </button>
-                                                ) : (
+                                                ) : isCompleted ? (
                                                     <Icons.Check size={28} className="text-green-600 mr-2 flex-shrink-0" />
+                                                ) : null}
+
+                                                {!isCompleted && isMinimizedByFocusMode && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleFocusedTask(task.id)}
+                                                        className="rounded-lg border border-stone-200 bg-white/70 px-3 py-2 text-xs font-bold uppercase tracking-wide text-stone-600 hover:bg-white"
+                                                        title="Bring into focus"
+                                                    >
+                                                        Focus
+                                                    </button>
                                                 )}
 
-                                                {!isCompleted && (
+                                                {!isCompleted && !isMinimizedByFocusMode && (
                                                     <button
                                                         onClick={() => setTaskForSubtasks(task)}
                                                         className="ml-2 p-2 rounded-lg hover:bg-white/60"
@@ -474,7 +567,7 @@
                                                     </button>
                                                 )}
 
-                                                {!isCompleted && (
+                                                {!isCompleted && !isMinimizedByFocusMode && (
                                                     <button
                                                         onClick={() => removeTaskFromSession(task.id)}
                                                         className="p-2 rounded-lg hover:bg-white/60"
@@ -485,7 +578,7 @@
                                                 )}
                                             </div>
 
-                                            {isExpanded && stats.total > 0 && (
+                                            {!isMinimizedByFocusMode && isExpanded && stats.total > 0 && (
                                                 <div className="mt-4 bg-white/70 rounded-2xl border border-stone-200 p-4 space-y-2">
                                                     {(task.subtasks || []).map((subtask) => (
                                                         <div key={subtask.id} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-stone-50">

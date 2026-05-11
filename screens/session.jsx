@@ -422,7 +422,10 @@
                                 >
                                     <span>Focus Mode</span>
                                     <span className={`relative h-6 w-10 rounded-full transition-colors ${isFocusMode ? "bg-lime-400" : "bg-stone-200"}`}>
-                                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isFocusMode ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                                        <span
+                                            className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+                                            style={{ transform: isFocusMode ? "translateX(16px)" : "translateX(0)" }}
+                                        />
                                     </span>
                                 </button>
                                 <button

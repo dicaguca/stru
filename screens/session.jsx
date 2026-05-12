@@ -488,8 +488,7 @@
                                     >
                                         {!isCompleted && (
                                             <div className={`flex flex-col items-center justify-center border-r-2 w-14 flex-shrink-0 transition-colors ${isMinimizedByFocusMode ? "border-stone-200 bg-stone-100/80 text-stone-300" : "border-black/5 bg-white/35 text-stone-400"}`}>
-                                                <Icons.GripVertical size={20} className="mb-1" />
-                                                <span className="text-[10px] font-bold uppercase tracking-wide">Drag</span>
+                                                <Icons.GripVertical size={20} />
                                             </div>
                                         )}
 

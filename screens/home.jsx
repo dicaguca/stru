@@ -26,10 +26,10 @@
             label: "Medium",
         },
         personal: {
-            bg: "bg-fuchsia-50",
-            border: "border-[#922fa6]",
-            text: "text-fuchsia-700",
-            dot: "bg-[#922fa6]",
+            bg: "bg-indigo-50",
+            border: "border-indigo-400",
+            text: "text-indigo-700",
+            dot: "bg-indigo-400",
             label: "Personal",
         },
         nice: {
@@ -52,7 +52,7 @@
         must: "bg-rose-200",
         should: "bg-orange-200",
         could: "bg-yellow-200",
-        personal: "bg-fuchsia-200",
+        personal: "bg-indigo-200",
         nice: "bg-green-200",
         "": "bg-stone-200",
     };

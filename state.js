@@ -78,10 +78,10 @@
             },
             personal: {
                 label: "Personal",
-                bg: "bg-fuchsia-50",
-                border: "border-[#922fa6]",
-                text: "text-fuchsia-700",
-                dot: "bg-[#922fa6]",
+                bg: "bg-indigo-50",
+                border: "border-indigo-400",
+                text: "text-indigo-700",
+                dot: "bg-indigo-400",
             },
             nice: {
                 label: "Optional",

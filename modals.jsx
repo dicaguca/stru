@@ -59,6 +59,7 @@
                             <option value="must">Priority (Rose)</option>
                             <option value="should">High (Orange)</option>
                             <option value="could">Medium (Yellow)</option>
+                            <option value="personal">Personal (Purple)</option>
                             <option value="nice">Optional (Green)</option>
                         </select>
                     </div>
@@ -372,6 +373,7 @@
                         <option value="must">Priority (Rose)</option>
                         <option value="should">High (Orange)</option>
                         <option value="could">Medium (Yellow)</option>
+                        <option value="personal">Personal (Purple)</option>
                         <option value="nice">Optional (Green)</option>
                     </select>
                 </div>

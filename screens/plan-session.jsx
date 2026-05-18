@@ -9,17 +9,19 @@
             must: { bg: "bg-rose-50", border: "border-rose-300", dot: "bg-rose-400" },
             should: { bg: "bg-orange-50", border: "border-orange-300", dot: "bg-orange-400" },
             could: { bg: "bg-yellow-50", border: "border-yellow-300", dot: "bg-yellow-400" },
+            personal: { bg: "bg-fuchsia-50", border: "border-fuchsia-300", dot: "bg-[#922fa6]" },
             nice: { bg: "bg-green-50", border: "border-green-300", dot: "bg-green-400" },
             "": { bg: "bg-stone-50", border: "border-stone-200", dot: "bg-stone-400" },
         };
 
-    const PRIORITY_ORDER = ["must", "should", "could", "nice", ""];
+    const PRIORITY_ORDER = ["must", "should", "could", "personal", "nice", ""];
     const normalizePriority = (p) => (p === "want" ? "nice" : (p || ""));
 
     const PRIORITY_UI = {
         must: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Priority" },
         should: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
         could: { bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-700", dot: "bg-yellow-400", label: "Medium" },
+        personal: { bg: "bg-fuchsia-50", border: "border-fuchsia-400", text: "text-fuchsia-700", dot: "bg-[#922fa6]", label: "Personal" },
         nice: { bg: "bg-green-50", border: "border-green-400", text: "text-green-700", dot: "bg-green-400", label: "Optional" },
         "": { bg: "bg-stone-100", border: "border-stone-300", text: "text-stone-600", dot: "bg-stone-400", label: "No Priority" },
     };

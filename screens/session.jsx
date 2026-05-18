@@ -15,6 +15,7 @@
         must: { dot: "bg-rose-400", label: "Priority" },
         should: { dot: "bg-orange-400", label: "High" },
         could: { dot: "bg-yellow-400", label: "Medium" },
+        personal: { dot: "bg-[#922fa6]", label: "Personal" },
         nice: { dot: "bg-green-400", label: "Optional" },
         want: { dot: "bg-green-400", label: "Optional" },
         "": { dot: "bg-stone-400", label: "No Priority" },
@@ -24,12 +25,13 @@
         must: { bg: "bg-rose-50", border: "border-rose-300" },
         should: { bg: "bg-orange-50", border: "border-orange-300" },
         could: { bg: "bg-yellow-50", border: "border-yellow-300" },
+        personal: { bg: "bg-fuchsia-50", border: "border-fuchsia-300" },
         nice: { bg: "bg-green-50", border: "border-green-300" },
         want: { bg: "bg-green-50", border: "border-green-300" },
         "": { bg: "bg-stone-50", border: "border-stone-200" },
     };
 
-    const PRIORITY_ORDER = ["must", "should", "could", "nice", ""];
+    const PRIORITY_ORDER = ["must", "should", "could", "personal", "nice", ""];
     const normalizePriority = (p) => (p === "want" ? "nice" : (p || ""));
 
     const PrioritySelector = ({ currentPriority, onSelect }) => {
@@ -219,6 +221,7 @@
 
             const nextFocusedTask = tasks.find((task) => !completedIds.includes(task.id));
             setFocusedTaskId(nextFocusedTask?.id || null);
+            if (!nextFocusedTask) setIsFocusMode(false);
         }, [tasks, completedIds, focusedTaskId]);
 
         const startTime = base.startTime instanceof Date ? base.startTime : new Date(base.startTime || Date.now());
@@ -290,7 +293,11 @@
 
         const toggleFocusedTask = (id) => {
             if (!id) return;
-            setFocusedTaskId((prev) => prev === id ? null : id);
+            setFocusedTaskId((prev) => {
+                const next = prev === id ? null : id;
+                setIsFocusMode(!!next);
+                return next;
+            });
         };
 
         const saveEditingSubtask = (taskId) => {
@@ -451,7 +458,7 @@
                                     ? "bg-lime-50 border-lime-300 opacity-60"
                                     : `${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).border}`;
                                 const focusClass = isFocused
-                                    ? "z-20 ring-2 ring-lime-300 shadow-md scale-[1.01]"
+                                    ? "z-20 shadow-md scale-[1.01]"
                                     : hasFocusedTask && !isCompleted
                                         ? "opacity-75"
                                         : "";
@@ -484,7 +491,7 @@
                                             setDraggedTaskId(null);
                                             setDragOverTaskId(null);
                                         }}
-                                        className={`p-0 rounded-2xl border-2 flex items-stretch overflow-visible relative group transition-all duration-200 ${rowBaseClass} ${focusClass} ${dragTargetClass} ${minimizedClass}`}
+                                        className={`p-0 rounded-2xl ${isFocused ? "border-4" : "border-2"} flex items-stretch overflow-visible relative group transition-all duration-200 ${rowBaseClass} ${focusClass} ${dragTargetClass} ${minimizedClass}`}
                                     >
                                         {!isCompleted && (
                                             <div className={`flex flex-col items-center justify-center border-r-2 w-14 flex-shrink-0 transition-colors ${isMinimizedByFocusMode ? "border-stone-200 bg-stone-100/80 text-stone-300" : "border-black/5 bg-white/35 text-stone-400"}`}>
@@ -512,7 +519,7 @@
                                                             {task.text}
                                                         </div>
                                                         {isFocused && (
-                                                            <div className="mt-2 inline-flex items-center rounded-full bg-lime-100 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-lime-700">
+                                                            <div className="mt-2 inline-flex items-center rounded-md bg-green-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
                                                                 In Focus
                                                             </div>
                                                         )}

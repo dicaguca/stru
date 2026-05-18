@@ -721,8 +721,10 @@ const App = () => {
     const endSessionAndSave = () => {
         if (!activeSession) return;
 
-        const end = new Date();
+        const now = new Date();
         const start = new Date(activeSession.startTime);
+        const scheduledEnd = new Date(start.getTime() + activeSession.duration * 1000);
+        const end = now > scheduledEnd ? scheduledEnd : now;
         const actualDuration = Math.max(1, Math.round((end - start) / 60000));
 
         const finished = {

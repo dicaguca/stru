@@ -43,7 +43,7 @@
         },
         DEFAULT_LIST_ID: "default-list",
         DEFAULT_LIST_NAME: "Main List",
-        PRIORITY_ORDER: ["must", "should", "could", "nice", ""],
+        PRIORITY_ORDER: ["must", "should", "could", "personal", "nice", ""],
         PRIORITY_ALIASES: {
             priority: "must",
             high: "should",
@@ -75,6 +75,13 @@
                 border: "border-yellow-300",
                 text: "text-yellow-700",
                 dot: "bg-yellow-400",
+            },
+            personal: {
+                label: "Personal",
+                bg: "bg-fuchsia-50",
+                border: "border-fuchsia-300",
+                text: "text-fuchsia-700",
+                dot: "bg-[#922fa6]",
             },
             nice: {
                 label: "Optional",

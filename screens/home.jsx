@@ -25,6 +25,13 @@
             dot: "bg-yellow-400",
             label: "Medium",
         },
+        personal: {
+            bg: "bg-fuchsia-50",
+            border: "border-fuchsia-400",
+            text: "text-fuchsia-700",
+            dot: "bg-[#922fa6]",
+            label: "Personal",
+        },
         nice: {
             bg: "bg-green-50",
             border: "border-green-400",
@@ -45,11 +52,12 @@
         must: "bg-rose-200",
         should: "bg-orange-200",
         could: "bg-yellow-200",
+        personal: "bg-fuchsia-200",
         nice: "bg-green-200",
         "": "bg-stone-200",
     };
 
-    const PRIORITY_KEYS = ["must", "should", "could", "nice", ""];
+    const PRIORITY_KEYS = ["must", "should", "could", "personal", "nice", ""];
 
     const normalizePriority = (p) => {
         if (p === "want") return "nice";
@@ -62,6 +70,7 @@
             must: { active: 0, completed: 0 },
             should: { active: 0, completed: 0 },
             could: { active: 0, completed: 0 },
+            personal: { active: 0, completed: 0 },
             nice: { active: 0, completed: 0 },
             "": { active: 0, completed: 0 },
         };

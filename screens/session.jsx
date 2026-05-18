@@ -25,7 +25,7 @@
         must: { bg: "bg-rose-50", border: "border-rose-300" },
         should: { bg: "bg-orange-50", border: "border-orange-300" },
         could: { bg: "bg-yellow-50", border: "border-yellow-300" },
-        personal: { bg: "bg-fuchsia-50", border: "border-fuchsia-300" },
+        personal: { bg: "bg-fuchsia-50", border: "border-[#922fa6]" },
         nice: { bg: "bg-green-50", border: "border-green-300" },
         want: { bg: "bg-green-50", border: "border-green-300" },
         "": { bg: "bg-stone-50", border: "border-stone-200" },

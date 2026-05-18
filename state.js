@@ -79,7 +79,7 @@
             personal: {
                 label: "Personal",
                 bg: "bg-fuchsia-50",
-                border: "border-fuchsia-300",
+                border: "border-[#922fa6]",
                 text: "text-fuchsia-700",
                 dot: "bg-[#922fa6]",
             },

@@ -111,7 +111,7 @@
                                 className={`w-full text-left p-3 rounded-xl border-2 flex items-center transition-colors ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES[""]).border}`}
                             >
                                 <div className={`w-3 h-3 rounded-full mr-3 ${(PRIORITY_UI[normalizePriority(task.priority)] || PRIORITY_UI[""]).dot}`} />
-                                <span className={`font-medium ${normalizePriority(task.priority) === "must" ? "font-semibold" : ""}`}>{task.text}</span>
+                                <span className={`font-medium ${normalizePriority(task.priority) === "must" ? "font-bold" : ""}`}>{task.text}</span>
                                 <Icons.Plus size={16} className="ml-auto text-stone-600" />
                             </button>
                         ))}
@@ -515,7 +515,7 @@
                                                         onClick={() => toggleFocusedTask(task.id)}
                                                         className={`block w-full text-left rounded-xl px-2 py-1 -mx-2 transition-colors ${isCompleted ? "cursor-default" : isMinimizedByFocusMode ? "hover:bg-stone-100/80" : "hover:bg-white/50"}`}
                                                     >
-                                                        <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : isMinimizedByFocusMode ? "text-stone-400 font-medium" : priority === "must" ? "text-stone-800 font-semibold" : "text-stone-800 font-medium"}`}>
+                                                        <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : isMinimizedByFocusMode ? "text-stone-400 font-medium" : priority === "must" ? "text-stone-800 font-bold" : "text-stone-800 font-medium"}`}>
                                                             {task.text}
                                                         </div>
                                                         {isFocused && (

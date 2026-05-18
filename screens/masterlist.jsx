@@ -189,7 +189,7 @@
             const textClass = [
                 "flex-1 text-lg select-none",
                 isCompleted ? "line-through text-stone-600" : "text-stone-800",
-                priority === "must" ? "font-semibold" : "font-medium",
+                priority === "must" ? "font-bold" : "font-medium",
             ].join(" ");
 
             return (

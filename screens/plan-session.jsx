@@ -356,7 +356,7 @@
                                     const subtaskStats = getSubtaskStats(task);
                                     const textClass = [
                                         "flex-1 text-lg",
-                                        priority === "must" ? "font-semibold text-stone-900" : "font-medium text-stone-800",
+                                        priority === "must" ? "font-bold text-stone-900" : "font-medium text-stone-800",
                                     ].join(" ");
 
                                     return (

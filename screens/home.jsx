@@ -158,7 +158,7 @@
                 total: (stats.active || 0) + (stats.completed || 0),
                 completed: stats.completed || 0,
             };
-        });
+        }).filter((row) => row.total > 0);
         const totalRow = {
             key: "total",
             label: "Total",
@@ -169,8 +169,7 @@
             total: totalTaskCount,
             completed: completedTaskCount,
         };
-        const allOverviewRows = [...overviewRows, totalRow];
-        const maxTotal = allOverviewRows.reduce((max, row) => Math.max(max, row.total), 0);
+        const maxTotal = [...overviewRows, totalRow].reduce((max, row) => Math.max(max, row.total), 0);
 
         React.useEffect(() => {
             const timer = setInterval(() => setNow(new Date()), 1000);
@@ -287,7 +286,8 @@
                             <div className="bg-white px-8 pt-8 pb-10 rounded-2xl border-2 border-stone-200 min-h-[21rem]">
                                 <h4 className="text-xl font-bold mb-6 text-stone-800">Task Overview</h4>
                                 <div className="space-y-5">
-                                    {allOverviewRows.map((row) => {
+                                    {[...overviewRows, { key: "divider" }, totalRow].map((row) => {
+                                        if (row.key === "divider") return <div key="divider" className="border-t-2 border-stone-100" />;
                                         const totalWidth = maxTotal > 0 ? (row.total / maxTotal) * 100 : 0;
                                         const completedWidth = row.total > 0 ? (row.completed / row.total) * 100 : 0;
 

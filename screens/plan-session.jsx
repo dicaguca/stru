@@ -145,7 +145,7 @@
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                    {(activeField === "duration" ? [15, 30, 45, 60, 90, 120] : ["11:30", "12:00", "13:30", "17:00", "20:00", "22:00"]).map((value) => (
+                    {(activeField === "duration" ? [15, 30, 45, 60, 90, 120] : ["11:30", "12:00", "14:00", "17:00", "20:00", "22:00"]).map((value) => (
                         <button
                             key={value}
                             onClick={() => {

@@ -102,13 +102,13 @@ const wakeDAC = () => {
             const g = ctx.createGain();
             osc.connect(g);
             g.connect(ctx.destination);
-            osc.frequency.value = 18000;
+            osc.frequency.value = 100;  // audible freq — passes through BT codecs (was 18kHz which BT filters out)
             osc.type = "sine";
             const t = ctx.currentTime;
-            g.gain.setValueAtTime(0.05, t);
-            g.gain.linearRampToValueAtTime(0, t + 0.4);
+            g.gain.setValueAtTime(0.01, t);  // very low gain — barely perceptible
+            g.gain.linearRampToValueAtTime(0, t + 1.0);
             osc.start(t);
-            osc.stop(t + 0.4);
+            osc.stop(t + 1.0);
         });
     } catch {
     }
@@ -714,7 +714,7 @@ const App = () => {
         setTimeRemaining(mins * 60);
         sessionTargetTimeRef.current = Date.now() + mins * 60 * 1000;
         wakeDAC();
-        setTimeout(() => playBeeps("start"), 500);
+        setTimeout(() => playBeeps("start"), 1200);
         go("/session");
     };
 
@@ -761,7 +761,7 @@ const App = () => {
         setActiveSession(null);
         sessionTargetTimeRef.current = null;
         wakeDAC();
-        setTimeout(() => playBeeps("end"), 500);
+        setTimeout(() => playBeeps("end"), 1200);
         go("/session-summary");
         setShowBreakReminder(true);
     };
@@ -795,7 +795,7 @@ const App = () => {
         }
 
         wakeDAC();
-        setTimeout(() => Stru.playBreakBeeps("start"), 500);
+        setTimeout(() => Stru.playBreakBeeps("start"), 1200);
     };
 
     const extendBreakInApp = (mins) => {
@@ -842,7 +842,7 @@ const App = () => {
         setActiveBreak(null);
 
         wakeDAC();
-        setTimeout(() => Stru.playBreakBeeps("end"), 500);
+        setTimeout(() => Stru.playBreakBeeps("end"), 1200);
         go("/break-summary");
     };
 

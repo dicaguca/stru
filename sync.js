@@ -217,29 +217,43 @@
         return false;
     };
 
+    // Serialises all Stoa cloud writes so concurrent completion back-syncs
+    // (e.g. several tasks finished in one session) don't race each other.
+    // Each call chains onto the previous promise, reads fresh data, then writes.
+    let _stoaWriteQueue = Promise.resolve();
+
     /**
      * Write a task update back to Stoa's cloud.
+     * Calls are serialised via _stoaWriteQueue so concurrent completions
+     * don't overwrite each other (last-write-wins race condition).
      * Used for completion back-sync.
      */
-    const writeStoaTask = async (stoaId, updates) => {
-        // Read the full current dataset from cloud
-        const data = await readStoaData();
-        if (!data) return;
+    const writeStoaTask = (stoaId, updates) => {
+        _stoaWriteQueue = _stoaWriteQueue.then(async () => {
+            // Read fresh data — this comes AFTER any previous write, so we
+            // always see the latest cloud state.
+            const data = await readStoaData();
+            if (!data) return;
 
-        const idx = data.tasks.findIndex(t => t.id === stoaId);
-        if (idx === -1) return;
+            const idx = data.tasks.findIndex(t => t.id === stoaId);
+            if (idx === -1) {
+                console.warn('[Stru Sync] writeStoaTask: task not found in cloud data:', stoaId);
+                return;
+            }
 
-        data.tasks[idx] = { ...data.tasks[idx], ...updates };
+            data.tasks[idx] = { ...data.tasks[idx], ...updates };
 
-        try {
-            await fetch(STOA_CLOUD_URL, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-        } catch (e) {
-            console.warn('[Stru Sync] Could not write Stoa task to cloud:', e);
-        }
+            try {
+                await fetch(STOA_CLOUD_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+            } catch (e) {
+                console.warn('[Stru Sync] Could not write Stoa task to cloud:', e);
+            }
+        });
+        return _stoaWriteQueue;
     };
 
     // ── Core sync logic ───────────────────────────────────────────────────────

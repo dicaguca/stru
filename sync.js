@@ -113,24 +113,45 @@
         return data.data;
     };
 
-    /** Fetch tasks assigned to me, due today or overdue. */
+    /**
+     * Fetch tasks from Asana's "My Tasks" list that are due today or overdue,
+     * or that are manually placed in the Today section.
+     *
+     * Uses the user_task_list endpoint rather than the search API so that
+     * subtasks assigned to the user are also returned (search excludes subtasks).
+     */
     const fetchAsanaDueTasks = async (pat, workspaceGid) => {
         const me = await fetchAsanaMe(pat);
-        const params = new URLSearchParams({
-            'assignee.any': me.gid,
-            completed: 'false',
-            opt_fields: 'gid,name,due_on,completed,notes',
-            limit: '100',
-        });
-        const data = await asanaFetch(
-            `/workspaces/${workspaceGid}/tasks/search?${params}`,
+
+        // Get the GID of the user's personal "My Tasks" list for this workspace.
+        const taskListResp = await asanaFetch(
+            `/users/${me.gid}/user_task_list?workspace=${workspaceGid}&opt_fields=gid`,
             pat
         );
+        const taskListGid = taskListResp.data?.gid;
+        if (!taskListGid) throw new Error('Could not find Asana user task list');
+
+        // Pull all incomplete tasks from My Tasks (includes subtasks).
+        const params = new URLSearchParams({
+            opt_fields: 'gid,name,due_on,completed,assignee_status',
+            limit: '100',
+        });
+        const tasksResp = await asanaFetch(
+            `/user_task_lists/${taskListGid}/tasks?${params}`,
+            pat
+        );
+
         const cutoff = new Date();
         cutoff.setHours(23, 59, 59, 999);
-        return (data.data || []).filter(
-            (t) => t.due_on && new Date(t.due_on + 'T00:00:00') <= cutoff
-        );
+
+        return (tasksResp.data || []).filter((t) => {
+            if (t.completed) return false;
+            // Due today or overdue
+            if (t.due_on && new Date(t.due_on + 'T00:00:00') <= cutoff) return true;
+            // Manually placed in Today section (no due date required)
+            if (t.assignee_status === 'today') return true;
+            return false;
+        });
     };
 
     const markAsanaTaskComplete = async (pat, gid, completed) => {

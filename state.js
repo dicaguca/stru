@@ -167,6 +167,8 @@
             updatedAt,
             listId: t?.listId || t?.list_id || Stru.constants.DEFAULT_LIST_ID,
             subtasks,
+            // Preserve sync provenance so completion can be sent back to the source app.
+            ...(t?.sourceApp ? { sourceApp: t.sourceApp, sourceId: t.sourceId } : {}),
         };
     };
 

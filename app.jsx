@@ -163,6 +163,42 @@ const App = () => {
     const breakTargetTimeRef = React.useRef(null);
     const breakStartTimeRef = React.useRef(null);
 
+    // ── External sync (Stoa + Asana) ─────────────────────────────────────────
+    // Track previous done-state of synced tasks so we can fire back-sync on flip.
+    const prevSyncedDoneRef = React.useRef({});
+
+    /**
+     * Run a full sync cycle, then refresh React state from localStorage.
+     * Returns the sync result ({ changed, added, error }).
+     */
+    const runSync = React.useCallback(async () => {
+        if (!window.Stru?.sync) return { changed: false, added: 0 };
+        const result = await window.Stru.sync.run();
+        if (result.changed) {
+            // sync.js already wrote to localStorage; pull the merged tasks into state.
+            setTasks(loadArray("stru-tasks"));
+        }
+        return result;
+    }, [setTasks]);
+
+    // Sync runs only when the user starts a new day (see startWorkSession below)
+    // and when they click "Sync Now" in Settings. No automatic background sync.
+
+    // Completion back-sync: detect when a synced task flips done/undone and
+    // push that change back to the source app (Stoa or Asana).
+    useEffect(() => {
+        if (!window.Stru?.sync) return;
+        const synced = (tasks || []).filter((t) => t.sourceApp && t.sourceId);
+        for (const task of synced) {
+            const currDone = !!(task.done || task.completed);
+            const prevDone = prevSyncedDoneRef.current[task.id];
+            if (prevDone !== undefined && prevDone !== currDone) {
+                window.Stru.sync.onTaskCompleted(task, currDone);
+            }
+            prevSyncedDoneRef.current[task.id] = currDone;
+        }
+    }, [tasks]);
+
     useEffect(() => {
         window.Stru.timerRefs = {
             sessionTargetTimeRef,
@@ -539,6 +575,11 @@ const App = () => {
         };
 
         setWorkEvents([ev]);
+
+        // Import today's tasks from Stoa + Asana right after the slate is cleared.
+        // runSync reads stru-tasks from localStorage (now empty) and writes back
+        // the merged result, then we pull it into React state.
+        runSync();
     };
 
     const endWorkSession = () => {
@@ -1002,6 +1043,7 @@ const App = () => {
                 onResetDay={resetDay}
                 onExport={exportData}
                 onImport={importData}
+                onSync={runSync}
             />
 
             <Stru.Modals.StartDayModal

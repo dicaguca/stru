@@ -401,9 +401,25 @@
         );
     };
 
-    const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport }) => {
+    const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport, onSync }) => {
         const [showResetConfirm, setShowResetConfirm] = useState(false);
         const fileInputRef = useRef(null);
+
+        // ── Sync state ────────────────────────────────────────────────────────
+        const syncModule = window.Stru?.sync;
+        const [syncSettings, setSyncSettings] = useState(() => syncModule?.getSettings() || {});
+
+        // Asana setup
+        const [asanaPat, setAsanaPat] = useState(() => syncModule?.getSettings().asanaPat || "");
+        const [asanaWorkspaces, setAsanaWorkspaces] = useState([]);
+        const [asanaSelectedWs, setAsanaSelectedWs] = useState(() => syncModule?.getSettings().asanaWorkspaceGid || "");
+        const [asanaConnecting, setAsanaConnecting] = useState(false);
+        const [asanaConnected, setAsanaConnected] = useState(() => !!(syncModule?.getSettings().asanaPat && syncModule?.getSettings().asanaWorkspaceGid));
+        const [asanaError, setAsanaError] = useState("");
+
+        // Manual sync
+        const [syncing, setSyncing] = useState(false);
+        const [syncMsg, setSyncMsg] = useState("");
 
         if (!isOpen) return null;
 
@@ -474,83 +490,248 @@
             onClose?.();
         };
 
+        // ── Asana connect handler ─────────────────────────────────────────────
+        const handleAsanaConnect = async () => {
+            if (!asanaPat.trim()) { setAsanaError("Enter your Asana Personal Access Token."); return; }
+            setAsanaConnecting(true);
+            setAsanaError("");
+            try {
+                const workspaces = await syncModule.fetchAsanaWorkspaces(asanaPat.trim());
+                if (!workspaces.length) { setAsanaError("No workspaces found for this token."); return; }
+                setAsanaWorkspaces(workspaces);
+                const ws = workspaces[0].gid;
+                setAsanaSelectedWs(ws);
+                syncModule.saveSettings({ asanaPat: asanaPat.trim(), asanaWorkspaceGid: ws });
+                setAsanaConnected(true);
+            } catch {
+                setAsanaError("Could not connect. Check your token and try again.");
+            } finally {
+                setAsanaConnecting(false);
+            }
+        };
+
+        const handleAsanaWorkspaceChange = (gid) => {
+            setAsanaSelectedWs(gid);
+            syncModule?.saveSettings({ asanaWorkspaceGid: gid });
+        };
+
+        const handleAsanaDisconnect = () => {
+            syncModule?.saveSettings({ asanaPat: "", asanaWorkspaceGid: "" });
+            setAsanaPat("");
+            setAsanaSelectedWs("");
+            setAsanaWorkspaces([]);
+            setAsanaConnected(false);
+            setAsanaError("");
+        };
+
+        // ── Manual sync now ───────────────────────────────────────────────────
+        const handleSyncNow = async () => {
+            if (!syncModule) return;
+            setSyncing(true);
+            setSyncMsg("");
+            try {
+                const result = await (onSync ? onSync() : syncModule.run());
+                const added = result?.added ?? 0;
+                setSyncMsg(added > 0 ? `✓ Added ${added} task${added !== 1 ? "s" : ""}` : "✓ Already up to date");
+                setSyncSettings(syncModule.getSettings());
+            } catch (e) {
+                setSyncMsg("Sync failed — check console for details.");
+            } finally {
+                setSyncing(false);
+            }
+        };
+
+        // ── Last-sync display ─────────────────────────────────────────────────
+        const formatLastSync = (iso) => {
+            if (!iso) return "Never";
+            const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+            if (diff < 60)   return "Just now";
+            if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+            if (diff < 86400)return `${Math.floor(diff / 3600)} hr ago`;
+            return new Date(iso).toLocaleDateString();
+        };
+
+        const stoaAvailable = syncModule?.isStoaAvailable() ?? false;
+        const lastSync = syncSettings?.lastSync;
+
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl p-8 w-full max-w-xl">
-                    <h3 className="text-2xl font-bold text-stone-800 mb-6">Settings</h3>
+                <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
+                    <div className="p-8 overflow-y-auto flex-1">
+                        <h3 className="text-2xl font-bold text-stone-800 mb-6">Settings</h3>
 
-                    <div className="mb-8 border-b-2 border-stone-100 pb-8">
-                        <h4 className="text-xl font-bold text-stone-800 mb-4">Backup Data</h4>
+                        {/* ── Sync Sources ───────────────────────────────────────── */}
+                        {syncModule && (
+                            <div className="mb-8 border-b-2 border-stone-100 pb-8">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-xl font-bold text-stone-800">Sync Sources</h4>
+                                    <span className="text-sm text-stone-400">Last: {formatLastSync(lastSync)}</span>
+                                </div>
 
-                        <div className="flex space-x-4">
-                            <button
-                                onClick={onExport || defaultExport}
-                                className="flex-1 bg-stone-100 text-stone-700 border-2 border-stone-300 p-4 rounded-xl font-semibold hover:bg-stone-200"
-                            >
-                                Export Backup
-                            </button>
+                                {/* Stoa */}
+                                <div className="mb-4 p-4 rounded-xl border-2 border-stone-200 bg-stone-50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className={`w-2 h-2 rounded-full ${stoaAvailable ? "bg-green-500" : "bg-stone-300"}`}></span>
+                                        <span className="font-semibold text-stone-700">Stoa</span>
+                                    </div>
+                                    <p className="text-sm text-stone-500">
+                                        {stoaAvailable
+                                            ? "Detected — tasks due today or overdue will be imported automatically."
+                                            : "Not detected. Open Stoa in this browser to enable sync."}
+                                    </p>
+                                </div>
 
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex-1 bg-stone-100 text-stone-700 border-2 border-stone-300 p-4 rounded-xl font-semibold hover:bg-stone-200"
-                            >
-                                Import Backup
-                            </button>
+                                {/* Asana */}
+                                <div className="p-4 rounded-xl border-2 border-stone-200 bg-stone-50">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className={`w-2 h-2 rounded-full ${asanaConnected ? "bg-green-500" : "bg-stone-300"}`}></span>
+                                        <span className="font-semibold text-stone-700">Asana</span>
+                                    </div>
 
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                                className="hidden"
-                                accept=".json,application/json"
-                            />
+                                    {!asanaConnected ? (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-stone-500 mb-2">
+                                                Paste your{" "}
+                                                <a href="https://app.asana.com/0/my-apps" target="_blank" rel="noreferrer" className="text-orange-600 underline">
+                                                    Personal Access Token
+                                                </a>{" "}
+                                                to import tasks assigned to you.
+                                            </p>
+                                            <input
+                                                type="password"
+                                                value={asanaPat}
+                                                onChange={(e) => { setAsanaPat(e.target.value); setAsanaError(""); }}
+                                                placeholder="Asana PAT…"
+                                                className="w-full border-2 border-stone-300 rounded-xl px-4 py-2 text-sm font-mono focus:outline-none focus:border-orange-400"
+                                            />
+                                            {asanaError && <p className="text-sm text-red-500">{asanaError}</p>}
+                                            <button
+                                                onClick={handleAsanaConnect}
+                                                disabled={asanaConnecting || !asanaPat.trim()}
+                                                className="w-full bg-orange-500 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                                            >
+                                                {asanaConnecting ? "Connecting…" : "Connect Asana"}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {asanaWorkspaces.length > 1 && (
+                                                <select
+                                                    value={asanaSelectedWs}
+                                                    onChange={(e) => handleAsanaWorkspaceChange(e.target.value)}
+                                                    className="w-full border-2 border-stone-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-orange-400"
+                                                >
+                                                    {asanaWorkspaces.map((ws) => (
+                                                        <option key={ws.gid} value={ws.gid}>{ws.name}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                            <p className="text-sm text-green-600 font-medium">
+                                                ✓ Connected — tasks assigned to you, due today or overdue will be imported.
+                                            </p>
+                                            <button
+                                                onClick={handleAsanaDisconnect}
+                                                className="text-sm text-stone-400 hover:text-red-500 underline transition-colors"
+                                            >
+                                                Disconnect
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Sync Now */}
+                                <div className="flex items-center gap-3 mt-4">
+                                    <button
+                                        onClick={handleSyncNow}
+                                        disabled={syncing || (!stoaAvailable && !asanaConnected)}
+                                        className="flex-1 bg-stone-700 text-white px-4 py-3 rounded-xl font-semibold hover:bg-stone-800 disabled:opacity-40 transition-colors"
+                                    >
+                                        {syncing ? "Syncing…" : "↻ Sync Now"}
+                                    </button>
+                                    {syncMsg && (
+                                        <span className="text-sm text-stone-500 flex-1">{syncMsg}</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Backup Data ────────────────────────────────────────── */}
+                        <div className="mb-8 border-b-2 border-stone-100 pb-8">
+                            <h4 className="text-xl font-bold text-stone-800 mb-4">Backup Data</h4>
+
+                            <div className="flex space-x-4">
+                                <button
+                                    onClick={onExport || defaultExport}
+                                    className="flex-1 bg-stone-100 text-stone-700 border-2 border-stone-300 p-4 rounded-xl font-semibold hover:bg-stone-200"
+                                >
+                                    Export Backup
+                                </button>
+
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex-1 bg-stone-100 text-stone-700 border-2 border-stone-300 p-4 rounded-xl font-semibold hover:bg-stone-200"
+                                >
+                                    Import Backup
+                                </button>
+
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                    accept=".json,application/json"
+                                />
+                            </div>
+                        </div>
+
+                        {/* ── Work Session Reset ─────────────────────────────────── */}
+                        <div className="mb-8">
+                            <h4 className="text-xl font-bold text-stone-800 mb-4">Work Session Reset</h4>
+
+                            {!showResetConfirm ? (
+                                <button
+                                    onClick={() => setShowResetConfirm(true)}
+                                    className="w-full bg-orange-50 border-2 border-orange-300 text-orange-700 px-6 py-4 rounded-xl hover:bg-orange-100 transition-colors font-semibold text-lg"
+                                >
+                                    Start New Day
+                                </button>
+                            ) : (
+                                <div className="bg-orange-50 border-2 border-orange-300 p-6 rounded-xl space-y-3">
+                                    <button
+                                        onClick={() => handleReset("tasks")}
+                                        className="w-full bg-white border-2 border-stone-300 text-stone-800 px-5 py-3 rounded-xl font-medium text-left"
+                                    >
+                                        <div>Clear Tasks Only</div>
+                                        <div className="text-sm text-stone-600">Removes tasks, keeps history and lists</div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleReset("everything")}
+                                        className="w-full bg-white border-2 border-red-300 text-red-700 px-5 py-3 rounded-xl font-medium text-left"
+                                    >
+                                        <div>Clear Everything</div>
+                                        <div className="text-sm text-red-600">Removes tasks, history, and custom lists</div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setShowResetConfirm(false)}
+                                        className="w-full bg-stone-200 text-stone-700 px-5 py-3 rounded-xl font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <div className="mb-8">
-                        <h4 className="text-xl font-bold text-stone-800 mb-4">Work Session Reset</h4>
-
-                        {!showResetConfirm ? (
-                            <button
-                                onClick={() => setShowResetConfirm(true)}
-                                className="w-full bg-orange-50 border-2 border-orange-300 text-orange-700 px-6 py-4 rounded-xl hover:bg-orange-100 transition-colors font-semibold text-lg"
-                            >
-                                Start New Day
-                            </button>
-                        ) : (
-                            <div className="bg-orange-50 border-2 border-orange-300 p-6 rounded-xl space-y-3">
-                                <button
-                                    onClick={() => handleReset("tasks")}
-                                    className="w-full bg-white border-2 border-stone-300 text-stone-800 px-5 py-3 rounded-xl font-medium text-left"
-                                >
-                                    <div>Clear Tasks Only</div>
-                                    <div className="text-sm text-stone-600">Removes tasks, keeps history and lists</div>
-                                </button>
-
-                                <button
-                                    onClick={() => handleReset("everything")}
-                                    className="w-full bg-white border-2 border-red-300 text-red-700 px-5 py-3 rounded-xl font-medium text-left"
-                                >
-                                    <div>Clear Everything</div>
-                                    <div className="text-sm text-red-600">Removes tasks, history, and custom lists</div>
-                                </button>
-
-                                <button
-                                    onClick={() => setShowResetConfirm(false)}
-                                    className="w-full bg-stone-200 text-stone-700 px-5 py-3 rounded-xl font-medium"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        )}
+                    <div className="px-8 pb-8 pt-0">
+                        <button
+                            onClick={onClose}
+                            className="w-full bg-stone-700 text-white px-6 py-4 rounded-xl hover:bg-stone-800 transition-colors font-semibold text-lg"
+                        >
+                            Done
+                        </button>
                     </div>
-
-                    <button
-                        onClick={onClose}
-                        className="w-full bg-stone-700 text-white px-6 py-4 rounded-xl hover:bg-stone-800 transition-colors font-semibold text-lg"
-                    >
-                        Done
-                    </button>
                 </div>
             </div>
         );

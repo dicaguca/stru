@@ -240,7 +240,7 @@
                 createdAt: st.createdAt || Date.now(),
                 updatedAt: Date.now(),
                 listId:    cbf ? cbfListId : personalId,
-                subtasks:  (st.checklist || []).map(c => ({
+                subtasks:  [...(st.subtasks || []), ...(st.checklist || [])].map(c => ({
                     id:        c.id || uid(),
                     text:      (c.text || '').toString(),
                     done:      !!c.done,

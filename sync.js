@@ -166,7 +166,9 @@
 
     // Stoa stores data in a Cloudflare KV-backed API. We read/write directly
     // from that API so sync works regardless of what origin Stru is running on.
-    const STOA_CLOUD_URL = 'https://api.sadhanas.app/stoa:data';
+    // Must match Stoa's getCloudStorageUrl() which uses encodeURIComponent on the key.
+    // 'stoa:data' → 'stoa%3Adata' — a different KV key than 'stoa:data'.
+    const STOA_CLOUD_URL = `https://api.sadhanas.app/${encodeURIComponent('stoa:data')}`;
 
     // Stoa is always available via the cloud — no local detection needed.
     const isStoaAvailable = () => true;

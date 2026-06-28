@@ -174,7 +174,9 @@
     const isStoaAvailable = () => true;
 
     /**
-     * Read Stoa's full data (tasks, lists, folders) from the cloud API.
+     * Read Stoa's complete data object from the cloud API.
+     * Returns the RAW object as-is so that writeStoaTask can PUT it back
+     * without losing any fields (notes, trash, activeListId, etc.).
      * Falls back to localStorage if the cloud request fails.
      */
     const readStoaData = async () => {
@@ -183,9 +185,8 @@
             const res = await fetch(STOA_CLOUD_URL);
             if (res.ok) {
                 const data = await res.json();
-                if (data && data.tasks) {
-                    return { tasks: data.tasks || [], lists: data.lists || [], folders: data.folders || [] };
-                }
+                // Must have tasks array to be valid; return full object unchanged.
+                if (data && Array.isArray(data.tasks)) return data;
             }
         } catch {}
 
@@ -193,8 +194,7 @@
         try {
             const raw = localStorage.getItem('stoa:backup');
             if (!raw) return null;
-            const data = JSON.parse(raw);
-            return data ? { tasks: data.tasks || [], lists: data.lists || [], folders: data.folders || [] } : null;
+            return JSON.parse(raw) || null;
         } catch { return null; }
     };
 

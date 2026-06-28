@@ -148,8 +148,9 @@
             if (t.completed) return false;
             // Due today or overdue
             if (t.due_on && new Date(t.due_on + 'T00:00:00') <= cutoff) return true;
-            // Manually placed in Today section (no due date required)
-            if (t.assignee_status === 'today') return true;
+            // In Today section with no due date set (user manually prioritised it for today).
+            // If a future due_on is set, the date check above is the authority — don't override it.
+            if (t.assignee_status === 'today' && !t.due_on) return true;
             return false;
         });
     };
@@ -267,7 +268,9 @@
         for (const st of stoa.tasks) {
             if (st.status === 'Done')          continue;   // already complete
             if (st.priority === "Won't do")    continue;   // explicitly deferred
-            if (!isDueOrOverdue(st.dueDate))   continue;   // not due yet
+            // Skip only tasks whose due date is explicitly set to a FUTURE date.
+            // Tasks with no due date (dueDate = '' or null) are treated as open/outstanding.
+            if (st.dueDate && !isDueOrOverdue(st.dueDate)) continue;
             if (existingIds.has(st.id))        continue;   // already in Stru
 
             const cbf = isStoaTaskCBF(st, stoa.lists, stoa.folders);

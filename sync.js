@@ -270,9 +270,7 @@
         for (const st of stoa.tasks) {
             if (st.status === 'Done')          continue;   // already complete
             if (st.priority === "Won't do")    continue;   // explicitly deferred
-            // Skip only tasks whose due date is explicitly set to a FUTURE date.
-            // Tasks with no due date (dueDate = '' or null) are treated as open/outstanding.
-            if (st.dueDate && !isDueOrOverdue(st.dueDate)) continue;
+            if (!isDueOrOverdue(st.dueDate))   continue;   // not due today or overdue
             if (existingIds.has(st.id))        continue;   // already in Stru
 
             const cbf = isStoaTaskCBF(st, stoa.lists, stoa.folders);

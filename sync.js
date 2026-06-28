@@ -163,25 +163,35 @@
 
     // ── Stoa helpers ──────────────────────────────────────────────────────────
 
-    const isStoaAvailable = () => {
-        try { return !!localStorage.getItem('stoa:backup'); }
-        catch { return false; }
-    };
+    // Stoa stores data in a Cloudflare KV-backed API. We read/write directly
+    // from that API so sync works regardless of what origin Stru is running on.
+    const STOA_CLOUD_URL = 'https://api.sadhanas.app/stoa:data';
+
+    // Stoa is always available via the cloud — no local detection needed.
+    const isStoaAvailable = () => true;
 
     /**
-     * Read Stoa's full data (tasks, lists, folders).
-     * Returns null if Stoa data isn't in localStorage.
+     * Read Stoa's full data (tasks, lists, folders) from the cloud API.
+     * Falls back to localStorage if the cloud request fails.
      */
-    const readStoaData = () => {
+    const readStoaData = async () => {
+        // Primary: cloud API
+        try {
+            const res = await fetch(STOA_CLOUD_URL);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.tasks) {
+                    return { tasks: data.tasks || [], lists: data.lists || [], folders: data.folders || [] };
+                }
+            }
+        } catch {}
+
+        // Fallback: localStorage (only works when on the same origin as Stoa)
         try {
             const raw = localStorage.getItem('stoa:backup');
             if (!raw) return null;
             const data = JSON.parse(raw);
-            return {
-                tasks:   data.tasks   || [],
-                lists:   data.lists   || [],
-                folders: data.folders || [],
-            };
+            return data ? { tasks: data.tasks || [], lists: data.lists || [], folders: data.folders || [] } : null;
         } catch { return null; }
     };
 
@@ -204,18 +214,28 @@
         return false;
     };
 
-    const writeStoaTask = (stoaId, updates) => {
+    /**
+     * Write a task update back to Stoa's cloud.
+     * Used for completion back-sync.
+     */
+    const writeStoaTask = async (stoaId, updates) => {
+        // Read the full current dataset from cloud
+        const data = await readStoaData();
+        if (!data) return;
+
+        const idx = data.tasks.findIndex(t => t.id === stoaId);
+        if (idx === -1) return;
+
+        data.tasks[idx] = { ...data.tasks[idx], ...updates };
+
         try {
-            const raw = localStorage.getItem('stoa:backup');
-            if (!raw) return;
-            const data = JSON.parse(raw);
-            const idx = (data.tasks || []).findIndex((t) => t.id === stoaId);
-            if (idx === -1) return;
-            data.tasks[idx] = { ...data.tasks[idx], ...updates };
-            const serialized = JSON.stringify(data);
-            localStorage.setItem('stoa:backup', serialized);
+            await fetch(STOA_CLOUD_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
         } catch (e) {
-            console.warn('[Stru Sync] Could not update Stoa task:', e);
+            console.warn('[Stru Sync] Could not write Stoa task to cloud:', e);
         }
     };
 
@@ -228,8 +248,8 @@
      *   CBF (folder, list, or taskType)  → list "CBF",      priority "could"
      *   Everything else                  → list "Personal",  priority "personal"
      */
-    const mergeFromStoa = (currentTasks) => {
-        const stoa = readStoaData();
+    const mergeFromStoa = async (currentTasks) => {
+        const stoa = await readStoaData();
         if (!stoa) return { tasks: currentTasks, added: 0 };
 
         const struLists   = loadStruLists();
@@ -342,7 +362,7 @@
     const run = async () => {
         const current = loadTasksFromStorage();
 
-        const stoaResult  = mergeFromStoa(current);
+        const stoaResult  = await mergeFromStoa(current);
         const asanaResult = await mergeFromAsana(stoaResult.tasks);
 
         const totalAdded = stoaResult.added + asanaResult.added;
@@ -368,7 +388,7 @@
         if (!task?.sourceApp || !task?.sourceId) return;
 
         if (task.sourceApp === 'stoa') {
-            writeStoaTask(task.sourceId, { status: done ? 'Done' : 'Active' });
+            await writeStoaTask(task.sourceId, { status: done ? 'Done' : 'Active' });
             return;
         }
 

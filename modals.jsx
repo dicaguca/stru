@@ -571,13 +571,11 @@
                                 {/* Stoa */}
                                 <div className="mb-4 p-4 rounded-xl border-2 border-stone-200 bg-stone-50">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className={`w-2 h-2 rounded-full ${stoaAvailable ? "bg-green-500" : "bg-stone-300"}`}></span>
+                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                         <span className="font-semibold text-stone-700">Stoa</span>
                                     </div>
                                     <p className="text-sm text-stone-500">
-                                        {stoaAvailable
-                                            ? "Detected — tasks due today or overdue will be imported automatically."
-                                            : "Not detected. Open Stoa in this browser to enable sync."}
+                                        Cloud sync active — tasks due today or overdue (with subtasks) will be imported automatically.
                                     </p>
                                 </div>
 

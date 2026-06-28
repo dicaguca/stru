@@ -143,7 +143,7 @@
     // ── Stoa helpers ──────────────────────────────────────────────────────────
 
     const isStoaAvailable = () => {
-        try { return !!localStorage.getItem('stoa:data'); }
+        try { return !!localStorage.getItem('stoa:backup'); }
         catch { return false; }
     };
 
@@ -153,7 +153,7 @@
      */
     const readStoaData = () => {
         try {
-            const raw = localStorage.getItem('stoa:data');
+            const raw = localStorage.getItem('stoa:backup');
             if (!raw) return null;
             const data = JSON.parse(raw);
             return {
@@ -185,14 +185,13 @@
 
     const writeStoaTask = (stoaId, updates) => {
         try {
-            const raw = localStorage.getItem('stoa:data');
+            const raw = localStorage.getItem('stoa:backup');
             if (!raw) return;
             const data = JSON.parse(raw);
             const idx = (data.tasks || []).findIndex((t) => t.id === stoaId);
             if (idx === -1) return;
             data.tasks[idx] = { ...data.tasks[idx], ...updates };
             const serialized = JSON.stringify(data);
-            localStorage.setItem('stoa:data', serialized);
             localStorage.setItem('stoa:backup', serialized);
         } catch (e) {
             console.warn('[Stru Sync] Could not update Stoa task:', e);

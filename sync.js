@@ -217,6 +217,146 @@
         return false;
     };
 
+    // ── Stoa recurrence helpers (ported from Stoa's script.js) ──────────────
+    // These replicate Stoa's toggleTaskComplete logic so that completing a
+    // recurring task from Stru also creates the next recurrence instance.
+
+    const _RECURRENCE_WEEKDAY_ORDER = ['1','2','3','4','5','6','0'];
+    const _RECURRENCE_WEEKDAY_LONG  = {'0':'Sunday','1':'Monday','2':'Tuesday','3':'Wednesday','4':'Thursday','5':'Friday','6':'Saturday'};
+    const _STATUS_VALUES = ['Important','Active','Structure','Inactive','Conservation','Done'];
+
+    const _parseDateString = (s) => {
+        if (!s) return null;
+        const [y, m, d] = s.split('-').map(Number);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d);
+    };
+    const _formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+    const _getBaseTaskDate = (task) => {
+        const d = _parseDateString(task?.dueDate);
+        if (d) return d;
+        const c = task?.createdAt ? new Date(task.createdAt) : null;
+        if (c && !isNaN(c)) return new Date(c.getFullYear(), c.getMonth(), c.getDate());
+        const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    };
+    const _clampInt = (v, fb, min, max = null) => {
+        const n = parseInt(v, 10);
+        if (isNaN(n)) return fb;
+        const lo = Math.max(n, min);
+        return max === null ? lo : Math.min(lo, max);
+    };
+    const _sortDays = (days) => {
+        const u = Array.from(new Set((Array.isArray(days) ? days : []).map(String)));
+        return _RECURRENCE_WEEKDAY_ORDER.filter(d => u.includes(d));
+    };
+    const _ordinalForDate = (date) => {
+        const next = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7);
+        if (next.getMonth() !== date.getMonth()) return 'last';
+        return String(Math.min(4, Math.ceil(date.getDate() / 7)));
+    };
+    const _defaultRecurrence = (o = {}) => ({
+        enabled: false, unit: 'day', interval: 1, recurringDays: [],
+        monthlyMode: 'dayOfMonth', dayOfMonth: null, ordinal: null, weekday: null,
+        createOnComplete: true, recurForever: true, updateStatusTo: null, ...o,
+    });
+    const _normalizeRecurrence = (rv, task = null) => {
+        const base = _getBaseTaskDate(task);
+        const fw  = String(base.getDay());
+        const fd  = base.getDate();
+        const fo  = _ordinalForDate(base);
+        if (!rv || rv === 'none') return _defaultRecurrence();
+        if (typeof rv === 'string') {
+            const ld = _sortDays(task?.recurringDays || []);
+            switch (rv) {
+                case 'daily':    return _defaultRecurrence({ enabled:true, unit:'day',   interval:1 });
+                case 'weekly':   return _defaultRecurrence({ enabled:true, unit:'week',  interval:1, recurringDays: ld.length ? ld : [fw] });
+                case 'biweekly': return _defaultRecurrence({ enabled:true, unit:'week',  interval:2, recurringDays: ld.length ? ld : [fw] });
+                case 'monthly':  return _defaultRecurrence({ enabled:true, unit:'month', interval:1, dayOfMonth: fd });
+                case 'yearly':   return _defaultRecurrence({ enabled:true, unit:'year',  interval:1 });
+                default:         return _defaultRecurrence();
+            }
+        }
+        const n = _defaultRecurrence();
+        n.enabled    = !!rv.enabled;
+        n.unit       = ['day','week','month','year'].includes(rv.unit) ? rv.unit : 'day';
+        n.interval   = _clampInt(rv.interval, 1, 1);
+        n.recurringDays = _sortDays(rv.recurringDays);
+        n.monthlyMode   = rv.monthlyMode === 'ordinalWeekday' ? 'ordinalWeekday' : 'dayOfMonth';
+        n.dayOfMonth    = rv.dayOfMonth == null ? null : _clampInt(rv.dayOfMonth, fd, 1, 31);
+        n.ordinal       = ['1','2','3','4','last'].includes(rv.ordinal) ? rv.ordinal : null;
+        n.weekday       = Object.prototype.hasOwnProperty.call(_RECURRENCE_WEEKDAY_LONG, String(rv.weekday)) ? String(rv.weekday) : null;
+        n.createOnComplete = rv.createOnComplete !== false;
+        n.recurForever     = rv.recurForever !== false;
+        n.updateStatusTo   = _STATUS_VALUES.includes(rv.updateStatusTo) ? rv.updateStatusTo : null;
+        if (n.unit === 'week' && n.enabled && n.recurringDays.length === 0) n.recurringDays = [fw];
+        if (n.unit === 'month') {
+            if (n.monthlyMode === 'dayOfMonth') { n.dayOfMonth = n.dayOfMonth || fd; n.ordinal = null; n.weekday = null; }
+            else { n.dayOfMonth = null; n.ordinal = n.ordinal || fo; n.weekday = n.weekday || fw; }
+        } else { n.monthlyMode = 'dayOfMonth'; n.dayOfMonth = n.dayOfMonth ?? null; n.ordinal = null; n.weekday = null; }
+        return n;
+    };
+    const _cloneRecurrence = (rv) => { const n = _normalizeRecurrence(rv); return { ...n, recurringDays: [...n.recurringDays] }; };
+    const _startOfWeek = (date) => {
+        const r = new Date(date); const day = r.getDay();
+        r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0,0,0,0); return r;
+    };
+    const _daysInMonth = (y, mi) => new Date(y, mi + 1, 0).getDate();
+    const _monthOffset = (date, add) => {
+        const t = (date.getFullYear() * 12) + date.getMonth() + add;
+        return { year: Math.floor(t / 12), monthIndex: t % 12 };
+    };
+    const _ordinalWeekday = (y, mi, ordinal, weekday) => {
+        const tw = Number(weekday); const dim = _daysInMonth(y, mi);
+        const matches = [];
+        for (let d = 1; d <= dim; d++) { if (new Date(y, mi, d).getDay() === tw) matches.push(d); }
+        if (!matches.length) return new Date(y, mi, dim);
+        if (ordinal === 'last') return new Date(y, mi, matches[matches.length - 1]);
+        const i = Math.max(0, Number(ordinal) - 1);
+        return new Date(y, mi, matches[i] || matches[matches.length - 1]);
+    };
+    const _nextWeekly = (base, rec) => {
+        const sel = rec.recurringDays.length ? rec.recurringDays : [String(base.getDay())];
+        const anchor = _startOfWeek(base); const wkMs = 7 * 24 * 60 * 60 * 1000;
+        for (let o = 1; o <= 366 * Math.max(1, rec.interval); o++) {
+            const c = new Date(base); c.setDate(c.getDate() + o);
+            if (!sel.includes(String(c.getDay()))) continue;
+            const wks = Math.round((_startOfWeek(c) - anchor) / wkMs);
+            if (wks % rec.interval === 0) return c;
+        }
+        const fb = new Date(base); fb.setDate(fb.getDate() + rec.interval * 7); return fb;
+    };
+    const _nextMonthly = (base, rec) => {
+        if (rec.monthlyMode === 'ordinalWeekday') {
+            const tm = _monthOffset(base, rec.interval);
+            return _ordinalWeekday(tm.year, tm.monthIndex, rec.ordinal || 'last', rec.weekday || String(base.getDay()));
+        }
+        const tm = _monthOffset(base, rec.interval);
+        return new Date(tm.year, tm.monthIndex, Math.min(rec.dayOfMonth || base.getDate(), _daysInMonth(tm.year, tm.monthIndex)));
+    };
+    const _nextYearly = (base, rec) => {
+        const y = base.getFullYear() + rec.interval; const mi = base.getMonth();
+        return new Date(y, mi, Math.min(base.getDate(), _daysInMonth(y, mi)));
+    };
+    const _calcNextRecurrence = (task, rv) => {
+        const rec = _normalizeRecurrence(rv, task);
+        if (!rec.enabled) return null;
+        const base = _getBaseTaskDate(task);
+        switch (rec.unit) {
+            case 'day':   { const n = new Date(base); n.setDate(n.getDate() + rec.interval); return n; }
+            case 'week':  return _nextWeekly(base, rec);
+            case 'month': return _nextMonthly(base, rec);
+            case 'year':  return _nextYearly(base, rec);
+            default:      return null;
+        }
+    };
+
+    // ── Stoa write-back ───────────────────────────────────────────────────────
+
     // Serialises all Stoa cloud writes so concurrent completion back-syncs
     // (e.g. several tasks finished in one session) don't race each other.
     // Each call chains onto the previous promise, reads fresh data, then writes.
@@ -226,7 +366,11 @@
      * Write a task update back to Stoa's cloud.
      * Calls are serialised via _stoaWriteQueue so concurrent completions
      * don't overwrite each other (last-write-wins race condition).
-     * Used for completion back-sync.
+     *
+     * When marking a task Done, replicates Stoa's toggleTaskComplete logic:
+     * if the task is recurring (recurrence.enabled && createOnComplete) a new
+     * instance is created with the next due date and fresh checklist/subtasks,
+     * exactly as Stoa does through its own UI.
      */
     const writeStoaTask = (stoaId, updates) => {
         _stoaWriteQueue = _stoaWriteQueue.then(async () => {
@@ -241,7 +385,39 @@
                 return;
             }
 
+            const previousStatus = data.tasks[idx].status;
             data.tasks[idx] = { ...data.tasks[idx], ...updates };
+
+            // If marking Done and the task recurs, create the next instance —
+            // mirroring Stoa's toggleTaskComplete recurrence logic exactly.
+            if (updates.status === 'Done') {
+                const task = data.tasks[idx];
+                const rec  = _normalizeRecurrence(task.recurrence, task);
+                if (rec.enabled && rec.createOnComplete) {
+                    const nextDate = _calcNextRecurrence(task, rec);
+                    if (nextDate) {
+                        const nextTask = {
+                            ...task,
+                            id:         Date.now().toString() + Math.random(),
+                            status:     rec.updateStatusTo || previousStatus || 'Active',
+                            dueDate:    _formatDate(nextDate),
+                            createdAt:  new Date().toISOString(),
+                            checklist:  Array.isArray(task.checklist)
+                                            ? task.checklist.map(i => ({ ...i, done: false }))
+                                            : [],
+                            subtasks:   Array.isArray(task.subtasks)
+                                            ? task.subtasks.map(s => ({ ...s, done: false }))
+                                            : [],
+                            isExpanded: false,
+                            recurrence: rec.recurForever
+                                            ? _cloneRecurrence(rec)
+                                            : _defaultRecurrence(),
+                        };
+                        data.tasks.push(nextTask);
+                        console.log('[Stru Sync] Created next recurrence for', stoaId, '→ due', nextTask.dueDate);
+                    }
+                }
+            }
 
             try {
                 await fetch(STOA_CLOUD_URL, {

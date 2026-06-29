@@ -357,78 +357,96 @@
 
     // ── Stoa write-back ───────────────────────────────────────────────────────
 
-    // Serialises all Stoa cloud writes so concurrent completion back-syncs
+    /**
+     * Send a surgical PATCH to the Stoa cloud.
+     * The Worker handles the read-modify-write server-side so the client
+     * never touches the full data object — notes, trash, lists, folders are
+     * physically unreachable from this call.
+     *
+     * Supported ops:
+     *   { op: 'updateTask', taskId, updates }  — merge updates into one task
+     *   { op: 'addTask',    task }             — append a new task
+     */
+    const _patchStoa = async (op) => {
+        const res = await fetch(STOA_CLOUD_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(op),
+        });
+        if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            console.warn('[Stru Sync] Stoa PATCH failed:', res.status, body.slice(0, 120));
+        }
+    };
+
+    // Serialises all Stoa write-back calls so concurrent completions
     // (e.g. several tasks finished in one session) don't race each other.
-    // Each call chains onto the previous promise, reads fresh data, then writes.
     let _stoaWriteQueue = Promise.resolve();
 
     /**
-     * Write a task update back to Stoa's cloud.
-     * Calls are serialised via _stoaWriteQueue so concurrent completions
-     * don't overwrite each other (last-write-wins race condition).
+     * Mark a Stoa task done/undone and (if recurring) spawn the next instance.
      *
-     * When marking a task Done, replicates Stoa's toggleTaskComplete logic:
-     * if the task is recurring (recurrence.enabled && createOnComplete) a new
-     * instance is created with the next due date and fresh checklist/subtasks,
-     * exactly as Stoa does through its own UI.
+     * Architecture: uses PATCH instead of a full read-modify-write PUT so that
+     * notes, trash, lists, and folders can never be accidentally overwritten.
+     * The Worker merges the change server-side; the client never sees or writes
+     * the full Stoa data object.
+     *
+     * For recurring tasks we do need to read the task's properties once (to
+     * build the next-instance clone), but we still use PATCH to append it —
+     * we never write the full dataset back.
      */
     const writeStoaTask = (stoaId, updates) => {
-        _stoaWriteQueue = _stoaWriteQueue.then(async () => {
-            // Read fresh data — this comes AFTER any previous write, so we
-            // always see the latest cloud state.
-            const data = await readStoaData();
-            if (!data) return;
-
-            const idx = data.tasks.findIndex(t => t.id === stoaId);
-            if (idx === -1) {
-                console.warn('[Stru Sync] writeStoaTask: task not found in cloud data:', stoaId);
-                return;
-            }
-
-            const previousStatus = data.tasks[idx].status;
-            data.tasks[idx] = { ...data.tasks[idx], ...updates };
-
-            // If marking Done and the task recurs, create the next instance —
-            // mirroring Stoa's toggleTaskComplete recurrence logic exactly.
-            if (updates.status === 'Done') {
-                const task = data.tasks[idx];
-                const rec  = _normalizeRecurrence(task.recurrence, task);
-                if (rec.enabled && rec.createOnComplete) {
-                    const nextDate = _calcNextRecurrence(task, rec);
-                    if (nextDate) {
-                        const nextTask = {
-                            ...task,
-                            id:         Date.now().toString() + Math.random(),
-                            status:     rec.updateStatusTo || previousStatus || 'Active',
-                            dueDate:    _formatDate(nextDate),
-                            createdAt:  new Date().toISOString(),
-                            checklist:  Array.isArray(task.checklist)
-                                            ? task.checklist.map(i => ({ ...i, done: false }))
-                                            : [],
-                            subtasks:   Array.isArray(task.subtasks)
-                                            ? task.subtasks.map(s => ({ ...s, done: false }))
-                                            : [],
-                            isExpanded: false,
-                            recurrence: rec.recurForever
-                                            ? _cloneRecurrence(rec)
-                                            : _defaultRecurrence(),
-                        };
-                        data.tasks.push(nextTask);
-                        console.log('[Stru Sync] Created next recurrence for', stoaId, '→ due', nextTask.dueDate);
+        _stoaWriteQueue = _stoaWriteQueue
+            .catch(() => {})   // don't let one failure break the whole queue
+            .then(async () => {
+                try {
+                    // ── 1. Pre-read for recurrence (only when marking Done) ──
+                    // We read BEFORE sending the status update so we still see
+                    // the original status (needed for the new task's status field).
+                    let recurrenceTask = null;
+                    if (updates.status === 'Done') {
+                        const data = await readStoaData();
+                        if (data) {
+                            const t = data.tasks.find(t => t.id === stoaId);
+                            if (t) {
+                                const rec = _normalizeRecurrence(t.recurrence, t);
+                                if (rec.enabled && rec.createOnComplete) {
+                                    const nextDate = _calcNextRecurrence(t, rec);
+                                    if (nextDate) {
+                                        recurrenceTask = {
+                                            ...t,
+                                            id:         Date.now().toString() + Math.random(),
+                                            status:     rec.updateStatusTo || t.status || 'Active',
+                                            dueDate:    _formatDate(nextDate),
+                                            createdAt:  new Date().toISOString(),
+                                            checklist:  (t.checklist  || []).map(i => ({ ...i, done: false })),
+                                            subtasks:   (t.subtasks   || []).map(s => ({ ...s, done: false })),
+                                            isExpanded: false,
+                                            recurrence: rec.recurForever
+                                                ? _cloneRecurrence(rec)
+                                                : _defaultRecurrence(),
+                                        };
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-            }
 
-            try {
-                await fetch(STOA_CLOUD_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
-                });
-            } catch (e) {
-                console.warn('[Stru Sync] Could not write Stoa task to cloud:', e);
-            }
-        });
+                    // ── 2. Update task status via surgical PATCH ──────────────
+                    // The Worker merges { status: 'Done' } into the one task.
+                    // Notes / trash / lists / folders are never read or written
+                    // by this client call.
+                    await _patchStoa({ op: 'updateTask', taskId: stoaId, updates });
+
+                    // ── 3. Append next recurrence instance (if needed) ────────
+                    if (recurrenceTask) {
+                        await _patchStoa({ op: 'addTask', task: recurrenceTask });
+                        console.log('[Stru Sync] Recurrence spawned for', stoaId, '→ due', recurrenceTask.dueDate);
+                    }
+                } catch (e) {
+                    console.warn('[Stru Sync] writeStoaTask error:', e);
+                }
+            });
         return _stoaWriteQueue;
     };
 

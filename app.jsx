@@ -313,10 +313,10 @@ const App = () => {
                     Math.ceil((sessionTargetTimeRef.current - Date.now()) / 1000)
                 );
                 setTimeRemaining(remainingSec);
-                // Warnings fire 3s early so the clip's content lands on the actual mark.
-                if (remainingSec === 603) playSessionSound("warn10");
-                if (remainingSec === 303) playSessionSound("warn5");
-                if (remainingSec === 3) {
+                // Warnings fire 2s early so the clip's content lands on the actual mark.
+                if (remainingSec === 602) playSessionSound("warn10");
+                if (remainingSec === 302) playSessionSound("warn5");
+                if (remainingSec === 2) {
                     playSessionSound("end");
                     endSoundPlayedRef.current = true;
                 }

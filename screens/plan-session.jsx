@@ -277,14 +277,21 @@
                                         <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">Available Overall</div>
                                         <div className="text-2xl font-bold text-stone-800">{remainingOverall}</div>
                                     </div>
-                                    <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
-                                        <div className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-1">Selected</div>
-                                        <div className="text-2xl font-bold text-rose-800">{selectedInCurrentList}</div>
-                                    </div>
-                                    <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4">
-                                        <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">Available</div>
-                                        <div className="text-2xl font-bold text-stone-800">{remainingInCurrentList}</div>
-                                    </div>
+                                    {/* These two are scoped to the active list tab, so they don't mean anything
+                                        while viewing "Total" (which spans every list) — hide them there instead
+                                        of showing stale numbers from whichever list tab was open before. */}
+                                    {!isTotalTabActive && (
+                                        <React.Fragment>
+                                            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
+                                                <div className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-1">Selected (this list)</div>
+                                                <div className="text-2xl font-bold text-rose-800">{selectedInCurrentList}</div>
+                                            </div>
+                                            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+                                                <div className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">Available (this list)</div>
+                                                <div className="text-2xl font-bold text-stone-800">{remainingInCurrentList}</div>
+                                            </div>
+                                        </React.Fragment>
+                                    )}
                                 </div>
 
                             </div>

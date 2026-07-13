@@ -63,6 +63,52 @@
         );
     };
 
+    const ListMoveSelector = ({ lists, onSelect }) => {
+        const { useState, useEffect, useRef } = React;
+        const [isOpen, setIsOpen] = useState(false);
+        const ref = useRef(null);
+
+        useEffect(() => {
+            const handleClickOutside = (e) => {
+                if (ref.current && !ref.current.contains(e.target)) setIsOpen(false);
+            };
+            if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+            return () => document.removeEventListener("mousedown", handleClickOutside);
+        }, [isOpen]);
+
+        return (
+            <div className="relative" ref={ref}>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOpen(!isOpen);
+                    }}
+                    className="p-2 rounded-full hover:bg-stone-100 text-stone-600"
+                    title="Move to list"
+                >
+                    <Icons.ArrowLeft size={20} className="rotate-180" />
+                </button>
+                {isOpen && (
+                    <div className="absolute z-50 bottom-full mb-2 right-0 bg-white rounded-xl shadow-lg border-2 border-stone-200 p-2 min-w-[180px]">
+                        {(lists || []).map((list) => (
+                            <button
+                                key={list.id}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelect(list.id);
+                                    setIsOpen(false);
+                                }}
+                                className="w-full px-3 py-2 rounded-lg hover:bg-stone-50 text-left text-base font-medium text-stone-700 whitespace-nowrap"
+                            >
+                                {list.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const MasterListScreen = ({
         tasks,
         lists,
@@ -76,16 +122,19 @@
         onUpdateSubtask,
         onDeleteSubtask,
         onDelete,
+        onDuplicate,
         getSubtaskStats,
     }) => {
         const { useState, useMemo, useEffect, useRef } = React;
         const [isBatchMode, setIsBatchMode] = useState(false);
         const [selectedIds, setSelectedIds] = useState([]);
-        const [editingId, setEditingId] = useState(null);
         const [expandedTaskIds, setExpandedTaskIds] = useState([]);
         const [editingSubtask, setEditingSubtask] = useState(null);
         const [editingSubtaskText, setEditingSubtaskText] = useState("");
         const editingSubtaskInputRef = useRef(null);
+        const [editingTextId, setEditingTextId] = useState(null);
+        const [editingText, setEditingText] = useState("");
+        const editingTextInputRef = useRef(null);
 
         const sortByPriority = (a, b) => {
             const pa = PRIORITY_ORDER.indexOf(normalizePriority(a.priority));
@@ -121,16 +170,17 @@
         const currentPendingCount = pending.length;
         const currentCompletedCount = completed.length;
 
-        const editingTask = useMemo(
-            () => currentTasks.find((task) => task.id === editingId) || null,
-            [currentTasks, editingId]
-        );
-
         useEffect(() => {
             if (!editingSubtaskInputRef.current) return;
             editingSubtaskInputRef.current.focus();
             editingSubtaskInputRef.current.select();
         }, [editingSubtask]);
+
+        useEffect(() => {
+            if (!editingTextInputRef.current) return;
+            editingTextInputRef.current.focus();
+            editingTextInputRef.current.select();
+        }, [editingTextId]);
 
         const toggleSelection = (id) => {
             setSelectedIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
@@ -140,6 +190,42 @@
             selectedIds.forEach((id) => onUpdate(id, { priority }));
             setIsBatchMode(false);
             setSelectedIds([]);
+        };
+
+        const applyBatchMove = (listId) => {
+            selectedIds.forEach((id) => onUpdate(id, { listId }));
+            setIsBatchMode(false);
+            setSelectedIds([]);
+        };
+
+        const applyBatchDelete = () => {
+            if (!window.confirm(`Delete ${selectedIds.length} task${selectedIds.length === 1 ? "" : "s"}?`)) return;
+            selectedIds.forEach((id) => onDelete(id));
+            setIsBatchMode(false);
+            setSelectedIds([]);
+        };
+
+        const startEditingText = (task) => {
+            setEditingTextId(task.id);
+            setEditingText(task.text || "");
+        };
+
+        const cancelEditingText = () => {
+            setEditingTextId(null);
+            setEditingText("");
+        };
+
+        const saveEditingText = () => {
+            if (!editingTextId) return;
+
+            const trimmed = editingText.trim();
+            if (!trimmed) {
+                cancelEditingText();
+                return;
+            }
+
+            onUpdate(editingTextId, { text: trimmed });
+            cancelEditingText();
         };
 
         const toggleDone = (id) => {
@@ -187,7 +273,7 @@
                 ? "bg-stone-100 border-stone-200 opacity-60"
                 : `${styles.bg} ${styles.border}`;
             const textClass = [
-                "flex-1 text-lg select-none",
+                "flex-1 text-lg",
                 isCompleted ? "line-through text-stone-600" : "text-stone-800",
                 priority === "must" ? "font-bold" : "font-medium",
             ].join(" ");
@@ -210,7 +296,39 @@
 
                         <div className="flex-1 min-w-0 flex items-center">
                             <div className="flex items-center gap-3 min-w-0 w-full">
-                                <span className={`${textClass} leading-tight`}>{task.text}</span>
+                                {editingTextId === task.id ? (
+                                    <input
+                                        ref={editingTextInputRef}
+                                        type="text"
+                                        value={editingText}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => setEditingText(e.target.value)}
+                                        onBlur={saveEditingText}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                saveEditingText();
+                                            }
+                                            if (e.key === "Escape") {
+                                                e.preventDefault();
+                                                cancelEditingText();
+                                            }
+                                        }}
+                                        className={`${textClass} leading-tight rounded-lg border border-stone-300 bg-white px-2 py-1 -mx-2 outline-none focus:border-stone-400`}
+                                    />
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            if (isBatchMode) return;
+                                            e.stopPropagation();
+                                            startEditingText(task);
+                                        }}
+                                        className={`${textClass} leading-tight text-left select-none rounded-lg px-2 py-1 -mx-2 hover:bg-white/40`}
+                                    >
+                                        {task.text}
+                                    </button>
+                                )}
                                 {stats.total > 0 && (
                                     <button
                                         onClick={(e) => {
@@ -230,12 +348,12 @@
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setEditingId(task.id);
+                                        onDuplicate?.(task.id);
                                     }}
                                     className="p-2 hover:bg-white/60 rounded-lg"
-                                    title="Edit"
+                                    title="Duplicate"
                                 >
-                                    <Icons.Edit3 size={20} className="text-stone-600" />
+                                    <Icons.Copy size={20} className="text-stone-600" />
                                 </button>
 
                                 <button
@@ -371,30 +489,41 @@
                                 </p>
                             </div>
 
-                            <div className="ml-auto flex space-x-2">
+                            <div className="ml-auto flex gap-2">
                                 <button
                                     onClick={() => {
                                         setIsBatchMode(!isBatchMode);
                                         setSelectedIds([]);
                                     }}
-                                    className={`px-5 py-3 rounded-xl border-2 border-stone-200 font-semibold text-lg transition-all ${isBatchMode ? "bg-stone-800 border-stone-800 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
+                                    title={isBatchMode ? "Cancel selection" : "Select tasks"}
+                                    className={`w-11 h-11 rounded-xl border-2 border-stone-200 flex items-center justify-center transition-all ${isBatchMode ? "bg-stone-800 border-stone-800 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
                                 >
-                                    {isBatchMode ? "Cancel" : "Select"}
+                                    {isBatchMode ? <Icons.X size={20} /> : <Icons.CheckSquare size={20} />}
                                 </button>
                                 <button
                                     onClick={onOpenListsManager}
-                                    className="bg-white text-stone-700 px-5 py-3 rounded-xl border-2 border-stone-200 font-semibold text-lg"
+                                    title="Manage lists"
+                                    className="w-11 h-11 rounded-xl bg-white text-stone-700 border-2 border-stone-200 flex items-center justify-center hover:bg-stone-50"
                                 >
-                                    Lists
+                                    <Icons.List size={20} />
                                 </button>
                                 {!isBatchMode && (
-                                    <button
-                                        onClick={onAdd}
-                                        className="bg-gradient-to-r from-rose-400 to-orange-400 text-white px-6 py-3 rounded-xl flex items-center space-x-2 font-semibold text-lg shadow-lg"
-                                    >
-                                        <Icons.Plus size={24} />
-                                        <span>Add</span>
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={onAdd}
+                                            title="Add task"
+                                            className="w-11 h-11 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 hover:from-rose-500 hover:to-orange-500 flex items-center justify-center shadow-lg"
+                                        >
+                                            <Icons.Plus size={20} className="text-white" />
+                                        </button>
+                                        <button
+                                            onClick={() => Stru.router.go("/plan-session")}
+                                            title="Plan a session"
+                                            className="w-11 h-11 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 hover:from-rose-500 hover:to-orange-500 flex items-center justify-center shadow-lg"
+                                        >
+                                            <Icons.Play size={20} className="text-white" />
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -457,20 +586,20 @@
                                     />
                                 ))}
                             </div>
+                            <div className="h-8 w-0.5 bg-stone-200" />
+                            <div className="flex items-center space-x-2">
+                                <ListMoveSelector lists={lists} onSelect={applyBatchMove} />
+                                <button
+                                    onClick={applyBatchDelete}
+                                    className="p-2 rounded-full hover:bg-red-50 text-red-500"
+                                    title="Delete selected"
+                                >
+                                    <Icons.Trash2 size={20} />
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
-
-                <Stru.Modals.EditTaskModal
-                    isOpen={!!editingTask}
-                    task={editingTask}
-                    onClose={() => setEditingId(null)}
-                    onSave={(updates) => {
-                        if (!editingTask) return;
-                        onUpdate(editingTask.id, updates);
-                        setEditingId(null);
-                    }}
-                />
             </div>
         );
     };

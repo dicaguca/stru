@@ -336,70 +336,6 @@
         );
     };
 
-    const EditTaskModal = ({ isOpen, onClose, task, onSave }) => {
-        const [text, setText] = useState(task?.text || "");
-        const [priority, setPriority] = useState(task?.priority || "");
-
-        useEffect(() => {
-            setText(task?.text || "");
-            setPriority(task?.priority || "");
-        }, [task]);
-
-        if (!isOpen) return null;
-
-        return (
-            <ModalShell isOpen={isOpen}>
-                <h3 className="text-2xl font-bold text-stone-800 mb-6">Edit Task</h3>
-
-                <div className="mb-6">
-                    <label className="block text-lg font-semibold mb-3 text-stone-700">Task Text</label>
-                    <input
-                        autoFocus
-                        type="text"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base"
-                    />
-                </div>
-
-                <div className="mb-8">
-                    <label className="block text-lg font-semibold mb-3 text-stone-700">Priority Level</label>
-                    <select
-                        value={priority}
-                        onChange={(e) => setPriority(e.target.value)}
-                        className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base"
-                    >
-                        <option value="">No Priority</option>
-                        <option value="must">Priority (Rose)</option>
-                        <option value="should">High (Orange)</option>
-                        <option value="could">Medium (Yellow)</option>
-                        <option value="personal">Personal (Purple)</option>
-                        <option value="nice">Optional (Green)</option>
-                    </select>
-                </div>
-
-                <div className="flex space-x-4">
-                    <button
-                        onClick={() => {
-                            const trimmed = (text || "").trim();
-                            if (!trimmed) return;
-                            onSave?.({ ...task, text: trimmed, priority });
-                            onClose?.();
-                        }}
-                        className="flex-1 bg-gradient-to-r from-lime-400 to-green-500 text-white p-4 rounded-xl font-semibold text-lg"
-                    >
-                        Save Changes
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="flex-1 bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold text-lg"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </ModalShell>
-        );
-    };
 
     const SettingsModal = ({ isOpen, onClose, onResetDay, onExport, onImport, onSync }) => {
         const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -986,7 +922,6 @@
         CreateListModal,
         ListsManagerModal,
         AddSubtasksModal,
-        EditTaskModal,
         SettingsModal,
         BreakReminderModal,
         StartDayModal,

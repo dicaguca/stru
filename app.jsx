@@ -33,30 +33,30 @@ const resumeCtx = () => {
     return ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
 };
 
-const playBeeps = (type) => {
+// Custom clips for session start/end/warnings. Each is expected to include a
+// few seconds of silence up front (covers Bluetooth/AirPods codec wake-up),
+// so these play immediately with no synthesized wake-up tone or delay.
+const SOUND_FILES = {
+    start: "./sounds/session-start.mp3",
+    end: "./sounds/session-end.mp3",
+    warn10: "./sounds/session-10.mp3",
+    warn5: "./sounds/session-5.mp3",
+};
+
+const soundCache = {};
+
+const playSessionSound = (type) => {
+    const src = SOUND_FILES[type];
+    if (!src) return;
     try {
-        resumeCtx().then(() => {
-            const ctx = getCtx();
-            const freqs = type === "start"
-                ? [523.25, 659.25, 783.99]
-                : [783.99, 659.25, 523.25];
-
-            freqs.forEach((f, i) => {
-                const osc = ctx.createOscillator();
-                const g = ctx.createGain();
-                osc.connect(g);
-                g.connect(ctx.destination);
-                osc.frequency.value = f;
-                osc.type = "sine";
-
-                const t = ctx.currentTime + i * 0.15;
-                g.gain.setValueAtTime(0, t);
-                g.gain.linearRampToValueAtTime(0.3, t + 0.02);
-                g.gain.linearRampToValueAtTime(0, t + 0.1);
-                osc.start(t);
-                osc.stop(t + 0.1);
-            });
-        });
+        let audio = soundCache[type];
+        if (!audio) {
+            audio = new Audio(src);
+            soundCache[type] = audio;
+        } else {
+            audio.currentTime = 0;
+        }
+        audio.play().catch(() => {});
     } catch {
     }
 };
@@ -162,6 +162,7 @@ const App = () => {
     const sessionTargetTimeRef = React.useRef(null);
     const breakTargetTimeRef = React.useRef(null);
     const breakStartTimeRef = React.useRef(null);
+    const endSoundPlayedRef = React.useRef(false);
 
     // ── External sync (Stoa + Asana) ─────────────────────────────────────────
     // Track previous done-state of synced tasks so we can fire back-sync on flip.
@@ -312,7 +313,13 @@ const App = () => {
                     Math.ceil((sessionTargetTimeRef.current - Date.now()) / 1000)
                 );
                 setTimeRemaining(remainingSec);
-                if (remainingSec === 5) wakeDAC();
+                // Warnings fire 3s early so the clip's content lands on the actual mark.
+                if (remainingSec === 603) playSessionSound("warn10");
+                if (remainingSec === 303) playSessionSound("warn5");
+                if (remainingSec === 3) {
+                    playSessionSound("end");
+                    endSoundPlayedRef.current = true;
+                }
                 if (remainingSec === 0 && activeSession) {
                     setSessionEndQueued(true);
                 }
@@ -540,6 +547,32 @@ const App = () => {
         if (taskForSubtasks?.id === id) setTaskForSubtasks(null);
     };
 
+    const duplicateTask = (id) => {
+        const original = normalizedTasks.find((task) => task.id === id);
+        if (!original) return;
+
+        // Fresh copy: same text/priority/list/subtasks, but not tied to the
+        // original's sync source and not already marked done.
+        const duplicate = normalizeTask({
+            ...original,
+            id: uid(),
+            sourceApp: undefined,
+            sourceId: undefined,
+            done: false,
+            completed: false,
+            subtasks: (original.subtasks || []).map((subtask) => ({
+                ...subtask,
+                id: uid(),
+                done: false,
+                completed: false,
+            })),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        });
+
+        setTasks((prev) => [...(prev || []), duplicate]);
+    };
+
     const getSubtaskStats = (task) => {
         const subtasks = Array.isArray(task?.subtasks) ? task.subtasks : [];
         const completed = subtasks.filter((subtask) => subtask.done || subtask.completed).length;
@@ -754,8 +787,8 @@ const App = () => {
         setActiveSession(s);
         setTimeRemaining(mins * 60);
         sessionTargetTimeRef.current = Date.now() + mins * 60 * 1000;
-        wakeDAC();
-        setTimeout(() => playBeeps("start"), 1200);
+        endSoundPlayedRef.current = false;
+        playSessionSound("start");
         go("/session");
     };
 
@@ -801,8 +834,10 @@ const App = () => {
         );
         setActiveSession(null);
         sessionTargetTimeRef.current = null;
-        wakeDAC();
-        setTimeout(() => playBeeps("end"), 1200);
+        // Normally already played 3s before the natural end (see tick effect);
+        // this is the fallback for manual/early stops or a missed tick.
+        if (!endSoundPlayedRef.current) playSessionSound("end");
+        endSoundPlayedRef.current = false;
         go("/session-summary");
         setShowBreakReminder(true);
     };
@@ -929,6 +964,7 @@ const App = () => {
                         onUpdateSubtask={updateSubtask}
                         onDeleteSubtask={deleteSubtask}
                         onDelete={deleteTask}
+                        onDuplicate={duplicateTask}
                         getSubtaskStats={getSubtaskStats}
                     />
                 );

@@ -4,16 +4,17 @@
     const { Icons } = Stru;
 
     const PRIORITY_UI = {
-        must: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Priority" },
-        should: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
-        could: { bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-700", dot: "bg-yellow-400", label: "Medium" },
-        personal: { bg: "bg-indigo-50", border: "border-indigo-400", text: "text-indigo-700", dot: "bg-indigo-400", label: "Personal" },
-        nice: { bg: "bg-green-50", border: "border-green-400", text: "text-green-700", dot: "bg-green-400", label: "Optional" },
+        urgent: { bg: "bg-[#f7d6d1]", border: "border-[#c8402c]", text: "text-[#7a2418]", dot: "bg-[#c8402c]", label: "Urgent" },
+        top: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Top" },
+        high: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
+        normal: { bg: "bg-yellow-100", border: "border-yellow-400", text: "text-yellow-700", dot: "bg-yellow-400", label: "Normal" },
+        low: { bg: "bg-[#e9e8ca]", border: "border-[#8a8c4a]", text: "text-[#565821]", dot: "bg-[#8a8c4a]", label: "Low" },
+        optional: { bg: "bg-green-100", border: "border-green-400", text: "text-green-700", dot: "bg-green-400", label: "Optional" },
         "": { bg: "bg-stone-100", border: "border-stone-300", text: "text-stone-600", dot: "bg-stone-400", label: "No Priority" },
     };
 
-    const PRIORITY_ORDER = ["must", "should", "could", "personal", "nice", ""];
-    const normalizePriority = (p) => (p === "want" ? "nice" : (p || ""));
+    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional", ""];
+    const normalizePriority = (p) => p || "";
     const isDoneTask = (task) => !!(task.done || task.completed);
 
     const PrioritySelector = ({ currentPriority, onSelect }) => {
@@ -115,6 +116,9 @@
         activeListId,
         setActiveListId,
         selectedTaskIds,
+        modes,
+        activeModeId,
+        onSwitchMode,
         onAdd,
         onOpenListsManager,
         onOpenSubtasks,
@@ -142,19 +146,26 @@
             return pa - pb;
         };
 
+        const vaultListId = useMemo(() => (lists || []).find((list) => list.isVault)?.id, [lists]);
+
+        const sortedLists = useMemo(
+            () => (lists || []).slice().sort((a, b) => (a.isVault ? 1 : 0) - (b.isVault ? 1 : 0)),
+            [lists]
+        );
+
         const currentTasks = useMemo(
             () => (tasks || []).filter((task) => task.listId === activeListId),
             [tasks, activeListId]
         );
 
         const totalPending = useMemo(
-            () => (tasks || []).filter((task) => !isDoneTask(task)).length,
-            [tasks]
+            () => (tasks || []).filter((task) => task.listId !== vaultListId && !isDoneTask(task)).length,
+            [tasks, vaultListId]
         );
 
         const totalCompleted = useMemo(
-            () => (tasks || []).filter((task) => isDoneTask(task)).length,
-            [tasks]
+            () => (tasks || []).filter((task) => task.listId !== vaultListId && isDoneTask(task)).length,
+            [tasks, vaultListId]
         );
 
         const pending = useMemo(
@@ -275,7 +286,7 @@
             const textClass = [
                 "flex-1 text-lg",
                 isCompleted ? "line-through text-stone-600" : "text-stone-800",
-                priority === "must" ? "font-bold" : "font-medium",
+                priority === "urgent" ? "font-bold" : "font-medium",
             ].join(" ");
 
             return (
@@ -366,6 +377,19 @@
                                 >
                                     <Icons.Plus size={18} className="text-lime-700" />
                                 </button>
+
+                                {vaultListId && task.listId !== vaultListId && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onUpdate(task.id, { listId: vaultListId });
+                                        }}
+                                        className="p-2 hover:bg-white/60 rounded-lg"
+                                        title="Send to Vault"
+                                    >
+                                        <Icons.Archive size={20} className="text-stone-500" />
+                                    </button>
+                                )}
 
                                 <button
                                     onClick={(e) => {
@@ -473,6 +497,26 @@
             <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8 pb-32">
                 <div className="max-w-[56rem] mx-auto">
                     <div className="flex flex-col gap-4 mb-6">
+                        {modes && modes.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                {modes.map((mode) => {
+                                    const isActive = mode.id === activeModeId;
+                                    return (
+                                        <button
+                                            key={mode.id}
+                                            onClick={() => onSwitchMode?.(mode.id)}
+                                            className={`px-3 py-1 rounded-md whitespace-nowrap font-semibold text-sm transition-all ${isActive
+                                                    ? "bg-stone-800/10 text-stone-800"
+                                                    : "bg-transparent text-stone-400 hover:bg-stone-800/5 hover:text-stone-600"
+                                                }`}
+                                        >
+                                            {mode.name}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         <div className="flex items-center">
                             <button
                                 onClick={() => Stru.router.go("/home")}
@@ -531,20 +575,21 @@
                         <div className="bg-white/65 border border-white/70 rounded-[1.35rem] px-6 py-5 shadow-sm mt-2">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                 <div className="flex items-center gap-3 overflow-x-auto pb-1">
-                                    {(lists || []).map((list) => {
+                                    {sortedLists.map((list) => {
                                         const hasSelected = (tasks || []).some((task) => task.listId === list.id && (selectedTaskIds || []).includes(task.id));
                                         const isActive = list.id === activeListId;
                                         return (
                                             <button
                                                 key={list.id}
                                                 onClick={() => setActiveListId(list.id)}
-                                                className={`px-4 py-2 rounded-lg whitespace-nowrap font-bold text-sm transition-all ${isActive
+                                                className={`px-4 py-2 rounded-lg whitespace-nowrap font-bold text-sm transition-all flex items-center gap-1.5 ${isActive
                                                         ? "bg-stone-800 text-white shadow-md"
                                                         : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                                                     }`}
                                             >
+                                                {list.isVault && <Icons.Archive size={13} />}
                                                 <span>{list.name}</span>
-                                                {hasSelected && <span className={`ml-2 inline-block w-2.5 h-2.5 rounded-full ${isActive ? "bg-lime-300" : "bg-lime-500"}`} />}
+                                                {hasSelected && <span className={`ml-1 inline-block w-2.5 h-2.5 rounded-full ${isActive ? "bg-lime-300" : "bg-lime-500"}`} />}
                                             </button>
                                         );
                                     })}

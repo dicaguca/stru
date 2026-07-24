@@ -12,27 +12,27 @@
     };
 
     const PRIORITY_UI = {
-        must: { dot: "bg-rose-400", label: "Priority" },
-        should: { dot: "bg-orange-400", label: "High" },
-        could: { dot: "bg-yellow-400", label: "Medium" },
-        personal: { dot: "bg-indigo-400", label: "Personal" },
-        nice: { dot: "bg-green-400", label: "Optional" },
-        want: { dot: "bg-green-400", label: "Optional" },
+        urgent: { dot: "bg-[#c8402c]", label: "Urgent" },
+        top: { dot: "bg-rose-400", label: "Top" },
+        high: { dot: "bg-orange-400", label: "High" },
+        normal: { dot: "bg-yellow-400", label: "Normal" },
+        low: { dot: "bg-[#8a8c4a]", label: "Low" },
+        optional: { dot: "bg-green-400", label: "Optional" },
         "": { dot: "bg-stone-400", label: "No Priority" },
     };
 
     const PRIORITY_STYLES = {
-        must: { bg: "bg-rose-50", border: "border-rose-300" },
-        should: { bg: "bg-orange-50", border: "border-orange-300" },
-        could: { bg: "bg-yellow-50", border: "border-yellow-300" },
-        personal: { bg: "bg-indigo-50", border: "border-indigo-400" },
-        nice: { bg: "bg-green-50", border: "border-green-300" },
-        want: { bg: "bg-green-50", border: "border-green-300" },
+        urgent: { bg: "bg-[#fbe9e6]", border: "border-[#c8402c]" },
+        top: { bg: "bg-rose-50", border: "border-rose-300" },
+        high: { bg: "bg-orange-50", border: "border-orange-300" },
+        normal: { bg: "bg-yellow-50", border: "border-yellow-300" },
+        low: { bg: "bg-[#f2f1df]", border: "border-[#8a8c4a]" },
+        optional: { bg: "bg-green-50", border: "border-green-300" },
         "": { bg: "bg-stone-50", border: "border-stone-200" },
     };
 
-    const PRIORITY_ORDER = ["must", "should", "could", "personal", "nice", ""];
-    const normalizePriority = (p) => (p === "want" ? "nice" : (p || ""));
+    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional", ""];
+    const normalizePriority = (p) => p || "";
 
     const PrioritySelector = ({ currentPriority, onSelect }) => {
         const [isOpen, setIsOpen] = useState(false);
@@ -73,17 +73,23 @@
         );
     };
 
-    const loadAvailableTasksForSession = (excludeIds = []) => {
+    // Scoped to the session's own mode (not whatever mode happens to be active
+    // right now) — this is the actual "session locks to one mode" enforcement,
+    // since a user could otherwise switch modes elsewhere while this session
+    // (from a different mode) is still running.
+    const loadAvailableTasksForSession = (excludeIds = [], modeId, lists = []) => {
         try {
             const rawTasks = localStorage.getItem("stru-tasks");
-            const rawLists = localStorage.getItem("stru-lists");
             const taskArr = rawTasks ? JSON.parse(rawTasks) : [];
-            const listArr = rawLists ? JSON.parse(rawLists) : [];
             const tasks = Array.isArray(taskArr) ? taskArr : [];
-            const lists = Array.isArray(listArr) ? listArr : [];
-            const listMap = Object.fromEntries(lists.map((list) => [list.id, list.name]));
+            const modeListIds = new Set(
+                (lists || [])
+                    .filter((list) => list.modeId === modeId && !list.isVault)
+                    .map((list) => list.id)
+            );
+            const listMap = Object.fromEntries((lists || []).map((list) => [list.id, list.name]));
             return tasks
-                .filter((t) => !(t?.done || t?.completed) && !excludeIds.includes(t?.id))
+                .filter((t) => !(t?.done || t?.completed) && !excludeIds.includes(t?.id) && modeListIds.has(t?.listId))
                 .map((task) => ({
                     ...task,
                     listName: listMap[task?.listId] || "",
@@ -111,7 +117,7 @@
                                 className={`w-full text-left p-3 rounded-xl border-2 flex items-center transition-colors ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES[""]).border}`}
                             >
                                 <div className={`w-3 h-3 rounded-full mr-3 ${(PRIORITY_UI[normalizePriority(task.priority)] || PRIORITY_UI[""]).dot}`} />
-                                <span className={`font-medium ${normalizePriority(task.priority) === "must" ? "font-bold" : ""}`}>{task.text}</span>
+                                <span className={`font-medium ${normalizePriority(task.priority) === "urgent" ? "font-bold" : ""}`}>{task.text}</span>
                                 <Icons.Plus size={16} className="ml-auto text-stone-600" />
                             </button>
                         ))}
@@ -123,7 +129,7 @@
         );
     };
 
-    const SessionScreen = ({ session, timeRemainingSec, onExtend, onComplete, onAddSubtasksToTask, onUpdate, onDeleteSubtask }) => {
+    const SessionScreen = ({ session, modeId, lists, timeRemainingSec, onExtend, onComplete, onAddSubtasksToTask, onUpdate, onDeleteSubtask }) => {
         const base = session || { duration: 25 * 60, startTime: new Date(), tasks: [], completedTasks: [] };
         const timeRemaining = Number(timeRemainingSec) || 0;
         const totalPlanned = Number(base.duration) || 0;
@@ -357,7 +363,7 @@
             setTaskForSubtasks(null);
         };
 
-        const modalTasks = loadAvailableTasksForSession(tasks.map((task) => task.id));
+        const modalTasks = loadAvailableTasksForSession(tasks.map((task) => task.id), modeId, lists);
 
         const removeTaskFromSession = (id) => {
             setTasks((prev) => prev.filter((task) => task.id !== id));
@@ -515,7 +521,7 @@
                                                         onClick={() => toggleFocusedTask(task.id)}
                                                         className={`block w-full text-left rounded-xl px-2 py-1 -mx-2 transition-colors ${isCompleted ? "cursor-default" : isMinimizedByFocusMode ? "hover:bg-stone-100/80" : "hover:bg-white/50"}`}
                                                     >
-                                                        <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : isMinimizedByFocusMode ? "text-stone-400 font-medium" : priority === "must" ? "text-stone-800 font-bold" : "text-stone-800 font-medium"}`}>
+                                                        <div className={`text-lg leading-tight ${isCompleted ? "line-through text-stone-500" : isMinimizedByFocusMode ? "text-stone-400 font-medium" : priority === "urgent" ? "text-stone-800 font-bold" : "text-stone-800 font-medium"}`}>
                                                             {task.text}
                                                         </div>
                                                         {isFocused && (

@@ -141,6 +141,13 @@
                 <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
         ),
+        Archive: ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <rect x="2" y="4" width="20" height="5" rx="1"></rect>
+                <path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"></path>
+                <line x1="10" y1="13" x2="14" y2="13"></line>
+            </svg>
+        ),
         List: ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <line x1="8" y1="6" x2="21" y2="6"></line>

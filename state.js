@@ -43,47 +43,69 @@
         },
         DEFAULT_LIST_ID: "default-list",
         DEFAULT_LIST_NAME: "Main List",
-        PRIORITY_ORDER: ["must", "should", "could", "personal", "nice", ""],
+        VAULT_LIST_NAME: "Vault",
+        MODES: [
+            { id: "zen-habits", name: "Zen Habits" },
+            { id: "cbf", name: "CBF" },
+            { id: "personal", name: "Personal" },
+        ],
+        DEFAULT_MODE_ID: "zen-habits",
+        DEFAULT_PRIORITY: "normal",
+        PRIORITY_ORDER: ["urgent", "top", "high", "normal", "low", "optional", ""],
         PRIORITY_ALIASES: {
-            priority: "must",
-            high: "should",
-            medium: "could",
-            optional: "nice",
+            // Legacy canonical keys (pre-Modes priority system) → new canonical keys.
+            // "personal" used to double as both a category and a priority; category
+            // is now handled by Modes, so it collapses into the new default priority.
+            must: "top",
+            should: "high",
+            could: "normal",
+            personal: "normal",
+            nice: "optional",
+            // Legacy loose synonyms → new canonical keys.
+            priority: "top",
+            medium: "normal",
+            want: "optional",
             none: "",
             nopriority: "",
             no_priority: "",
-            want: "nice",
         },
         priorityColors: {
-            must: {
-                label: "Priority",
+            urgent: {
+                label: "Urgent",
+                bg: "bg-[#fbe9e6]",
+                border: "border-[#c8402c]",
+                text: "text-[#7a2418]",
+                dot: "bg-[#c8402c]",
+            },
+            top: {
+                label: "Top",
                 bg: "bg-rose-50",
                 border: "border-rose-300",
                 text: "text-rose-700",
                 dot: "bg-rose-400",
             },
-            should: {
+            high: {
                 label: "High",
                 bg: "bg-orange-50",
                 border: "border-orange-300",
                 text: "text-orange-700",
                 dot: "bg-orange-400",
             },
-            could: {
-                label: "Medium",
+            normal: {
+                label: "Normal",
                 bg: "bg-yellow-50",
                 border: "border-yellow-300",
                 text: "text-yellow-700",
                 dot: "bg-yellow-400",
             },
-            personal: {
-                label: "Personal",
-                bg: "bg-indigo-50",
-                border: "border-indigo-400",
-                text: "text-indigo-700",
-                dot: "bg-indigo-400",
+            low: {
+                label: "Low",
+                bg: "bg-[#f2f1df]",
+                border: "border-[#8a8c4a]",
+                text: "text-[#565821]",
+                dot: "bg-[#8a8c4a]",
             },
-            nice: {
+            optional: {
                 label: "Optional",
                 bg: "bg-green-50",
                 border: "border-green-300",
@@ -146,6 +168,8 @@
         id: list?.id || Stru.utils.uid(),
         name: (list?.name ?? "").toString().trim() || "Untitled List",
         createdAt: list?.createdAt ?? list?.created_at ?? Date.now(),
+        modeId: list?.modeId || null,
+        isVault: !!list?.isVault,
     });
 
     const normalizeTask = (t) => {

@@ -4,36 +4,43 @@
     const { Icons } = Stru;
 
     const priorityColors = {
-        must: {
+        urgent: {
+            bg: "bg-[#f7d6d1]",
+            border: "border-[#c8402c]",
+            text: "text-[#7a2418]",
+            dot: "bg-[#c8402c]",
+            label: "Urgent",
+        },
+        top: {
             bg: "bg-rose-100",
             border: "border-rose-400",
             text: "text-rose-700",
             dot: "bg-rose-400",
-            label: "Priority",
+            label: "Top",
         },
-        should: {
+        high: {
             bg: "bg-orange-100",
             border: "border-orange-400",
             text: "text-orange-700",
             dot: "bg-orange-400",
             label: "High",
         },
-        could: {
-            bg: "bg-yellow-50",
-            border: "border-yellow-300",
+        normal: {
+            bg: "bg-yellow-100",
+            border: "border-yellow-400",
             text: "text-yellow-700",
             dot: "bg-yellow-400",
-            label: "Medium",
+            label: "Normal",
         },
-        personal: {
-            bg: "bg-indigo-50",
-            border: "border-indigo-400",
-            text: "text-indigo-700",
-            dot: "bg-indigo-400",
-            label: "Personal",
+        low: {
+            bg: "bg-[#e9e8ca]",
+            border: "border-[#8a8c4a]",
+            text: "text-[#565821]",
+            dot: "bg-[#8a8c4a]",
+            label: "Low",
         },
-        nice: {
-            bg: "bg-green-50",
+        optional: {
+            bg: "bg-green-100",
             border: "border-green-400",
             text: "text-green-700",
             dot: "bg-green-400",
@@ -49,29 +56,27 @@
     };
 
     const priorityTrackColors = {
-        must: "bg-rose-200",
-        should: "bg-orange-200",
-        could: "bg-yellow-200",
-        personal: "bg-indigo-200",
-        nice: "bg-green-200",
+        urgent: "bg-[#eeb3a8]",
+        top: "bg-rose-200",
+        high: "bg-orange-200",
+        normal: "bg-yellow-200",
+        low: "bg-[#d7d597]",
+        optional: "bg-green-200",
         "": "bg-stone-200",
     };
 
-    const PRIORITY_KEYS = ["must", "should", "could", "personal", "nice", ""];
+    const PRIORITY_KEYS = ["urgent", "top", "high", "normal", "low", "optional", ""];
 
-    const normalizePriority = (p) => {
-        if (p === "want") return "nice";
-        if (!p) return "";
-        return p;
-    };
+    const normalizePriority = (p) => p || "";
 
     const computePrioritiesFromTasks = (tasks = []) => {
         const stats = {
-            must: { active: 0, completed: 0 },
-            should: { active: 0, completed: 0 },
-            could: { active: 0, completed: 0 },
-            personal: { active: 0, completed: 0 },
-            nice: { active: 0, completed: 0 },
+            urgent: { active: 0, completed: 0 },
+            top: { active: 0, completed: 0 },
+            high: { active: 0, completed: 0 },
+            normal: { active: 0, completed: 0 },
+            low: { active: 0, completed: 0 },
+            optional: { active: 0, completed: 0 },
             "": { active: 0, completed: 0 },
         };
 
@@ -129,10 +134,25 @@
         onStartDay,
         onEndDay,
         tasks = [],
+        allTasks,
+        lists = [],
+        modes = [],
+        activeModeId,
+        onSwitchMode,
         activeTasksCount,
         workSessionCount = 0,
         priorities,
     }) => {
+        const otherModes = modes.filter((mode) => mode.id !== activeModeId);
+        const otherModeCounts = otherModes.map((mode) => {
+            const modeListIds = new Set(
+                lists.filter((list) => list.modeId === mode.id && !list.isVault).map((list) => list.id)
+            );
+            const pending = (allTasks || tasks).filter(
+                (task) => modeListIds.has(task.listId) && !(task.done || task.completed)
+            ).length;
+            return { mode, pending };
+        });
         const activeCount =
             typeof activeTasksCount === "number"
                 ? activeTasksCount
@@ -190,6 +210,42 @@
         return (
             <div className="min-h-screen bg-gradient-to-br from-orange-100 via-yellow-50 to-rose-100 p-8">
                 <div className="max-w-[68rem] mx-auto">
+                    {modes.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-3 mb-5">
+                            <div className="flex items-center gap-2">
+                                {modes.map((mode) => {
+                                    const isActive = mode.id === activeModeId;
+                                    return (
+                                        <button
+                                            key={mode.id}
+                                            onClick={() => onSwitchMode?.(mode.id)}
+                                            className={`px-3 py-1 rounded-md whitespace-nowrap font-semibold text-sm transition-all ${isActive
+                                                    ? "bg-stone-800/10 text-stone-800"
+                                                    : "bg-transparent text-stone-400 hover:bg-stone-800/5 hover:text-stone-600"
+                                                }`}
+                                        >
+                                            {mode.name}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {otherModeCounts.length > 0 && (
+                                <div className="flex items-center gap-2 text-xs">
+                                    {otherModeCounts.map(({ mode, pending }) => (
+                                        <button
+                                            key={mode.id}
+                                            onClick={() => onSwitchMode?.(mode.id)}
+                                            className="px-2.5 py-1 rounded-full bg-white/50 text-stone-400 hover:text-stone-600 hover:bg-white/80 font-medium transition-colors"
+                                        >
+                                            {mode.name}: {pending} pending
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_270px] gap-5 mb-10 items-end">
                         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                             <div className="flex items-center gap-4 text-center md:text-left">

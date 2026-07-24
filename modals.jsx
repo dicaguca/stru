@@ -16,13 +16,14 @@
     };
 
     const AddTaskModal = ({ isOpen, onClose, onAdd, listName }) => {
-        const [newTaskPriority, setNewTaskPriority] = useState("");
+        const DEFAULT_PRIORITY = (Stru.constants && Stru.constants.DEFAULT_PRIORITY) || "normal";
+        const [newTaskPriority, setNewTaskPriority] = useState(DEFAULT_PRIORITY);
         const [bulkTaskText, setBulkTaskText] = useState("");
 
         useEffect(() => {
             if (!isOpen) {
                 setBulkTaskText("");
-                setNewTaskPriority("");
+                setNewTaskPriority(DEFAULT_PRIORITY);
             }
         }, [isOpen]);
 
@@ -36,7 +37,7 @@
 
             lines.forEach((text) => onAdd({ text, priority: newTaskPriority }));
             setBulkTaskText("");
-            setNewTaskPriority("");
+            setNewTaskPriority(DEFAULT_PRIORITY);
             onClose();
         };
 
@@ -55,12 +56,13 @@
                             onChange={(e) => setNewTaskPriority(e.target.value)}
                             className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base"
                         >
+                            <option value="urgent">Urgent (Red)</option>
+                            <option value="top">Top (Rose)</option>
+                            <option value="high">High (Orange)</option>
+                            <option value="normal">Normal (Yellow)</option>
+                            <option value="low">Low (Olive)</option>
+                            <option value="optional">Optional (Green)</option>
                             <option value="">No Priority</option>
-                            <option value="must">Priority (Rose)</option>
-                            <option value="should">High (Orange)</option>
-                            <option value="could">Medium (Yellow)</option>
-                            <option value="personal">Personal (Purple)</option>
-                            <option value="nice">Optional (Green)</option>
                         </select>
                     </div>
 
@@ -202,7 +204,10 @@
                 </div>
 
                 <div className="space-y-3 mb-8">
-                    {(lists || []).map((list) => {
+                    {(lists || [])
+                        .slice()
+                        .sort((a, b) => (a.isVault ? 1 : 0) - (b.isVault ? 1 : 0))
+                        .map((list) => {
                         const isDefault = list.id === defaultListId;
                         const isEditing = editingId === list.id;
 
@@ -220,10 +225,16 @@
                                             />
                                         ) : (
                                             <div className="flex items-center gap-2">
+                                                {list.isVault && <Icons.Archive size={16} className="text-stone-400 shrink-0" />}
                                                 <span className="text-lg font-semibold text-stone-800">{list.name}</span>
                                                 {isDefault && (
                                                     <span className="px-2.5 py-1 rounded-full bg-stone-200 text-stone-600 text-xs font-bold">
                                                         Default
+                                                    </span>
+                                                )}
+                                                {list.isVault && (
+                                                    <span className="px-2.5 py-1 rounded-full bg-stone-200 text-stone-600 text-xs font-bold">
+                                                        Vault
                                                     </span>
                                                 )}
                                             </div>
@@ -265,7 +276,7 @@
                                             >
                                                 Rename
                                             </button>
-                                            {!isDefault && (
+                                            {!isDefault && !list.isVault && (
                                                 <button
                                                     onClick={() => onDelete?.(list.id)}
                                                     className="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-xl font-semibold"

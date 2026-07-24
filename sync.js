@@ -6,15 +6,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Stoa tasks:
 //   • In a folder/list named "CBF", or with taskType "CBF"
-//       → Stru list "CBF"      priority: "could"  (Medium)
+//       → Stru list "CBF"      priority: "normal"
 //   • Everything else
-//       → Stru list "Personal" priority: "personal"
+//       → Stru list "Personal" priority: "normal"
 //
 // Asana tasks:
 //   • Name starts with "YouTube"
-//       → Stru list "YouTube"  priority: "could"  (Medium)
+//       → Stru list "YouTube"  priority: "normal"
 //   • Everything else
-//       → Stru default list    priority: "could"  (Medium)
+//       → Stru default list    priority: "normal"
 //
 // When to sync
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,6 +82,24 @@
         if (!name) return null;
         const lower = name.toLowerCase().trim();
         return struLists.find(l => l.name?.toLowerCase().trim() === lower)?.id || null;
+    };
+
+    /**
+     * Find the list a synced task should land in by Mode membership, not by
+     * list name. Modes are fixed IDs the user can't rename, unlike lists —
+     * so this survives the user renaming their CBF/Personal list, whereas a
+     * pure name lookup would silently fall back to the default list the
+     * moment the name no longer matches.
+     * Prefers a non-Vault list in that mode; falls back to the mode's Vault
+     * if that's the only list there yet; falls back to name-based lookup as
+     * a last resort (e.g. running before the app's mode-migration effect).
+     */
+    const findListIdForMode = (struLists, modeId, fallbackName) => {
+        const inMode = (struLists || []).filter(l => l.modeId === modeId);
+        const nonVault = inMode.find(l => !l.isVault);
+        if (nonVault) return nonVault.id;
+        if (inMode.length > 0) return inMode[0].id;
+        return findListIdByName(struLists, fallbackName);
     };
 
     // ── Asana REST helpers ────────────────────────────────────────────────────
@@ -265,8 +283,8 @@
      * Merge Stoa tasks due today/overdue into currentTasks.
      *
      * Routing:
-     *   CBF (folder, list, or taskType)  → list "CBF",      priority "could"
-     *   Everything else                  → list "Personal",  priority "personal"
+     *   CBF (folder, list, or taskType)  → CBF mode's list,      priority "normal"
+     *   Everything else                  → Personal mode's list, priority "normal"
      */
     const mergeFromStoa = async (currentTasks) => {
         const stoa = await readStoaData();
@@ -274,8 +292,8 @@
 
         const struLists   = loadStruLists();
         const defaultId   = window.Stru?.constants?.DEFAULT_LIST_ID || 'default-list';
-        const cbfListId   = findListIdByName(struLists, 'CBF')      || defaultId;
-        const personalId  = findListIdByName(struLists, 'Personal') || defaultId;
+        const cbfListId   = findListIdForMode(struLists, 'cbf', 'CBF')           || defaultId;
+        const personalId  = findListIdForMode(struLists, 'personal', 'Personal') || defaultId;
 
         const existingIds = new Set(
             currentTasks
@@ -294,7 +312,7 @@
             newTasks.push({
                 id:        uid(),
                 text:      (st.text || st.title || '').toString(),
-                priority:  cbf ? 'could' : 'personal',
+                priority:  'normal',
                 done:      false,
                 completed: false,
                 createdAt: st.createdAt || Date.now(),
@@ -319,8 +337,8 @@
      * Merge Asana tasks due today/overdue into currentTasks.
      *
      * Routing:
-     *   Name starts with "YouTube"  → list "YouTube",      priority "could"
-     *   Everything else             → Stru default list,   priority "could"
+     *   Name starts with "YouTube"  → list "YouTube",      priority "normal"
+     *   Everything else             → Stru default list,   priority "normal"
      */
     const mergeFromAsana = async (currentTasks) => {
         const pat   = localStorage.getItem(STORAGE_KEYS.ASANA_PAT);
@@ -352,7 +370,7 @@
             newTasks.push({
                 id:        uid(),
                 text:      (at.name || '').toString(),
-                priority:  'could',    // Medium for all Asana tasks
+                priority:  'normal',   // Normal for all Asana tasks
                 done:      false,
                 completed: false,
                 createdAt: Date.now(),

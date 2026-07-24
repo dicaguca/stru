@@ -68,10 +68,13 @@ Everything is attached to `window.Stru`. Screens register themselves as `Stru.Sc
 `app.jsx` owns the top-level state (tasks, sessions, breaks, active session, etc.) using `usePersistedState` from `state.js`, which wraps React's `useState` and syncs to `localStorage` automatically.
 
 ### Priority system
-Priorities are defined in `state.js` under `Stru.constants.priorityColors` and `PRIORITY_ORDER`. Each screen (`session.jsx`, `masterlist.jsx`, `plan-session.jsx`, `home.jsx`) has a local copy of the priority map for its own styling — **all copies must be kept in sync** when adding or changing a priority.
+Priorities are defined in `state.js` under `Stru.constants.priorityColors` and `PRIORITY_ORDER`. `PRIORITY_ORDER`/`label`/`dot` are centralized there; each screen (`session.jsx`, `masterlist.jsx`, `plan-session.jsx`, `home.jsx`, and `modals.jsx`'s `AddTaskModal`) still keeps its own local `bg`/`border`/`text` shade object (deliberately not identical — Master List/Session/Home use a more saturated shade than the lighter one used elsewhere) — **all copies must be kept in sync** when adding or changing a priority tier.
 
 Current priority order (high → low):
-`must` → `should` → `could` → `personal` → `nice` → `""` (no priority)
+`urgent` → `top` → `high` → `normal` → `low` → `optional` → `""` (no priority). New tasks default to `normal`. `Stru.constants.PRIORITY_ALIASES` maps legacy values (`must`, `should`, `could`, `personal`, `nice`, `want`, and older loose synonyms) to their new canonical key, so old stored data is transparently migrated the first time it's normalized — never write a task with a legacy priority string directly.
+
+### Modes
+Above Lists sits a fixed set of **Modes** (`Stru.constants.MODES`: Zen Habits, CBF, Personal) — the user works in exactly one active mode at a time (`activeModeId` in `app.jsx`, persisted). Every list has a `modeId`; Master List, Plan Session, and the active session are all scoped to the active mode, while History/Daily Report/Session Log stay pooled across all modes by design. Each mode has exactly one permanent, non-deletable **Vault** list (`isVault: true`) for tasks the user wants out of sight — movable to with a single click from Master List, always sorted last in the list-tabs row.
 
 ### Session timer
 The timer is wall-clock based, not tick-counted. `sessionTargetTimeRef` holds an absolute timestamp for when the session ends. Each tick recalculates `Math.ceil((targetTime - Date.now()) / 1000)`. This means the timer is immune to the computer sleeping or going idle — if the machine wakes up after the session should have ended, the duration is capped at the scheduled end time, not the wake time.

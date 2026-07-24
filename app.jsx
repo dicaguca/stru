@@ -154,6 +154,7 @@ const App = () => {
     const [sessionDuration, setSessionDuration] = useState(25);
     const [selectedTasks, setSelectedTasks] = useState([]);
     const [activeListId, setActiveListId] = useState(Stru.constants.DEFAULT_LIST_ID);
+    const [activeModeId, setActiveModeId] = usePersistedState("stru-active-mode-id", Stru.constants.DEFAULT_MODE_ID);
 
     const [activeSession, setActiveSession] = usePersistedState("stru-active-session", null);
     const [timeRemaining, setTimeRemaining] = useState(0);
@@ -256,9 +257,29 @@ const App = () => {
     const route = useRoute();
 
     useEffect(() => {
-        const safeLists = Array.isArray(lists) && lists.length > 0
+        const modeIdForListName = (name) => {
+            const n = (name || "").trim().toLowerCase();
+            if (n === "cbf") return "cbf";
+            if (n === "personal") return "personal";
+            return Stru.constants.DEFAULT_MODE_ID;
+        };
+
+        let safeLists = (Array.isArray(lists) && lists.length > 0
             ? lists.map((list) => normalizeList(list))
-            : [getDefaultList()];
+            : [getDefaultList()]
+        ).map((list) => (list.modeId ? list : { ...list, modeId: modeIdForListName(list.name) }));
+
+        Stru.constants.MODES.forEach((mode) => {
+            const hasVault = safeLists.some((list) => list.modeId === mode.id && list.isVault);
+            if (!hasVault) {
+                safeLists = [...safeLists, normalizeList({
+                    id: uid(),
+                    name: Stru.constants.VAULT_LIST_NAME,
+                    modeId: mode.id,
+                    isVault: true,
+                })];
+            }
+        });
 
         const currentIds = new Set(safeLists.map((list) => list.id));
         const normalizedTasks = (Array.isArray(tasks) ? tasks : []).map((task) => {
@@ -275,10 +296,18 @@ const App = () => {
         if (listsChanged) setLists(safeLists);
         if (tasksChanged) setTasks(normalizedTasks);
 
-        if (!currentIds.has(activeListId)) {
-            setActiveListId(safeLists[0].id);
+        if (!Stru.constants.MODES.some((mode) => mode.id === activeModeId)) {
+            setActiveModeId(Stru.constants.DEFAULT_MODE_ID);
         }
-    }, [lists, tasks, activeListId, setLists, setTasks]);
+
+        const activeList = safeLists.find((list) => list.id === activeListId);
+        if (!activeList || activeList.modeId !== activeModeId) {
+            const fallback = safeLists.find((list) => list.modeId === activeModeId && !list.isVault)
+                || safeLists.find((list) => list.modeId === activeModeId)
+                || safeLists[0];
+            if (fallback) setActiveListId(fallback.id);
+        }
+    }, [lists, tasks, activeListId, activeModeId, setLists, setTasks, setActiveModeId]);
 
     useEffect(() => {
         const taskIds = new Set(
@@ -300,8 +329,25 @@ const App = () => {
     const workSessionEvents = filterWorkEventsToWorkSession(workEvents, sessions);
 
     const listMap = Object.fromEntries(normalizedLists.map((list) => [list.id, list]));
-    const currentList = listMap[activeListId] || normalizedLists[0] || getDefaultList();
-    const availableTasks = normalizedTasks.filter((task) => !(task.done || task.completed));
+
+    // Everything except history/reports is scoped to the active mode — the user
+    // works in exactly one mode (Zen Habits / CBF / Personal) at a time.
+    const modeLists = normalizedLists.filter((list) => list.modeId === activeModeId);
+    const vaultList = modeLists.find((list) => list.isVault);
+    const modeTasks = normalizedTasks.filter((task) => modeLists.some((list) => list.id === task.listId));
+    const availableTasks = modeTasks.filter(
+        (task) => task.listId !== vaultList?.id && !(task.done || task.completed)
+    );
+
+    const currentList = listMap[activeListId] || modeLists.find((list) => !list.isVault) || vaultList || getDefaultList();
+
+    const switchMode = (modeId) => {
+        setActiveModeId(modeId);
+        const listsForMode = normalizedLists.filter((list) => list.modeId === modeId);
+        const firstNonVault = listsForMode.find((list) => !list.isVault) || listsForMode[0];
+        if (firstNonVault) setActiveListId(firstNonVault.id);
+        setSelectedTasks([]);
+    };
 
     useEffect(() => {
         if (!activeSession && !isBreakRunning) return;
@@ -407,7 +453,7 @@ const App = () => {
     ]);
 
     const addList = (name) => {
-        const nextList = normalizeList({ id: uid(), name });
+        const nextList = normalizeList({ id: uid(), name, modeId: activeModeId });
         setLists((prev) => [...(prev || []), nextList]);
         setActiveListId(nextList.id);
     };
@@ -427,13 +473,22 @@ const App = () => {
     const deleteList = (listId) => {
         if (!listId || listId === Stru.constants.DEFAULT_LIST_ID) return;
 
+        const target = normalizedLists.find((list) => list.id === listId);
+        if (!target || target.isVault) return;
+
+        // Reassign orphaned tasks to that list's own mode's Vault, not the
+        // global default list — otherwise deleting a list would silently move
+        // its tasks into whatever mode owns the default list.
+        const vaultForMode = normalizedLists.find((list) => list.modeId === target.modeId && list.isVault);
+        const fallbackListId = vaultForMode?.id || Stru.constants.DEFAULT_LIST_ID;
+
         setTasks((prev) =>
             (prev || []).map((task) => {
                 const normalized = normalizeTask(task);
                 if (normalized.listId !== listId) return normalized;
                 return normalizeTask({
                     ...normalized,
-                    listId: Stru.constants.DEFAULT_LIST_ID,
+                    listId: fallbackListId,
                     updatedAt: Date.now(),
                 });
             })
@@ -441,7 +496,7 @@ const App = () => {
 
         setLists((prev) => (prev || []).filter((list) => list.id !== listId));
         if (activeListId === listId) {
-            setActiveListId(Stru.constants.DEFAULT_LIST_ID);
+            setActiveListId(fallbackListId);
         }
     };
 
@@ -780,6 +835,7 @@ const App = () => {
             id: uid(),
             duration: mins * 60,
             startTime: new Date(),
+            modeId: activeModeId,
             tasks: sessionTasks,
             completedTasks: [],
         };
@@ -929,6 +985,8 @@ const App = () => {
             return (
                 <Stru.Screens.SessionScreen
                     session={activeSession}
+                    modeId={activeSession?.modeId || activeModeId}
+                    lists={normalizedLists}
                     timeRemainingSec={timeRemaining}
                     onComplete={endSessionAndSave}
                     onUpdate={updateTask}
@@ -952,11 +1010,14 @@ const App = () => {
             case "/master-list":
                 return (
                     <Stru.Screens.MasterListScreen
-                        tasks={normalizedTasks}
-                        lists={normalizedLists}
+                        tasks={modeTasks}
+                        lists={modeLists}
                         activeListId={currentList.id}
                         setActiveListId={setActiveListId}
                         selectedTaskIds={selectedTasks}
+                        modes={Stru.constants.MODES}
+                        activeModeId={activeModeId}
+                        onSwitchMode={switchMode}
                         onAdd={() => setShowAddTask(true)}
                         onOpenListsManager={() => setShowListsManager(true)}
                         onOpenSubtasks={(task) => setTaskForSubtasks(task)}
@@ -979,7 +1040,7 @@ const App = () => {
                         selectedTasks={selectedTasks}
                         setSelectedTasks={setSelectedTasks}
                         availableTasks={availableTasks}
-                        lists={normalizedLists}
+                        lists={modeLists.filter((list) => !list.isVault)}
                         activeListId={currentList.id}
                         setActiveListId={setActiveListId}
                         onOpenAddTask={() => setShowAddTask(true)}
@@ -1028,7 +1089,12 @@ const App = () => {
             default:
                 return (
                     <Stru.Screens.HomeScreen
-                        tasks={normalizedTasks}
+                        tasks={modeTasks}
+                        allTasks={normalizedTasks}
+                        lists={normalizedLists}
+                        modes={Stru.constants.MODES}
+                        activeModeId={activeModeId}
+                        onSwitchMode={switchMode}
                         workSessionCount={countSessionsInWorkSession(sessions, workEvents)}
                         onOpenSettings={() => setShowSettings(true)}
                         onStartDay={() => setShowStartDay(true)}
@@ -1055,7 +1121,7 @@ const App = () => {
             <Stru.Modals.ListsManagerModal
                 isOpen={showListsManager}
                 onClose={() => setShowListsManager(false)}
-                lists={normalizedLists}
+                lists={modeLists}
                 defaultListId={Stru.constants.DEFAULT_LIST_ID}
                 onCreate={addList}
                 onRename={renameList}

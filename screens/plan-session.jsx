@@ -6,23 +6,25 @@
 
     const priorityColors =
         (Stru.constants && Stru.constants.priorityColors) || {
-            must: { bg: "bg-rose-50", border: "border-rose-300", dot: "bg-rose-400" },
-            should: { bg: "bg-orange-50", border: "border-orange-300", dot: "bg-orange-400" },
-            could: { bg: "bg-yellow-50", border: "border-yellow-300", dot: "bg-yellow-400" },
-            personal: { bg: "bg-indigo-50", border: "border-indigo-400", dot: "bg-indigo-400" },
-            nice: { bg: "bg-green-50", border: "border-green-300", dot: "bg-green-400" },
+            urgent: { bg: "bg-[#fbe9e6]", border: "border-[#c8402c]", dot: "bg-[#c8402c]" },
+            top: { bg: "bg-rose-50", border: "border-rose-300", dot: "bg-rose-400" },
+            high: { bg: "bg-orange-50", border: "border-orange-300", dot: "bg-orange-400" },
+            normal: { bg: "bg-yellow-50", border: "border-yellow-300", dot: "bg-yellow-400" },
+            low: { bg: "bg-[#f2f1df]", border: "border-[#8a8c4a]", dot: "bg-[#8a8c4a]" },
+            optional: { bg: "bg-green-50", border: "border-green-300", dot: "bg-green-400" },
             "": { bg: "bg-stone-50", border: "border-stone-200", dot: "bg-stone-400" },
         };
 
-    const PRIORITY_ORDER = ["must", "should", "could", "personal", "nice", ""];
-    const normalizePriority = (p) => (p === "want" ? "nice" : (p || ""));
+    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional", ""];
+    const normalizePriority = (p) => p || "";
 
     const PRIORITY_UI = {
-        must: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Priority" },
-        should: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
-        could: { bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-700", dot: "bg-yellow-400", label: "Medium" },
-        personal: { bg: "bg-indigo-50", border: "border-indigo-400", text: "text-indigo-700", dot: "bg-indigo-400", label: "Personal" },
-        nice: { bg: "bg-green-50", border: "border-green-400", text: "text-green-700", dot: "bg-green-400", label: "Optional" },
+        urgent: { bg: "bg-[#f7d6d1]", border: "border-[#c8402c]", text: "text-[#7a2418]", dot: "bg-[#c8402c]", label: "Urgent" },
+        top: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Top" },
+        high: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
+        normal: { bg: "bg-yellow-100", border: "border-yellow-400", text: "text-yellow-700", dot: "bg-yellow-400", label: "Normal" },
+        low: { bg: "bg-[#e9e8ca]", border: "border-[#8a8c4a]", text: "text-[#565821]", dot: "bg-[#8a8c4a]", label: "Low" },
+        optional: { bg: "bg-green-100", border: "border-green-400", text: "text-green-700", dot: "bg-green-400", label: "Optional" },
         "": { bg: "bg-stone-100", border: "border-stone-300", text: "text-stone-600", dot: "bg-stone-400", label: "No Priority" },
     };
 
@@ -363,7 +365,7 @@
                                     const subtaskStats = getSubtaskStats(task);
                                     const textClass = [
                                         "flex-1 text-lg",
-                                        priority === "must" ? "font-bold text-stone-900" : "font-medium text-stone-800",
+                                        priority === "urgent" ? "font-bold text-stone-900" : "font-medium text-stone-800",
                                     ].join(" ");
 
                                     return (

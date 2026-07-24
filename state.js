@@ -51,7 +51,7 @@
         ],
         DEFAULT_MODE_ID: "zen-habits",
         DEFAULT_PRIORITY: "normal",
-        PRIORITY_ORDER: ["urgent", "top", "high", "normal", "low", "optional", ""],
+        PRIORITY_ORDER: ["urgent", "top", "high", "normal", "low", "optional"],
         PRIORITY_ALIASES: {
             // Legacy canonical keys (pre-Modes priority system) → new canonical keys.
             // "personal" used to double as both a category and a priority; category
@@ -65,9 +65,10 @@
             priority: "top",
             medium: "normal",
             want: "optional",
-            none: "",
-            nopriority: "",
-            no_priority: "",
+            // "No Priority" is retired — anything blank/unrecognized becomes Normal.
+            none: "normal",
+            nopriority: "normal",
+            no_priority: "normal",
         },
         priorityColors: {
             urgent: {
@@ -100,10 +101,10 @@
             },
             low: {
                 label: "Low",
-                bg: "bg-lime-50",
-                border: "border-lime-300",
-                text: "text-lime-800",
-                dot: "bg-lime-600",
+                bg: "bg-stone-50",
+                border: "border-stone-300",
+                text: "text-stone-700",
+                dot: "bg-stone-400",
             },
             optional: {
                 label: "Optional",
@@ -111,13 +112,6 @@
                 border: "border-green-300",
                 text: "text-green-700",
                 dot: "bg-green-400",
-            },
-            "": {
-                label: "No Priority",
-                bg: "bg-stone-50",
-                border: "border-stone-300",
-                text: "text-stone-700",
-                dot: "bg-stone-400",
             },
         },
     };
@@ -154,7 +148,8 @@
         const raw = (p ?? "").toString().trim().toLowerCase();
         const aliased = Stru.constants.PRIORITY_ALIASES[raw];
         const canonical = aliased !== undefined ? aliased : raw;
-        return Stru.constants.priorityColors[canonical] ? canonical : "";
+        // "No Priority" is retired as a tier — anything unrecognized becomes Normal.
+        return Stru.constants.priorityColors[canonical] ? canonical : Stru.constants.DEFAULT_PRIORITY;
     };
 
     const normalizeSubtask = (subtask) => ({

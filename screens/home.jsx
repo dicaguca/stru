@@ -33,10 +33,10 @@
             label: "Normal",
         },
         low: {
-            bg: "bg-lime-100",
-            border: "border-lime-600",
-            text: "text-lime-800",
-            dot: "bg-lime-600",
+            bg: "bg-stone-100",
+            border: "border-stone-300",
+            text: "text-stone-600",
+            dot: "bg-stone-400",
             label: "Low",
         },
         optional: {
@@ -46,13 +46,6 @@
             dot: "bg-green-400",
             label: "Optional",
         },
-        "": {
-            bg: "bg-stone-100",
-            border: "border-stone-300",
-            text: "text-stone-600",
-            dot: "bg-stone-400",
-            label: "No Priority",
-        },
     };
 
     const priorityTrackColors = {
@@ -60,14 +53,13 @@
         top: "bg-rose-200",
         high: "bg-orange-200",
         normal: "bg-yellow-200",
-        low: "bg-lime-200",
+        low: "bg-stone-200",
         optional: "bg-green-200",
-        "": "bg-stone-200",
     };
 
-    const PRIORITY_KEYS = ["urgent", "top", "high", "normal", "low", "optional", ""];
+    const PRIORITY_KEYS = ["urgent", "top", "high", "normal", "low", "optional"];
 
-    const normalizePriority = (p) => p || "";
+    const normalizePriority = (p) => p || "normal";
 
     const computePrioritiesFromTasks = (tasks = []) => {
         const stats = {
@@ -77,12 +69,11 @@
             normal: { active: 0, completed: 0 },
             low: { active: 0, completed: 0 },
             optional: { active: 0, completed: 0 },
-            "": { active: 0, completed: 0 },
         };
 
         tasks.forEach((t) => {
             const p = normalizePriority(t.priority);
-            const key = priorityColors[p] ? p : "";
+            const key = priorityColors[p] ? p : "normal";
             if (t.done || t.completed) stats[key].completed += 1;
             else stats[key].active += 1;
         });

@@ -8,13 +8,12 @@
         top: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Top" },
         high: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
         normal: { bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-700", dot: "bg-yellow-400", label: "Normal" },
-        low: { bg: "bg-lime-100", border: "border-lime-600", text: "text-lime-800", dot: "bg-lime-600", label: "Low" },
+        low: { bg: "bg-stone-100", border: "border-stone-300", text: "text-stone-600", dot: "bg-stone-400", label: "Low" },
         optional: { bg: "bg-green-100", border: "border-green-400", text: "text-green-700", dot: "bg-green-400", label: "Optional" },
-        "": { bg: "bg-stone-100", border: "border-stone-300", text: "text-stone-600", dot: "bg-stone-400", label: "No Priority" },
     };
 
-    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional", ""];
-    const normalizePriority = (p) => p || "";
+    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional"];
+    const normalizePriority = (p) => p || "normal";
     const isDoneTask = (task) => !!(task.done || task.completed);
 
     const PrioritySelector = ({ currentPriority, onSelect }) => {

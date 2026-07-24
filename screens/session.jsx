@@ -16,9 +16,8 @@
         top: { dot: "bg-rose-400", label: "Top" },
         high: { dot: "bg-orange-400", label: "High" },
         normal: { dot: "bg-yellow-400", label: "Normal" },
-        low: { dot: "bg-lime-600", label: "Low" },
+        low: { dot: "bg-stone-400", label: "Low" },
         optional: { dot: "bg-green-400", label: "Optional" },
-        "": { dot: "bg-stone-400", label: "No Priority" },
     };
 
     const PRIORITY_STYLES = {
@@ -26,13 +25,12 @@
         top: { bg: "bg-rose-50", border: "border-rose-300" },
         high: { bg: "bg-orange-50", border: "border-orange-300" },
         normal: { bg: "bg-yellow-50", border: "border-yellow-300" },
-        low: { bg: "bg-lime-50", border: "border-lime-300" },
+        low: { bg: "bg-stone-50", border: "border-stone-200" },
         optional: { bg: "bg-green-50", border: "border-green-300" },
-        "": { bg: "bg-stone-50", border: "border-stone-200" },
     };
 
-    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional", ""];
-    const normalizePriority = (p) => p || "";
+    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional"];
+    const normalizePriority = (p) => p || "normal";
 
     const PrioritySelector = ({ currentPriority, onSelect }) => {
         const [isOpen, setIsOpen] = useState(false);
@@ -114,9 +112,9 @@
                             <button
                                 key={task.id}
                                 onClick={() => onAdd(task)}
-                                className={`w-full text-left p-3 rounded-xl border-2 flex items-center transition-colors ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES[""]).border}`}
+                                className={`w-full text-left p-3 rounded-xl border-2 flex items-center transition-colors ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES.normal).bg} ${(PRIORITY_STYLES[normalizePriority(task.priority)] || PRIORITY_STYLES.normal).border}`}
                             >
-                                <div className={`w-3 h-3 rounded-full mr-3 ${(PRIORITY_UI[normalizePriority(task.priority)] || PRIORITY_UI[""]).dot}`} />
+                                <div className={`w-3 h-3 rounded-full mr-3 ${(PRIORITY_UI[normalizePriority(task.priority)] || PRIORITY_UI.normal).dot}`} />
                                 <span className={`font-medium ${normalizePriority(task.priority) === "urgent" ? "font-bold" : ""}`}>{task.text}</span>
                                 <Icons.Plus size={16} className="ml-auto text-stone-600" />
                             </button>
@@ -462,7 +460,7 @@
                                 const isMinimizedByFocusMode = isFocusMode && hasFocusedTask && !isFocused && !isCompleted;
                                 const rowBaseClass = isCompleted
                                     ? "bg-lime-50 border-lime-300 opacity-60"
-                                    : `${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).bg} ${(PRIORITY_STYLES[priority] || PRIORITY_STYLES[""]).border}`;
+                                    : `${(PRIORITY_STYLES[priority] || PRIORITY_STYLES.normal).bg} ${(PRIORITY_STYLES[priority] || PRIORITY_STYLES.normal).border}`;
                                 const focusClass = isFocused
                                     ? "z-20 shadow-md scale-[1.01]"
                                     : hasFocusedTask && !isCompleted

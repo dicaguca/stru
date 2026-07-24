@@ -100,10 +100,10 @@
             },
             low: {
                 label: "Low",
-                bg: "bg-[#f2f1df]",
-                border: "border-[#8a8c4a]",
-                text: "text-[#565821]",
-                dot: "bg-[#8a8c4a]",
+                bg: "bg-lime-50",
+                border: "border-lime-300",
+                text: "text-lime-800",
+                dot: "bg-lime-600",
             },
             optional: {
                 label: "Optional",

@@ -26,17 +26,17 @@
             label: "High",
         },
         normal: {
-            bg: "bg-yellow-100",
-            border: "border-yellow-400",
+            bg: "bg-yellow-50",
+            border: "border-yellow-300",
             text: "text-yellow-700",
             dot: "bg-yellow-400",
             label: "Normal",
         },
         low: {
-            bg: "bg-[#e9e8ca]",
-            border: "border-[#8a8c4a]",
-            text: "text-[#565821]",
-            dot: "bg-[#8a8c4a]",
+            bg: "bg-lime-100",
+            border: "border-lime-600",
+            text: "text-lime-800",
+            dot: "bg-lime-600",
             label: "Low",
         },
         optional: {
@@ -60,7 +60,7 @@
         top: "bg-rose-200",
         high: "bg-orange-200",
         normal: "bg-yellow-200",
-        low: "bg-[#d7d597]",
+        low: "bg-lime-200",
         optional: "bg-green-200",
         "": "bg-stone-200",
     };

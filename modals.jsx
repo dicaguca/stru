@@ -60,7 +60,7 @@
                             <option value="top">Top (Rose)</option>
                             <option value="high">High (Orange)</option>
                             <option value="normal">Normal (Yellow)</option>
-                            <option value="low">Low (Olive)</option>
+                            <option value="low">Low (Lime)</option>
                             <option value="optional">Optional (Green)</option>
                             <option value="">No Priority</option>
                         </select>

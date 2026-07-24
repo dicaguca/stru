@@ -16,7 +16,7 @@
         top: { dot: "bg-rose-400", label: "Top" },
         high: { dot: "bg-orange-400", label: "High" },
         normal: { dot: "bg-yellow-400", label: "Normal" },
-        low: { dot: "bg-[#8a8c4a]", label: "Low" },
+        low: { dot: "bg-lime-600", label: "Low" },
         optional: { dot: "bg-green-400", label: "Optional" },
         "": { dot: "bg-stone-400", label: "No Priority" },
     };
@@ -26,7 +26,7 @@
         top: { bg: "bg-rose-50", border: "border-rose-300" },
         high: { bg: "bg-orange-50", border: "border-orange-300" },
         normal: { bg: "bg-yellow-50", border: "border-yellow-300" },
-        low: { bg: "bg-[#f2f1df]", border: "border-[#8a8c4a]" },
+        low: { bg: "bg-lime-50", border: "border-lime-300" },
         optional: { bg: "bg-green-50", border: "border-green-300" },
         "": { bg: "bg-stone-50", border: "border-stone-200" },
     };

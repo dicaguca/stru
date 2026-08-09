@@ -805,7 +805,7 @@ const App = () => {
 
     const openStartSession = () => {
         const now = new Date();
-        if (now.getHours() >= 22) {
+        if (now.getHours() > 22 || (now.getHours() === 22 && now.getMinutes() >= 30)) {
             setShowLateSessionWarning(true);
             return;
         }

@@ -777,19 +777,19 @@
                     <div className="flex justify-center mb-4">
                         <Icons.Moon size={56} className="text-indigo-900" />
                     </div>
-                    <h3 className="text-3xl font-bold text-indigo-900 mb-4">Past Break Switch</h3>
+                    <h3 className="text-3xl font-semibold tracking-wide text-indigo-900 mb-4">Past Break Switch</h3>
                     <p className="text-lg text-stone-600 mb-8">It is past 10:30 PM. To maintain your rhythm, it is recommended to close this work session.</p>
 
                     <div className="flex flex-col space-y-3">
                         <button
                             onClick={onEndDay}
-                            className="w-full bg-indigo-900 text-white p-4 rounded-xl font-bold text-xl hover:bg-indigo-800 shadow-lg"
+                            className="w-full bg-indigo-900 text-white p-4 rounded-xl font-semibold tracking-wide text-xl hover:bg-indigo-800 shadow-lg"
                         >
                             End Workday
                         </button>
                         <button
                             onClick={onConfirm}
-                            className="w-full bg-stone-200 text-stone-700 p-4 rounded-xl font-bold text-lg hover:bg-stone-300"
+                            className="w-full bg-stone-200 text-stone-700 p-4 rounded-xl font-semibold tracking-wide text-lg hover:bg-stone-300"
                         >
                             Override &amp; Start Session
                         </button>

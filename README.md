@@ -34,6 +34,7 @@ stru codex/
 ├── icons.js                # Lucide icon components exposed on window.Stru.Icons
 ├── app.jsx                 # Root React component — owns all state, session/break logic, and screen rendering
 ├── modals.jsx              # All modal/dialog components (AddTask, EditTask, Settings, etc.)
+├── sync.js                 # Pulls due tasks from Stoa/Asana into Stru, pushes completions back — plain JS, no Babel
 ├── screens/
 │   ├── home.jsx            # Dashboard: task overview, quick actions, completion ring
 │   ├── masterlist.jsx      # Full task list with priority filtering and batch actions
@@ -43,7 +44,9 @@ stru codex/
 │   ├── session-log.jsx     # Log of sessions and breaks for the current workday
 │   ├── daily-report.jsx    # End-of-day summary
 │   └── history.jsx         # Past workday history
-└── stru-logo.png
+├── sounds/                 # Session audio cues: start, end, 10-min warning, 5-min warning
+├── stru-logo.png
+└── APP-INDEX-MAP.html      # Standalone dev reference page — not loaded by the app itself
 ```
 
 ### Load order matters
@@ -55,7 +58,8 @@ stru codex/
 3. `icons.js`
 4. All screen files
 5. `modals.jsx`
-6. `app.jsx` — must be last (mounts the React app)
+6. `sync.js` — plain JS, no Babel; all `Stru.constants` accesses inside it are lazy/runtime
+7. `app.jsx` — must be last (mounts the React app)
 
 ---
 
@@ -74,7 +78,14 @@ Current priority order (high → low):
 `urgent` → `top` → `high` → `normal` → `low` → `optional`. There is no "no priority" tier — `normal` is the default, and anything blank/unrecognized normalizes to it. `Stru.constants.PRIORITY_ALIASES` maps legacy values (`must`, `should`, `could`, `personal`, `nice`, `want`, older loose synonyms, and blank/`none`) to their new canonical key, so old stored data is transparently migrated the first time it's normalized — never write a task with a legacy priority string directly.
 
 ### Modes
-Above Lists sits a fixed set of **Modes** (`Stru.constants.MODES`: Zen Habits, CBF, Personal) — the user works in exactly one active mode at a time (`activeModeId` in `app.jsx`, persisted). Every list has a `modeId`; Master List, Plan Session, and the active session are all scoped to the active mode, while History/Daily Report/Session Log stay pooled across all modes by design. Each mode has exactly one permanent, non-deletable **Vault** list (`isVault: true`) for tasks the user wants out of sight — movable to with a single click from Master List, always sorted last in the list-tabs row.
+Above Lists sits a fixed set of **Modes** (`Stru.constants.MODES`: Zen Habits, CBF, Personal) — the user works in exactly one active mode at a time (`activeModeId` in `app.jsx`, persisted). Every list has a `modeId`; Master List, Plan Session, and the active session are all scoped to the active mode, while History/Daily Report/Session Log stay pooled across all modes by design. Each mode has exactly one permanent, non-deletable **Vault** list (`isVault: true`) for tasks the user wants out of sight — movable to and back from with a single click in Master List, always sorted last in the list-tabs row. Archiving a task stamps its `archivedFromListId`, so the Restore button shown on vaulted tasks knows exactly which list to send it back to (falling back to the mode's first regular list if the original was since deleted).
+
+### Sync (Stoa + Asana)
+`sync.js` pulls due-or-overdue tasks from two external sources into Stru and pushes completions back:
+- **Stoa** (a cloud-hosted task app, read via a Cloudflare KV-backed API) — tasks tagged/foldered "CBF" land in the CBF mode's list, everything else goes to Personal. Completing a synced task in Stru appends an event to Stoa's queue rather than writing its data directly, since Stru has zero knowledge of Stoa's schema.
+- **Asana** (REST API, requires a personal access token + workspace saved in Settings) — tasks from "My Tasks" that are due today, overdue, or manually in the Today section come in; names starting with "YouTube" route to a `YouTube` list, everything else to the default list.
+
+Sync only runs when triggered — on "Start Day", or via the "Sync Now" button in Settings — never automatically or on a timer. Imported tasks carry `sourceApp`/`sourceId` so re-syncing doesn't duplicate them and completions can be routed back to the right source.
 
 ### Session timer
 The timer is wall-clock based, not tick-counted. `sessionTargetTimeRef` holds an absolute timestamp for when the session ends. Each tick recalculates `Math.ceil((targetTime - Date.now()) / 1000)`. This means the timer is immune to the computer sleeping or going idle — if the machine wakes up after the session should have ended, the duration is capped at the scheduled end time, not the wake time.
@@ -131,3 +142,8 @@ git push --set-upstream origin main
 | `stru-workevents` | Workday start/end event log |
 | `stru-history` | Array of past workday summaries |
 | `stru-active-session` | The currently running session (if any) |
+| `stru-sync-asana-pat` | Asana personal access token, set in Settings |
+| `stru-sync-asana-workspace` | Asana workspace GID, set in Settings |
+| `stru-sync-last` | Timestamp of the last successful sync |
+
+Settings also has **Export Data** / **Import Data** (a full JSON backup/restore of every key above) and **Reset Day**, which can clear just tasks or wipe tasks/sessions/breaks/workevents/history/lists together.

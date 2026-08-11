@@ -147,6 +147,13 @@
 
         const vaultListId = useMemo(() => (lists || []).find((list) => list.isVault)?.id, [lists]);
 
+        const getRestoreListId = (task) => {
+            const origin = (lists || []).find((list) => list.id === task.archivedFromListId && !list.isVault);
+            if (origin) return origin.id;
+            const fallback = (lists || []).find((list) => list.modeId === activeModeId && !list.isVault);
+            return fallback?.id || Stru.constants.DEFAULT_LIST_ID;
+        };
+
         const sortedLists = useMemo(
             () => (lists || []).slice().sort((a, b) => (a.isVault ? 1 : 0) - (b.isVault ? 1 : 0)),
             [lists]
@@ -203,7 +210,11 @@
         };
 
         const applyBatchMove = (listId) => {
-            selectedIds.forEach((id) => onUpdate(id, { listId }));
+            selectedIds.forEach((id) => {
+                const task = (tasks || []).find((t) => t.id === id);
+                const archivedFromListId = listId === vaultListId ? (task?.listId ?? null) : null;
+                onUpdate(id, { listId, archivedFromListId });
+            });
             setIsBatchMode(false);
             setSelectedIds([]);
         };
@@ -381,12 +392,26 @@
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            onUpdate(task.id, { listId: vaultListId });
+                                            onUpdate(task.id, { listId: vaultListId, archivedFromListId: task.listId });
                                         }}
                                         className="p-2 hover:bg-white/60 rounded-lg"
                                         title="Send to Vault"
                                     >
                                         <Icons.Archive size={20} className="text-stone-500" />
+                                    </button>
+                                )}
+
+                                {vaultListId && task.listId === vaultListId && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const restoredListId = getRestoreListId(task);
+                                            onUpdate(task.id, { listId: restoredListId, archivedFromListId: null });
+                                        }}
+                                        className="p-2 hover:bg-white/60 rounded-lg"
+                                        title="Restore from Vault"
+                                    >
+                                        <Icons.ArchiveRestore size={20} className="text-stone-500" />
                                     </button>
                                 )}
 

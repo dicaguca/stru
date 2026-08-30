@@ -293,6 +293,11 @@
             if (stats.total > 0 && stats.completed < stats.total) return;
 
             setCompletedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+            // Persist to the global task list right away rather than waiting for
+            // endSessionAndSave() to read it off the session object — that hand-off
+            // relies on a useEffect having flushed first, which can lose the race
+            // when a task is completed right as the session auto-ends.
+            onUpdate?.(id, { done: true, completed: true });
         };
 
         const toggleFocusedTask = (id) => {

@@ -11,6 +11,13 @@
             dot: "bg-[#c8402c]",
             label: "Urgent",
         },
+        meetings: {
+            bg: "bg-[#e2e4f0]",
+            border: "border-[#7579a8]",
+            text: "text-[#3e4270]",
+            dot: "bg-[#7579a8]",
+            label: "Meetings",
+        },
         top: {
             bg: "bg-rose-100",
             border: "border-rose-400",
@@ -50,6 +57,7 @@
 
     const priorityTrackColors = {
         urgent: "bg-[#eeb3a8]",
+        meetings: "bg-[#c8cae2]",
         top: "bg-rose-200",
         high: "bg-orange-200",
         normal: "bg-yellow-200",
@@ -57,13 +65,14 @@
         optional: "bg-green-200",
     };
 
-    const PRIORITY_KEYS = ["urgent", "top", "high", "normal", "low", "optional"];
+    const PRIORITY_KEYS = ["urgent", "meetings", "top", "high", "normal", "low", "optional"];
 
     const normalizePriority = (p) => p || "normal";
 
     const computePrioritiesFromTasks = (tasks = []) => {
         const stats = {
             urgent: { active: 0, completed: 0 },
+            meetings: { active: 0, completed: 0 },
             top: { active: 0, completed: 0 },
             high: { active: 0, completed: 0 },
             normal: { active: 0, completed: 0 },

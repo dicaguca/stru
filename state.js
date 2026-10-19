@@ -51,7 +51,7 @@
         ],
         DEFAULT_MODE_ID: "zen-habits",
         DEFAULT_PRIORITY: "normal",
-        PRIORITY_ORDER: ["urgent", "top", "high", "normal", "low", "optional"],
+        PRIORITY_ORDER: ["urgent", "meetings", "top", "high", "normal", "low", "optional"],
         PRIORITY_ALIASES: {
             // Legacy canonical keys (pre-Modes priority system) → new canonical keys.
             // "personal" used to double as both a category and a priority; category
@@ -77,6 +77,13 @@
                 border: "border-[#c8402c]",
                 text: "text-[#7a2418]",
                 dot: "bg-[#c8402c]",
+            },
+            meetings: {
+                label: "Meetings",
+                bg: "bg-[#eff0f7]",
+                border: "border-[#9a9dc4]",
+                text: "text-[#3e4270]",
+                dot: "bg-[#7579a8]",
             },
             top: {
                 label: "Top",

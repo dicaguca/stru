@@ -5,6 +5,7 @@
 
     const PRIORITY_UI = {
         urgent: { bg: "bg-[#f7d6d1]", border: "border-[#c8402c]", text: "text-[#7a2418]", dot: "bg-[#c8402c]", label: "Urgent" },
+        meetings: { bg: "bg-[#e2e4f0]", border: "border-[#7579a8]", text: "text-[#3e4270]", dot: "bg-[#7579a8]", label: "Meetings" },
         top: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Top" },
         high: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
         normal: { bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-700", dot: "bg-yellow-400", label: "Normal" },
@@ -12,7 +13,7 @@
         optional: { bg: "bg-green-100", border: "border-green-400", text: "text-green-700", dot: "bg-green-400", label: "Optional" },
     };
 
-    const PRIORITY_ORDER = ["urgent", "top", "high", "normal", "low", "optional"];
+    const PRIORITY_ORDER = ["urgent", "meetings", "top", "high", "normal", "low", "optional"];
     const normalizePriority = (p) => p || "normal";
     const isDoneTask = (task) => !!(task.done || task.completed);
 
@@ -128,8 +129,10 @@
         onDuplicate,
         getSubtaskStats,
     }) => {
-        const { useState, useMemo, useEffect, useRef } = React;
+        const { useState, useMemo, useEffect, useLayoutEffect, useRef } = React;
         const [isBatchMode, setIsBatchMode] = useState(false);
+        // Changing a priority re-sorts the list; remember the scroll position so the page stays put.
+        const preservedScrollYRef = useRef(null);
         const [selectedIds, setSelectedIds] = useState([]);
         const [expandedTaskIds, setExpandedTaskIds] = useState([]);
         const [editingSubtask, setEditingSubtask] = useState(null);
@@ -203,8 +206,19 @@
             setSelectedIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
         };
 
+        useLayoutEffect(() => {
+            if (preservedScrollYRef.current === null) return;
+            window.scrollTo(0, preservedScrollYRef.current);
+            preservedScrollYRef.current = null;
+        }, [tasks]);
+
+        const changePriority = (id, priority) => {
+            preservedScrollYRef.current = window.scrollY;
+            onUpdate(id, { priority });
+        };
+
         const applyBatchPriority = (priority) => {
-            selectedIds.forEach((id) => onUpdate(id, { priority }));
+            selectedIds.forEach((id) => changePriority(id, priority));
             setIsBatchMode(false);
             setSelectedIds([]);
         };
@@ -311,7 +325,7 @@
                             </div>
                         ) : (
                             <div className="flex items-center self-center shrink-0">
-                                <PrioritySelector currentPriority={priority} onSelect={(next) => onUpdate(task.id, { priority: next })} />
+                                <PrioritySelector currentPriority={priority} onSelect={(next) => changePriority(task.id, next)} />
                             </div>
                         )}
 
@@ -629,7 +643,7 @@
                         </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 [overflow-anchor:none]">
                         {pending.map((task) => renderTaskRow(task, false))}
                         {completed.map((task) => renderTaskRow(task, true))}
 

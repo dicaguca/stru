@@ -57,6 +57,7 @@
                             className="w-full p-4 border-2 border-stone-200 rounded-xl outline-none text-base"
                         >
                             <option value="urgent">Urgent (Red)</option>
+                            <option value="meetings">Meetings (Indigo)</option>
                             <option value="top">Top (Rose)</option>
                             <option value="high">High (Orange)</option>
                             <option value="normal">Normal (Yellow)</option>

@@ -12,10 +12,10 @@
             label: "Urgent",
         },
         meetings: {
-            bg: "bg-[#e2e4f0]",
-            border: "border-[#7579a8]",
-            text: "text-[#3e4270]",
-            dot: "bg-[#7579a8]",
+            bg: "bg-[#dfe2f5]",
+            border: "border-[#6d73bd]",
+            text: "text-[#3a3f7a]",
+            dot: "bg-[#6d73bd]",
             label: "Meetings",
         },
         top: {
@@ -57,7 +57,7 @@
 
     const priorityTrackColors = {
         urgent: "bg-[#eeb3a8]",
-        meetings: "bg-[#c8cae2]",
+        meetings: "bg-[#c3c7ec]",
         top: "bg-rose-200",
         high: "bg-orange-200",
         normal: "bg-yellow-200",

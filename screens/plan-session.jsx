@@ -7,7 +7,7 @@
     const priorityColors =
         (Stru.constants && Stru.constants.priorityColors) || {
             urgent: { bg: "bg-[#fbe9e6]", border: "border-[#c8402c]", dot: "bg-[#c8402c]" },
-            meetings: { bg: "bg-[#eff0f7]", border: "border-[#9a9dc4]", dot: "bg-[#7579a8]" },
+            meetings: { bg: "bg-[#eef0fa]", border: "border-[#979cd4]", dot: "bg-[#6d73bd]" },
             top: { bg: "bg-rose-50", border: "border-rose-300", dot: "bg-rose-400" },
             high: { bg: "bg-orange-50", border: "border-orange-300", dot: "bg-orange-400" },
             normal: { bg: "bg-yellow-50", border: "border-yellow-300", dot: "bg-yellow-400" },
@@ -20,7 +20,7 @@
 
     const PRIORITY_UI = {
         urgent: { bg: "bg-[#f7d6d1]", border: "border-[#c8402c]", text: "text-[#7a2418]", dot: "bg-[#c8402c]", label: "Urgent" },
-        meetings: { bg: "bg-[#e2e4f0]", border: "border-[#7579a8]", text: "text-[#3e4270]", dot: "bg-[#7579a8]", label: "Meetings" },
+        meetings: { bg: "bg-[#dfe2f5]", border: "border-[#6d73bd]", text: "text-[#3a3f7a]", dot: "bg-[#6d73bd]", label: "Meetings" },
         top: { bg: "bg-rose-100", border: "border-rose-400", text: "text-rose-700", dot: "bg-rose-400", label: "Top" },
         high: { bg: "bg-orange-100", border: "border-orange-400", text: "text-orange-700", dot: "bg-orange-400", label: "High" },
         normal: { bg: "bg-yellow-50", border: "border-yellow-300", text: "text-yellow-700", dot: "bg-yellow-400", label: "Normal" },

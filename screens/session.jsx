@@ -13,7 +13,7 @@
 
     const PRIORITY_UI = {
         urgent: { dot: "bg-[#c8402c]", label: "Urgent" },
-        meetings: { dot: "bg-[#7579a8]", label: "Meetings" },
+        meetings: { dot: "bg-[#6d73bd]", label: "Meetings" },
         top: { dot: "bg-rose-400", label: "Top" },
         high: { dot: "bg-orange-400", label: "High" },
         normal: { dot: "bg-yellow-400", label: "Normal" },
@@ -23,7 +23,7 @@
 
     const PRIORITY_STYLES = {
         urgent: { bg: "bg-[#fbe9e6]", border: "border-[#c8402c]" },
-        meetings: { bg: "bg-[#eff0f7]", border: "border-[#9a9dc4]" },
+        meetings: { bg: "bg-[#eef0fa]", border: "border-[#979cd4]" },
         top: { bg: "bg-rose-50", border: "border-rose-300" },
         high: { bg: "bg-orange-50", border: "border-orange-300" },
         normal: { bg: "bg-yellow-50", border: "border-yellow-300" },

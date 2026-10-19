@@ -80,10 +80,10 @@
             },
             meetings: {
                 label: "Meetings",
-                bg: "bg-[#eff0f7]",
-                border: "border-[#9a9dc4]",
-                text: "text-[#3e4270]",
-                dot: "bg-[#7579a8]",
+                bg: "bg-[#eef0fa]",
+                border: "border-[#979cd4]",
+                text: "text-[#3a3f7a]",
+                dot: "bg-[#6d73bd]",
             },
             top: {
                 label: "Top",

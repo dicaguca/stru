@@ -82,7 +82,7 @@ Above Lists sits a fixed set of **Modes** (`Stru.constants.MODES`: Zen Habits, C
 
 ### Sync (Stoa + Asana)
 `sync.js` pulls due-or-overdue tasks from two external sources into Stru and pushes completions back:
-- **Stoa** (a cloud-hosted task app, read via a Cloudflare KV-backed API) — tasks tagged/foldered "CBF" land in the CBF mode's list, everything else goes to Personal. Completing a synced task in Stru appends an event to Stoa's queue rather than writing its data directly, since Stru has zero knowledge of Stoa's schema.
+- **Stoa** (a cloud-hosted task app, read via a Cloudflare KV-backed API) — tasks tagged/foldered "CBF" land in the CBF mode's list, everything else goes to Personal. Completing a synced task (or ticking one of its subtasks) in Stru appends an event to Stoa's queue rather than writing its data directly, since Stru has zero knowledge of Stoa's schema.
 - **Asana** (REST API, requires a personal access token + workspace saved in Settings) — tasks from "My Tasks" that are due today, overdue, or manually in the Today section come in; names starting with "YouTube" route to a `YouTube` list, everything else to the default list.
 
 Sync only runs when triggered — on "Start Day", or via the "Sync Now" button in Settings — never automatically or on a timer. Imported tasks carry `sourceApp`/`sourceId` so re-syncing doesn't duplicate them and completions can be routed back to the right source.

@@ -267,6 +267,8 @@
             const task = currentTasks.find((item) => item.id === id);
             if (!task) return;
             const nextDone = !isDoneTask(task);
+            // Vaulted tasks must be restored before they can be completed.
+            if (nextDone && task.listId === vaultListId) return;
             onUpdate(id, { done: nextDone, completed: nextDone });
         };
 
@@ -429,18 +431,20 @@
                                     </button>
                                 )}
 
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleDone(task.id);
-                                    }}
-                                    className="p-2 hover:bg-white/60 rounded-lg"
-                                    title={isCompleted ? "Mark not done" : "Mark done"}
-                                >
-                                    {isCompleted
-                                        ? <Icons.X size={20} className="text-stone-500" />
-                                        : <Icons.Check size={20} className="text-green-500" />}
-                                </button>
+                                {(isCompleted || task.listId !== vaultListId) && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleDone(task.id);
+                                        }}
+                                        className="p-2 hover:bg-white/60 rounded-lg"
+                                        title={isCompleted ? "Mark not done" : "Mark done"}
+                                    >
+                                        {isCompleted
+                                            ? <Icons.X size={20} className="text-stone-500" />
+                                            : <Icons.Check size={20} className="text-green-500" />}
+                                    </button>
+                                )}
 
                                 <button
                                     onClick={(e) => {

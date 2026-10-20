@@ -168,6 +168,8 @@ const App = () => {
     // ── External sync (Stoa + Asana) ─────────────────────────────────────────
     // Track previous done-state of synced tasks so we can fire back-sync on flip.
     const prevSyncedDoneRef = React.useRef({});
+    // Same for subtasks of synced tasks, keyed by `${taskId}:${subtaskId}`.
+    const prevSyncedSubtaskDoneRef = React.useRef({});
 
     /**
      * Run a full sync cycle, then refresh React state from localStorage.
@@ -192,6 +194,18 @@ const App = () => {
         if (!window.Stru?.sync) return;
         const synced = (tasks || []).filter((t) => t.sourceApp && t.sourceId);
         for (const task of synced) {
+            // Subtask events go first so Stoa applies them before a task
+            // completion that might spawn the next recurring instance.
+            for (const subtask of task.subtasks || []) {
+                const key = `${task.id}:${subtask.id}`;
+                const currSubDone = !!(subtask.done || subtask.completed);
+                const prevSubDone = prevSyncedSubtaskDoneRef.current[key];
+                if (prevSubDone !== undefined && prevSubDone !== currSubDone) {
+                    window.Stru.sync.onSubtaskCompleted?.(task, subtask.id, currSubDone);
+                }
+                prevSyncedSubtaskDoneRef.current[key] = currSubDone;
+            }
+
             const currDone = !!(task.done || task.completed);
             const prevDone = prevSyncedDoneRef.current[task.id];
             if (prevDone !== undefined && prevDone !== currDone) {

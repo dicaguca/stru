@@ -249,16 +249,17 @@
     let _stoaWriteQueue = Promise.resolve();
 
     /**
-     * Append a completion/un-completion event to stoa:events.
-     * Stoa processes the queue on next load using toggleTaskComplete().
+     * Append an event to stoa:events. Stoa processes the queue on next load.
+     * Event types: completeTask / uncompleteTask (taskId),
+     *              completeSubtask / uncompleteSubtask (taskId, subtaskId).
      */
-    const writeStoaTask = (stoaId, updates) => {
+    const appendStoaEvent = (fields) => {
         _stoaWriteQueue = _stoaWriteQueue
             .catch(() => {})
             .then(async () => {
                 try {
-                    const type = updates.status === 'Done' ? 'completeTask' : 'uncompleteTask';
-                    const event = { type, taskId: stoaId, at: new Date().toISOString() };
+                    const event = { ...fields, at: new Date().toISOString() };
+                    const { type } = event;
                     const res = await fetch(STOA_EVENTS_URL, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
@@ -268,7 +269,7 @@
                         const body = await res.text().catch(() => '');
                         console.warn('[Stru Sync] Could not queue Stoa event:', res.status, body.slice(0, 120));
                     } else {
-                        console.log('[Stru Sync] Queued event:', type, stoaId);
+                        console.log('[Stru Sync] Queued event:', type, event.taskId, event.subtaskId || '');
                     }
                 } catch (e) {
                     console.warn('[Stru Sync] Could not queue Stoa event:', e);
@@ -426,7 +427,7 @@
         if (!task?.sourceApp || !task?.sourceId) return;
 
         if (task.sourceApp === 'stoa') {
-            await writeStoaTask(task.sourceId, { status: done ? 'Done' : 'Active' });
+            await appendStoaEvent({ type: done ? 'completeTask' : 'uncompleteTask', taskId: task.sourceId });
             return;
         }
 
@@ -439,6 +440,20 @@
                 console.warn('[Stru Sync] Asana completion sync failed:', e.message);
             }
         }
+    };
+
+    /**
+     * Called whenever a subtask of a synced task is checked or unchecked in Stru.
+     * Only Stoa supports this; its subtask/checklist IDs were kept on import.
+     * Subtasks added in Stru don't exist in Stoa, so Stoa simply ignores them.
+     */
+    const onSubtaskCompleted = async (task, subtaskId, done) => {
+        if (task?.sourceApp !== 'stoa' || !task?.sourceId || !subtaskId) return;
+        await appendStoaEvent({
+            type: done ? 'completeSubtask' : 'uncompleteSubtask',
+            taskId: task.sourceId,
+            subtaskId,
+        });
     };
 
     const getSettings = () => ({
@@ -465,6 +480,7 @@
     window.Stru.sync = {
         run,
         onTaskCompleted,
+        onSubtaskCompleted,
         isStoaAvailable,
         fetchAsanaWorkspaces,
         getSettings,

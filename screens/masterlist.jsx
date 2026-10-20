@@ -468,13 +468,16 @@
                                         <input
                                             type="checkbox"
                                             checked={!!(subtask.done || subtask.completed)}
+                                            disabled={task.listId === vaultListId && !(subtask.done || subtask.completed)}
+                                            title={task.listId === vaultListId && !(subtask.done || subtask.completed) ? "Restore from Vault to complete" : undefined}
                                             onChange={(e) => {
+                                                if (e.target.checked && task.listId === vaultListId) return;
                                                 onUpdateSubtask(task.id, subtask.id, {
                                                     done: e.target.checked,
                                                     completed: e.target.checked,
                                                 });
                                             }}
-                                            className="w-4 h-4 rounded border-stone-300"
+                                            className="w-4 h-4 rounded border-stone-300 disabled:opacity-40 disabled:cursor-not-allowed"
                                         />
                                         {editingSubtask?.taskId === task.id && editingSubtask?.subtaskId === subtask.id ? (
                                             <input

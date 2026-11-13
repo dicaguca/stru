@@ -132,8 +132,8 @@
     };
 
     /**
-     * Fetch tasks from Asana's "My Tasks" list that are due today or overdue,
-     * or that are manually placed in the Today section.
+     * Fetch tasks from Asana's "My Tasks" list that are due today or overdue.
+     * Tasks without a due date are never imported.
      *
      * Uses the user_task_list endpoint rather than the search API so that
      * subtasks assigned to the user are also returned (search excludes subtasks).
@@ -151,7 +151,7 @@
 
         // Pull all incomplete tasks from My Tasks (includes subtasks).
         const params = new URLSearchParams({
-            opt_fields: 'gid,name,due_on,completed,assignee_status',
+            opt_fields: 'gid,name,due_on,completed',
             limit: '100',
         });
         const tasksResp = await asanaFetch(
@@ -162,14 +162,12 @@
         const cutoff = new Date();
         cutoff.setHours(23, 59, 59, 999);
 
+        // Only tasks with a due date of today or earlier. Undated tasks are never
+        // imported, even if they sit in the "Today" section — Asana leaves tasks
+        // there after their date is removed, so the section isn't a reliable signal.
         return (tasksResp.data || []).filter((t) => {
-            if (t.completed) return false;
-            // Due today or overdue
-            if (t.due_on && new Date(t.due_on + 'T00:00:00') <= cutoff) return true;
-            // In Today section with no due date set (user manually prioritised it for today).
-            // If a future due_on is set, the date check above is the authority — don't override it.
-            if (t.assignee_status === 'today' && !t.due_on) return true;
-            return false;
+            if (t.completed || !t.due_on) return false;
+            return new Date(t.due_on + 'T00:00:00') <= cutoff;
         });
     };
 
